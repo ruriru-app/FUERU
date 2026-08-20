@@ -3,65 +3,553 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>FUERU 開発確認</title>
+  <meta name="theme-color" content="#eff9f7">
+  <title>FUERU</title>
   <style>
     :root {
       color-scheme: light;
-      --mint: #8ccbc2;
-      --mint-dark: #4d9e93;
-      --lavender: #b59ad9;
-      --ink: #354846;
-      --muted: #71827f;
-      --line: #d9eae7;
+      --mint-050: #eff9f7;
+      --mint-100: #dff2ee;
+      --mint-300: #9fd7ce;
+      --mint-600: #3c9187;
+      --mint-700: #2f756d;
+      --lavender-100: #f0eafb;
+      --lavender-500: #9d7bc9;
+      --ink: #304542;
+      --muted: #6b7d79;
+      --line: #d7e8e4;
+      --danger: #a84f55;
+      --white: #fff;
+      --shadow: 0 18px 52px rgba(46, 91, 84, .13);
     }
+
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; }
+    html { min-height: 100%; background: var(--mint-050); }
     body {
-      display: grid;
-      place-items: center;
-      padding: calc(env(safe-area-inset-top) + 24px) 18px calc(env(safe-area-inset-bottom) + 24px);
-      background: linear-gradient(160deg, #eaf7f5 0%, #f6f1fb 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: calc(env(safe-area-inset-top) + 22px) 16px calc(env(safe-area-inset-bottom) + 28px);
+      background:
+        radial-gradient(circle at 18% 4%, rgba(159, 215, 206, .42), transparent 30%),
+        radial-gradient(circle at 92% 94%, rgba(207, 187, 232, .34), transparent 35%),
+        linear-gradient(155deg, #f1faf8 0%, #fbf8ff 100%);
       color: var(--ink);
       font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
     }
-    main {
-      width: min(100%, 440px);
-      padding: 34px 22px 24px;
-      border: 1px solid rgba(255, 255, 255, .85);
-      border-radius: 28px;
-      background: rgba(255, 255, 255, .9);
-      box-shadow: 0 18px 50px rgba(63, 91, 87, .12);
+
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    .shell {
+      width: min(100%, 460px);
+      margin: 0 auto;
+    }
+
+    .brand {
+      margin: 8px 0 20px;
       text-align: center;
     }
-    h1 { margin: 0; color: var(--mint-dark); font-size: 42px; letter-spacing: .08em; }
-    .lead { margin: 8px 0 26px; color: var(--muted); font-size: 15px; }
-    .links { display: grid; gap: 14px; }
-    a {
+
+    .brand h1 {
+      margin: 0;
+      color: var(--mint-700);
+      font-size: clamp(38px, 11vw, 52px);
+      letter-spacing: .1em;
+      line-height: 1;
+    }
+
+    .brand p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .card {
+      overflow: hidden;
+      padding: 26px 20px 22px;
+      border: 1px solid rgba(255, 255, 255, .92);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, .94);
+      box-shadow: var(--shadow);
+    }
+
+    .card + .card { margin-top: 16px; }
+    .hidden { display: none !important; }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.4;
+    }
+
+    h3 { margin: 0 0 8px; font-size: 18px; }
+    p { line-height: 1.75; }
+    .muted { color: var(--muted); }
+    .compact { margin: 6px 0 18px; font-size: 14px; }
+
+    .steps {
       display: grid;
-      gap: 4px;
-      padding: 17px 18px;
-      border-radius: 18px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin: 20px 0 24px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .steps li {
+      padding: 11px 4px;
+      border-radius: 14px;
+      background: var(--mint-050);
+      color: var(--mint-700);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .steps strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    input {
+      width: 100%;
+      min-height: 52px;
+      padding: 12px 14px;
+      border: 2px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 16px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    input:focus {
+      border-color: var(--mint-600);
+      box-shadow: 0 0 0 4px rgba(60, 145, 135, .12);
+    }
+
+    .button {
+      display: flex;
+      width: 100%;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 14px;
+      padding: 13px 18px;
+      border: 0;
+      border-radius: 17px;
+      background: var(--mint-600);
+      box-shadow: 0 8px 18px rgba(60, 145, 135, .2);
       color: #fff;
       text-decoration: none;
-      font-size: 21px;
-      font-weight: 800;
-      box-shadow: 0 7px 16px rgba(63, 91, 87, .14);
+      font-size: 17px;
+      font-weight: 900;
+      cursor: pointer;
     }
-    a:first-child { background: var(--mint-dark); }
-    a:last-child { background: var(--lavender); }
-    a small { font-size: 12px; font-weight: 600; opacity: .9; }
-    footer { margin-top: 23px; color: var(--muted); font-size: 12px; }
+
+    .button:hover { background: var(--mint-700); }
+    .button:focus-visible { outline: 3px solid rgba(60, 145, 135, .3); outline-offset: 3px; }
+    .button:disabled { cursor: wait; opacity: .58; }
+
+    .button.secondary {
+      background: var(--lavender-500);
+      box-shadow: 0 8px 18px rgba(157, 123, 201, .2);
+    }
+
+    .button.ghost {
+      border: 2px solid var(--line);
+      background: #fff;
+      box-shadow: none;
+      color: var(--ink);
+    }
+
+    .message {
+      margin: 16px 0 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--mint-050);
+      color: var(--mint-700);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.65;
+    }
+
+    .message.error {
+      background: #fff0f1;
+      color: var(--danger);
+    }
+
+    .mail-note {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .family-list { display: grid; gap: 12px; margin-top: 18px; }
+    .family {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfefd;
+    }
+
+    .family-name { margin: 0; font-size: 19px; font-weight: 900; }
+    .family-code { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+
+    .signed-in-as {
+      margin: 0 0 18px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--lavender-100);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .loading {
+      padding: 34px 18px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 14px;
+      border: 4px solid var(--mint-100);
+      border-top-color: var(--mint-600);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    details {
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    summary {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .dev-links { display: grid; gap: 8px; margin-top: 12px; }
+    .dev-links a { color: var(--mint-700); font-size: 13px; font-weight: 800; }
+    footer { margin: 18px 0 0; color: var(--muted); text-align: center; font-size: 11px; }
+
+    @media (min-width: 640px) {
+      body { padding-top: 46px; }
+      .card { padding: 32px 30px 28px; }
+    }
   </style>
 </head>
 <body>
-  <main>
-    <h1>FUERU</h1>
-    <p class="lead">スマートフォン確認用</p>
-    <nav class="links" aria-label="確認する画面を選択">
-      <a href="parent.html">保護者版<small>v0.9.23 Step2</small></a>
-      <a href="child.html">子ども版<small>v0.5.15 Step3・おこづかい帳印刷対応</small></a>
-    </nav>
-    <footer>開発確認ページ</footer>
-  </main>
+  <div class="shell">
+    <header class="brand">
+      <h1>FUERU</h1>
+      <p>おこづかいと、できた！がふえていく</p>
+    </header>
+
+    <main>
+      <section id="loadingView" class="card loading" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        FUERUを準備しています
+      </section>
+
+      <section id="loginView" class="card hidden">
+        <h2>保護者の方から<br>はじめます</h2>
+        <p class="muted compact">初めての方も、すでにFUERUを使っている方も、同じ入口です。</p>
+
+        <ol class="steps" aria-label="ログインの手順">
+          <li><strong>1</strong>メール入力</li>
+          <li><strong>2</strong>メールを開く</li>
+          <li><strong>3</strong>FUERUへ戻る</li>
+        </ol>
+
+        <form id="magicLinkForm">
+          <label for="email">保護者のメールアドレス</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required>
+          <button id="sendButton" class="button" type="submit">ログイン用メールを送る</button>
+        </form>
+
+        <p id="loginMessage" class="message hidden" role="status" aria-live="polite"></p>
+        <p class="mail-note">パスワードは必要ありません。届いたメールのリンクをタップすると、この端末にログイン状態が保存されます。</p>
+
+        <details>
+          <summary>現在の保護者版・子ども版を見る（開発確認）</summary>
+          <div class="dev-links">
+            <a href="parent.html">保護者版 v0.9.23 Step2</a>
+            <a href="child.html">子ども版 v0.5.15 Step3</a>
+          </div>
+        </details>
+      </section>
+
+      <section id="setupView" class="card hidden">
+        <h2>家庭を登録します</h2>
+        <p id="signedInEmail" class="signed-in-as"></p>
+        <p class="muted compact">FUERUの中で表示する家庭名を入力してください。あとから変更できます。</p>
+
+        <form id="familyForm">
+          <label for="familyName">家庭名</label>
+          <input id="familyName" name="familyName" type="text" maxlength="80" placeholder="例：るりる家" required>
+          <button id="createFamilyButton" class="button" type="submit">この家庭でFUERUをはじめる</button>
+        </form>
+        <p id="setupMessage" class="message hidden" role="status" aria-live="polite"></p>
+        <button class="button ghost logout-button" type="button">ログアウト</button>
+      </section>
+
+      <section id="homeView" class="card hidden">
+        <h2>おかえりなさい</h2>
+        <p id="homeEmail" class="signed-in-as"></p>
+        <div id="familyList" class="family-list"></div>
+        <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
+        <a class="button secondary" href="parent.html">現在の保護者画面を開く</a>
+        <button class="button ghost logout-button" type="button">ログアウト</button>
+      </section>
+
+      <section id="fatalView" class="card hidden">
+        <h2>接続を確認してください</h2>
+        <p id="fatalMessage" class="message error"></p>
+        <button class="button ghost" type="button" onclick="location.reload()">もう一度試す</button>
+      </section>
+    </main>
+
+    <footer>FUERU 保護者認証 準備版</footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const CONFIG = Object.freeze({
+        url: 'https://xftiircdvszesknamrmx.supabase.co',
+        publishableKey: 'sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV'
+      });
+
+      const views = ['loadingView', 'loginView', 'setupView', 'homeView', 'fatalView'];
+      const byId = (id) => document.getElementById(id);
+      let client = null;
+      let rendering = false;
+
+      function showView(id) {
+        views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
+      }
+
+      function setMessage(id, text, isError = false) {
+        const box = byId(id);
+        box.textContent = text || '';
+        box.classList.toggle('hidden', !text);
+        box.classList.toggle('error', Boolean(isError));
+      }
+
+      function friendlyError(error) {
+        const message = String(error?.message || error || '処理を完了できませんでした。');
+        if (/rate limit/i.test(message)) return '少し時間をおいてから、もう一度お試しください。';
+        if (/invalid.*email|email.*invalid/i.test(message)) return 'メールアドレスを確認してください。';
+        if (/failed to fetch|network/i.test(message)) return '通信できませんでした。インターネット接続を確認してください。';
+        return '処理を完了できませんでした。少し時間をおいて、もう一度お試しください。';
+      }
+
+      function redirectUrl() {
+        return `${window.location.origin}${window.location.pathname}`;
+      }
+
+      async function loadFamilies(user) {
+        const { data: memberships, error: membershipError } = await client
+          .from('family_guardians')
+          .select('family_id, role')
+          .eq('user_id', user.id);
+
+        if (membershipError) throw membershipError;
+        if (!memberships?.length) return [];
+
+        const ids = memberships.map((item) => item.family_id);
+        const { data: families, error: familyError } = await client
+          .from('families')
+          .select('id, name, family_code')
+          .in('id', ids)
+          .order('created_at', { ascending: true });
+
+        if (familyError) throw familyError;
+        const roles = new Map(memberships.map((item) => [item.family_id, item.role]));
+        return (families || []).map((family) => ({ ...family, role: roles.get(family.id) }));
+      }
+
+      async function processAutoPayouts(families) {
+        for (const family of families) {
+          const { error } = await client.rpc('process_family_auto_payouts', {
+            p_family_id: family.id
+          });
+          if (error) throw error;
+        }
+      }
+
+      function renderFamilyList(families) {
+        const list = byId('familyList');
+        list.replaceChildren();
+
+        families.forEach((family) => {
+          const article = document.createElement('article');
+          article.className = 'family';
+
+          const name = document.createElement('p');
+          name.className = 'family-name';
+          name.textContent = family.name;
+
+          const code = document.createElement('p');
+          code.className = 'family-code';
+          code.textContent = `家族コード：${family.family_code}`;
+
+          article.append(name, code);
+          list.append(article);
+        });
+      }
+
+      async function renderForSession(session) {
+        if (rendering) return;
+        rendering = true;
+
+        try {
+          if (!session?.user) {
+            showView('loginView');
+            return;
+          }
+
+          showView('loadingView');
+          const families = await loadFamilies(session.user);
+
+          if (!families.length) {
+            byId('signedInEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
+            showView('setupView');
+            return;
+          }
+
+          byId('homeEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
+          renderFamilyList(families);
+          showView('homeView');
+
+          try {
+            await processAutoPayouts(families);
+          } catch (error) {
+            setMessage('homeMessage', '支給日の確認は次回もう一度行います。通常の確認は続けられます。', true);
+          }
+        } catch (error) {
+          byId('fatalMessage').textContent = friendlyError(error);
+          showView('fatalView');
+        } finally {
+          rendering = false;
+        }
+      }
+
+      byId('magicLinkForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = byId('sendButton');
+        const email = byId('email').value.trim();
+
+        setMessage('loginMessage', '');
+        button.disabled = true;
+        button.textContent = '送信しています…';
+
+        try {
+          const { error } = await client.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: redirectUrl(),
+              shouldCreateUser: true
+            }
+          });
+          if (error) throw error;
+          setMessage('loginMessage', 'メールを送りました。届いたメールのリンクをタップしてください。');
+        } catch (error) {
+          setMessage('loginMessage', friendlyError(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'ログイン用メールを送る';
+        }
+      });
+
+      byId('familyForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = byId('createFamilyButton');
+        const name = byId('familyName').value.trim();
+
+        setMessage('setupMessage', '');
+        button.disabled = true;
+        button.textContent = '登録しています…';
+
+        try {
+          const { error } = await client.rpc('create_family_with_owner', { p_name: name });
+          if (error) throw error;
+          const { data } = await client.auth.getSession();
+          await renderForSession(data.session);
+        } catch (error) {
+          setMessage('setupMessage', friendlyError(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'この家庭でFUERUをはじめる';
+        }
+      });
+
+      document.querySelectorAll('.logout-button').forEach((button) => {
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          await client.auth.signOut();
+          window.history.replaceState(null, '', window.location.pathname);
+          showView('loginView');
+          button.disabled = false;
+        });
+      });
+
+      async function start() {
+        try {
+          if (!window.supabase?.createClient) throw new Error('Supabase library unavailable');
+
+          client = window.supabase.createClient(CONFIG.url, CONFIG.publishableKey, {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true
+            }
+          });
+
+          client.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+              window.setTimeout(() => renderForSession(session), 0);
+            }
+          });
+
+          const { data, error } = await client.auth.getSession();
+          if (error) throw error;
+
+          if (data.session && (window.location.hash || window.location.search)) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+
+          await renderForSession(data.session);
+        } catch (error) {
+          byId('fatalMessage').textContent = friendlyError(error);
+          showView('fatalView');
+        }
+      }
+
+      start();
+    })();
+  </script>
 </body>
 </html>

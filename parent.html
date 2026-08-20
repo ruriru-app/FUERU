@@ -1,0 +1,3145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FUERU 保護者版 v0.9.23.Step2</title>
+<style>
+:root{
+  --fueru-main:#8CCBC2;
+  --bg:#F6FAF9;--card:#fff;--ink:#354846;--muted:#72827F;--line:#DCEBE8;
+  --shadow:0 10px 24px rgba(69,105,99,.10);
+  --danger:#D87474;--danger-soft:#FDECEC;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro","BIZ UDPGothic","Yu Gothic",sans-serif;
+  font-weight:500
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{max-width:760px;margin:0 auto;min-height:100vh;padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 24px)}
+.view{display:none}.view.active{display:block}
+.topbar{display:grid;grid-template-columns:78px 1fr 78px;align-items:center;gap:10px;min-height:64px;margin-bottom:14px}
+.topbar h1{margin:0;text-align:center;font-size:25px;color:#2F746B;font-weight:700;letter-spacing:.01em;line-height:1.3}
+.soft-btn{border:2px solid #91D0C6;background:#fff;color:#2F746B;border-radius:17px;padding:10px 12px;font-weight:700;box-shadow:0 4px 0 rgba(77,158,147,.18)}
+.topbar .right{justify-self:end}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.summary-card{padding:18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.summary-card .label{font-size:16px;color:var(--muted);font-weight:700}
+.summary-card .count{font-size:31px;font-weight:700;color:#2F746B}
+.children{display:flex;flex-direction:column;gap:16px}
+.child-card{
+  width:100%;border:1px solid var(--line);background:#fff;border-radius:24px;
+  box-shadow:var(--shadow);padding:20px;display:grid;
+  grid-template-columns:72px 1fr auto;gap:10px;align-items:center;text-align:left;min-height:148px
+}
+.child-icon{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.child-icon svg{width:66px;height:66px;display:block}
+.child-main{min-width:0}
+.child-name{font-size:22px;font-weight:700;margin-bottom:10px;white-space:nowrap}
+.child-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;color:var(--muted)}
+.metric{
+  display:flex;flex-direction:column;gap:3px;min-width:0
+}
+.metric-label{font-size:10.5px;font-weight:600;color:var(--muted);white-space:nowrap}
+.metric-value{font-size:24px;font-weight:700;color:var(--ink);line-height:1.15;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.child-arrow{font-size:30px;font-weight:700}
+.section-title{margin:18px 2px 10px;font-size:16px;color:#2F746B;font-weight:700}
+.empty{padding:24px;text-align:center;color:var(--muted);font-weight:600}
+.confirm-list{display:flex;flex-direction:column;gap:14px}
+.date-group{padding:15px}
+.date-title{font-size:15px;color:#2F746B;font-weight:700;margin-bottom:9px}
+.report-row{display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center;padding:12px 0;border-bottom:1px dashed var(--line)}
+.report-row:last-child{border-bottom:0}
+.report-check{width:24px;height:24px;accent-color:var(--child-main,#8CCBC2)}
+.report-name{font-weight:700;line-height:1.4}
+.report-sub{font-size:11px;color:var(--muted);font-weight:600;margin-top:4px}
+.report-money{font-size:18px;font-weight:700;white-space:nowrap}
+.actions{position:sticky;bottom:12px;margin-top:16px;padding:13px;border-radius:20px;background:rgba(255,255,255,.96);border:1px solid var(--line);box-shadow:var(--shadow)}
+.action-row{display:flex;gap:10px;align-items:center}
+.select-all{border:0;background:transparent;color:#2F746B;font-weight:700;padding:8px}
+.primary{flex:1;border:0;border-radius:15px;background:var(--child-main,#8CCBC2);color:#fff;padding:14px 16px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.primary:disabled{
+  background:#CBD6D4!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  filter:none!important;
+  appearance:none;-webkit-appearance:none;
+  pointer-events:none;
+}
+.secondary-danger{width:100%;margin-top:9px;border:2px solid #E7AAAA;background:#fff;color:#B95F5F;border-radius:15px;padding:12px;font-weight:700}
+.complete{display:none;margin:0 0 12px;padding:12px 14px;border-radius:15px;background:#EAF7F5;border:2px solid #8CCBC2;color:#2F746B;font-weight:700;text-align:center}
+.complete.show{display:block}
+.settings-menu{display:flex;flex-direction:column;gap:12px}
+.settings-link{width:100%;border:1px solid var(--line);background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:15px 16px;display:flex;align-items:center;justify-content:space-between;text-align:left;color:var(--ink);font-weight:700}
+.settings-link small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:500}
+.chevron{font-size:25px;color:#4D9E93}
+.muted-note{margin-top:16px;padding:14px;border-radius:16px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7;font-weight:500}
+
+.manage-list{display:flex;flex-direction:column;gap:14px}
+.manage-card{
+  background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);
+  padding:15px;display:grid;grid-template-columns:68px 1fr auto;gap:13px;align-items:center
+}
+.manage-icon{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.manage-icon svg{width:62px;height:62px;display:block}
+.manage-name{font-size:20px;font-weight:700;margin-bottom:5px}
+.manage-sub{font-size:12px;color:var(--muted);font-weight:500}
+.manage-actions{display:flex;flex-direction:column;gap:7px}
+.mini-btn{
+  border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 10px;
+  color:var(--ink);font-size:12px;font-weight:700
+}
+.add-child{
+  width:100%;margin-top:14px;border:2px dashed #9CCFC7;background:#F8FCFB;color:#2F746B;
+  border-radius:18px;padding:15px;font-weight:700
+}
+.editor-card{padding:18px}
+.editor-preview{display:flex;flex-direction:column;align-items:center;margin-bottom:16px}
+.editor-icon{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.editor-icon svg{width:108px;height:108px}
+.editor-name{margin-top:8px;font-size:22px;font-weight:700}
+.field-label{display:block;margin:15px 0 7px;color:var(--muted);font-size:13px;font-weight:700}
+.text-input{
+  width:100%;border:2px solid var(--line);border-radius:14px;padding:12px 13px;background:#fff;
+  color:var(--ink);font-size:16px;font-weight:600;outline:none
+}
+.text-input:focus{border-color:#8CCBC2}
+.option-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.option-btn{
+  border:2px solid var(--line);background:#fff;border-radius:15px;padding:8px 4px;min-height:74px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  color:var(--muted);font-size:10px;font-weight:700
+}
+.option-btn.selected{border-color:#8CCBC2;box-shadow:0 0 0 3px #EAF7F5}
+.option-btn svg{width:38px;height:38px}
+.color-dot{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.editor-actions{display:flex;gap:10px;margin-top:20px}
+.save-btn{
+  flex:1;border:0;border-radius:15px;padding:13px 16px;background:#8CCBC2;color:#fff;
+  font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.10)
+}
+.delete-btn{
+  border:2px solid #E7AAAA;background:#fff;color:#B95F5F;border-radius:15px;padding:12px 14px;font-weight:700;
+  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent
+}
+.delete-modal{
+  position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
+  padding:22px;background:rgba(39,63,61,.34);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)
+}
+.delete-modal.show{display:flex}
+.delete-dialog{
+  width:min(100%,420px);background:#fff;border:2px solid var(--line);border-radius:24px;
+  padding:24px 20px 20px;box-shadow:0 18px 50px rgba(32,63,60,.20);text-align:center
+}
+.delete-dialog h2{margin:0 0 12px;color:var(--ink);font-size:22px}
+.delete-dialog p{margin:0;color:var(--muted);font-size:15px;line-height:1.75}
+.delete-dialog .delete-target{font-weight:700;color:var(--ink)}
+.delete-warning{margin-top:12px!important;color:#B95F5F!important;font-size:13px!important;font-weight:700}
+.delete-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+.cancel-delete-btn,.confirm-delete-btn{
+  min-height:52px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent
+}
+.cancel-delete-btn{border:2px solid var(--line);background:#fff;color:var(--ink)}
+.confirm-delete-btn{border:2px solid #C96666;background:#C96666;color:#fff;box-shadow:0 4px 0 rgba(126,45,45,.18)}
+.notice{
+  display:none;margin-bottom:12px;padding:12px 14px;border-radius:15px;text-align:center;
+  background:#EAF7F5;border:2px solid #8CCBC2;color:#2F746B;font-weight:700
+}
+.notice.show{display:block}
+
+
+.waiting-badge{
+  position:absolute;top:14px;right:16px;display:inline-flex;align-items:center;
+  border:0;padding:7px 10px;border-radius:999px;color:#fff;font-size:11px;font-weight:700;
+  box-shadow:0 3px 0 rgba(0,0,0,.10)
+}
+.child-card{position:relative}
+.child-meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;color:var(--muted)}
+.child-meta .metric{padding-top:2px}
+.child-meta .metric + .metric{border-left:1px dashed var(--line);padding-left:10px}
+.allowance-list{display:flex;flex-direction:column;gap:14px}
+.allowance-card{
+  background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);
+  padding:16px;display:grid;grid-template-columns:64px 1fr auto;gap:13px;align-items:center
+}
+.allowance-icon{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.allowance-icon svg{width:58px;height:58px;display:block}
+.allowance-main{min-width:0}
+.allowance-name{font-size:20px;font-weight:700;margin-bottom:5px}
+.allowance-summary{font-size:13px;color:var(--muted);font-weight:500}
+
+.payment-setting-block{border:2px solid var(--line);border-radius:16px;padding:14px;margin-top:12px;background:#fff}
+.payment-setting-block:first-child{margin-top:0}
+.payment-setting-title{margin:0;color:#2F746B;font-size:16px;font-weight:700}
+.payment-setting-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.payment-settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:2px}
+.payment-settings-row{width:100%;padding:16px;color:var(--ink);font-size:18px;font-weight:700}
+.payment-settings-edit{border:2px solid var(--line);background:#fff;color:#2F746B;border-radius:12px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer}
+.payment-setting-block.no-day .reward-day-row{display:none}
+.payment-setting-summary{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center}
+.payment-setting-summary .label{color:var(--muted);font-size:12px;font-weight:600}
+.payment-setting-summary .value{font-size:15px;font-weight:700;text-align:right}
+.payment-setting-edit{width:100%;margin-top:12px;border:2px dashed #9CCFC7;background:#F8FCFB;color:#2F746B;border-radius:14px;padding:11px;font-weight:700}
+.setting-edit-accordion{border:2px solid var(--line);border-radius:18px;margin-top:14px;overflow:hidden;background:#fff}
+.setting-edit-toggle{width:100%;border:0;background:#fff;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;color:var(--ink);cursor:pointer}
+.setting-edit-toggle strong{display:block;color:#2F746B;font-size:18px}
+.setting-edit-toggle small{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:600}
+.setting-edit-toggle .arrow{font-size:21px;color:#2F746B;transition:.2s}
+.setting-edit-accordion.open .setting-edit-toggle .arrow{transform:rotate(180deg)}
+.setting-edit-body{display:none;padding:0 16px 16px}
+.setting-edit-accordion.open .setting-edit-body{display:block}
+.editor-section{border:2px solid var(--line);border-radius:18px;padding:16px;margin-top:16px}
+.editor-section-title{margin:0 0 4px;color:#2F746B;font-size:18px;font-weight:700}
+.form-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.form-row>*{min-width:0}
+.select-input{
+  width:100%;border:2px solid var(--line);border-radius:14px;padding:12px 13px;background:#fff;
+  color:var(--ink);font-size:15px;font-weight:600;outline:none
+}
+.select-input:focus{border-color:#8CCBC2}
+.radio-stack{display:flex;flex-direction:column;gap:9px}
+.radio-option{
+  display:flex;align-items:center;gap:9px;border:2px solid var(--line);border-radius:14px;
+  padding:11px 12px;background:#fff;font-weight:600
+}
+.radio-option input{accent-color:#8CCBC2}
+.setting-guidance{margin:0 0 16px;padding:12px 13px;border-radius:13px;background:var(--child-sub,#EAF7F5);color:var(--ink);font-size:13px;line-height:1.7}
+.small-note{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.6}
+
+
+.next-payment-title{grid-column:1/-1;margin-bottom:2px;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap}
+.job-settings-list{display:flex;flex-direction:column;gap:14px}
+.job-child-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:15px}
+.job-child-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.job-child-icon{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.job-child-icon svg{width:47px;height:47px}
+.job-child-name{font-size:19px;font-weight:700}
+.job-list{display:flex;flex-direction:column;gap:9px}
+.job-item{border:2px solid var(--line);border-radius:15px;padding:11px 12px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:#fff}
+.job-item.off{opacity:.58}
+.job-item-name{font-weight:700;line-height:1.35}
+.job-item-meta{margin-top:4px;color:var(--muted);font-size:11px;font-weight:500}
+.job-item-actions{display:flex;align-items:center;gap:7px}
+.job-status{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#EAF7F5;color:#2F746B}
+.job-status.off{background:#EEF0EF;color:#7B8886}
+.add-job-btn{width:100%;margin-top:10px;border:2px dashed #9CCFC7;background:#F8FCFB;color:#2F746B;border-radius:15px;padding:11px;font-weight:700}
+.weekday-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.weekday-btn{border:2px solid var(--line);background:#fff;border-radius:11px;padding:8px 2px;color:var(--muted);font-size:11px;font-weight:700}
+.weekday-btn.selected{border-color:#8CCBC2;background:#EAF7F5;color:#2F746B}
+.switch-row{display:flex;align-items:center;justify-content:space-between;border:2px solid var(--line);border-radius:14px;padding:11px 12px;margin-top:14px}
+.switch{width:48px;height:28px;position:relative;display:inline-block}
+.switch input{display:none}
+.switch span{position:absolute;inset:0;border-radius:999px;background:#CBD6D4;transition:.2s}
+.switch span:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18);transition:.2s}
+.switch input:checked+span{background:#8CCBC2}
+.switch input:checked+span:before{transform:translateX(20px)}
+
+
+.child-card-buttons{
+  grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;margin-top:6px;width:100%
+}
+.child-sub-btn{
+  min-width:0;min-height:52px;border:2px solid var(--line);background:#fff;border-radius:13px;
+  padding:9px 6px;color:var(--ink);font-size:15px;font-weight:700;white-space:nowrap
+}
+.child-sub-btn.history{color:var(--child-deep,#2F746B)}
+.child-sub-btn.settings{color:var(--child-deep,#2F746B)}
+.payout-due-btn{
+  grid-column:1/-1;border:0;border-radius:14px;background:var(--child-main,#8CCBC2);color:#fff;
+  min-height:48px;padding:11px 14px;font-size:15px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12)
+}
+.payout-due-btn small{display:block;font-size:10px;font-weight:600;margin-top:3px;opacity:.9}
+.child-card .waiting-badge{z-index:2}
+.parent-settings-note{margin-top:12px;color:var(--muted);font-size:11px;line-height:1.7}
+.accordion{display:flex;flex-direction:column;gap:12px}
+.accordion-item{
+  background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden
+}
+.accordion-toggle{
+  width:100%;border:0;background:#fff;padding:15px 16px;display:flex;
+  align-items:center;justify-content:space-between;color:var(--ink);font-weight:700;text-align:left
+}
+.accordion-toggle .arrow{font-size:21px;color:var(--child-deep,#2F746B);transition:.2s}
+.accordion-item.open .accordion-toggle .arrow{transform:rotate(90deg)}
+.accordion-body{display:none;padding:0 16px 16px}
+.accordion-item.open .accordion-body{display:block}
+.inline-summary{
+  display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;
+  border:2px solid var(--line);border-radius:14px;padding:12px
+}
+.inline-summary .label{color:var(--muted);font-size:12px}
+.inline-summary .value{font-size:18px;font-weight:700}
+.child-job-list{display:flex;flex-direction:column;gap:9px}
+.child-job-row{
+  border:2px solid var(--line);border-radius:14px;padding:10px 11px;
+  display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:center
+}
+.child-job-name{font-weight:700}
+.child-job-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.compact-switch{width:44px;height:25px;position:relative;display:inline-block}
+.compact-switch input{display:none}
+.compact-switch span{position:absolute;inset:0;background:#CBD6D4;border-radius:999px}
+.compact-switch span:before{
+  content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;
+  border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18);transition:.2s
+}
+.compact-switch input:checked+span{background:var(--child-main,#8CCBC2)}
+.compact-switch input:checked+span:before{transform:translateX(19px)}
+.calendar-wrap{padding:15px}
+.calendar-head{
+  display:grid;grid-template-columns:44px 1fr 44px;align-items:center;margin-bottom:10px
+}
+.calendar-head h2{margin:0;text-align:center;font-size:21px;color:var(--child-deep,#2F746B)}
+.calendar-nav{
+  border:0;background:var(--child-sub,#EAF7F5);color:var(--child-deep,#2F746B);
+  border-radius:12px;padding:8px;font-size:20px;font-weight:700
+}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.weekday{text-align:center;font-size:11px;color:var(--muted);padding:4px 0}
+.cal-day{aspect-ratio:1;display:grid;place-items:center;border-radius:50%;font-size:12px;color:var(--ink)}
+.cal-day.done .date-num{background:var(--child-main,#8CCBC2);color:#fff}
+.cal-day.partial .date-num{background:var(--child-mix,#A6B6CE);color:#fff}
+.cal-day.wait .date-num{background:var(--child-accent,#B59AD9);color:#fff}
+.cal-day.unreported .date-num{background:var(--child-sub,#F1EBF8);color:var(--child-deep,#2F746B);box-shadow:inset 0 0 0 1px var(--child-accent,#B59AD9)}
+.cal-day.empty{opacity:.25}
+.legend{
+  display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px;
+  font-size:11px;color:var(--muted)
+}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend i{width:8px;height:8px;border-radius:50%}
+.history-summary{
+  margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:8px 12px;
+  background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px
+}
+.history-summary .label{color:var(--muted);font-size:12px}
+.history-summary .value{font-weight:700}
+
+.special-btn{color:var(--child-deep,#2F746B)}
+.special-card{padding:18px}
+.special-date-wrap{width:min(100%,300px)}
+#specialRewardDate{height:48px;padding:0 12px;line-height:48px;text-align:center;-webkit-appearance:none;appearance:none}
+#specialRewardDate::-webkit-date-and-time-value{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0;text-align:center}
+#specialRewardDate::-webkit-datetime-edit{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0}
+.special-child-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.special-child-icon{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.special-child-icon svg{width:56px;height:56px}
+.special-child-name{font-size:20px;font-weight:700}
+.money-input-wrap{position:relative}
+.money-input-wrap .text-input{padding-right:42px}
+.money-suffix{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none}
+.reason-input{min-height:96px;resize:vertical;line-height:1.6}
+.special-note{margin-top:10px;color:var(--muted);font-size:11px;line-height:1.65}
+.special-success{display:none;margin-bottom:12px;padding:12px 14px;border-radius:15px;background:#EAF7F5;border:2px solid var(--child-main,#8CCBC2);color:var(--child-deep,#2F746B);font-weight:700;text-align:center}
+.special-success.show{display:block}
+.transaction-card{margin-top:14px;padding:16px}
+.transaction-title{margin:0 0 10px;color:var(--child-deep,#2F746B);font-size:17px}
+.transaction-list{display:flex;flex-direction:column;gap:10px}
+.transaction-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px dashed var(--line)}
+.transaction-row:last-child{border-bottom:0}
+.transaction-kind{font-weight:700;line-height:1.4}
+.transaction-reason{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.5}
+.transaction-date{margin-top:4px;color:var(--muted);font-size:10px}
+.transaction-amount{font-size:18px;font-weight:700;color:var(--child-deep,#2F746B);white-space:nowrap}
+.money-input-wrap{display:flex;align-items:center;gap:8px;min-width:0}
+.money-input-wrap .text-input{flex:1;min-width:0;max-width:none}
+.money-unit{flex:0 0 auto;font-weight:700;color:var(--muted)}
+#jobEditView .text-input,#jobEditView .select-input{height:48px}
+#jobEditView .form-row>div{min-width:0}
+#jobEditView input[type="date"]{
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  height:48px;
+  padding:0 10px;
+  font-size:13px;
+  line-height:48px;
+  text-align:center;
+  -webkit-appearance:none;
+  appearance:none;
+}
+#jobEditView input[type="date"]::-webkit-date-and-time-value{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:48px;
+  padding:0;
+  text-align:center;
+}
+#jobEditView input[type="date"]::-webkit-datetime-edit{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:48px;
+  padding:0;
+}
+.date-compact{font-size:13px}
+
+@media(max-width:390px){
+  .app{padding-left:14px;padding-right:14px}
+  .topbar{grid-template-columns:70px 1fr 70px}
+  .topbar h1{font-size:23px}
+  .soft-btn{padding:9px 10px}
+}
+
+/* 履歴画面：子ども側と同じコンパクトな月間カレンダー */
+.calendar-wrap{padding:8px 12px 6px}
+.calendar-head{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:8px;margin-bottom:2px}
+.calendar-head h2{margin:0;text-align:center;font-size:17px;color:var(--child-deep,#2F746B);font-weight:900}
+.calendar-nav{width:32px;height:32px;border:0;background:var(--child-sub,#EAF7F5);color:var(--child-deep,#2F746B);border-radius:11px;padding:0;font-size:21px;font-weight:900}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0}
+.weekday{text-align:center;font-size:10px;color:var(--muted);padding:2px 0 3px;font-weight:900}
+.weekday:nth-child(6){color:#4E8AA3}.weekday:nth-child(7){color:#D07C68}
+.cal-day{min-height:34px;aspect-ratio:auto;border:0;border-radius:0;border-top:1px solid #EEF3F2;background:transparent;text-align:center;padding:2px 1px}
+.cal-day .date-num{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:50%;font-size:12px;font-weight:900;color:#fff;background:#C9D2D0}
+.cal-day.done .date-num{background:var(--child-main,#8CCBC2);color:#fff}
+.cal-day.partial .date-num{background:var(--child-mix,#A6B6CE);color:#fff}
+.cal-day.wait .date-num{background:var(--child-accent,#B59AD9);color:#fff}
+.cal-day.unreported .date-num{background:var(--child-sub,#F1EBF8);color:var(--child-deep,#2F746B);box-shadow:inset 0 0 0 1px var(--child-accent,#B59AD9)}
+.cal-day.nojob .date-num{background:#E7EAE9;color:#AAB3B1}
+.cal-day.out{opacity:.3}
+.cal-day.today .date-num{background:var(--child-deep,#2F746B);color:#fff;box-shadow:0 0 0 2px var(--child-sub,#EAF7F5),0 0 0 4px var(--child-main,#8CCBC2)}
+.legend{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:4px;font-size:8px;font-weight:700;color:var(--muted)}
+.summary-note{font-size:10px;font-weight:400;color:var(--muted)}
+.transaction-day{padding:4px 0 13px;border-bottom:1px dashed var(--line)}
+.transaction-day:last-child{border-bottom:0}
+.transaction-day-head{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-weight:700}
+.transaction-day-date{white-space:nowrap}
+.transaction-day-type{text-align:right;color:var(--child-deep,#2F746B)}
+.transaction-day-total{text-align:right;color:var(--child-deep,#2F746B);white-space:nowrap}
+.transaction-lines{margin-top:6px;display:flex;flex-direction:column;gap:5px}
+.transaction-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;padding-left:8px}
+.transaction-line-title{min-width:0;overflow-wrap:anywhere}
+.transaction-line-amount{text-align:right;white-space:nowrap}
+.transaction-line-amount.minus{color:#9A5B5B}
+.special-message-line{grid-template-columns:1fr;padding-right:0}
+.special-message-line .transaction-line-title{line-height:1.6;color:var(--ink)}
+
+/* 親専用の日付メニュー */
+.day-menu-modal{position:fixed;inset:0;background:rgba(33,58,54,.35);display:none;align-items:flex-end;justify-content:center;padding:18px;z-index:120}
+.day-menu-modal.show{display:flex}
+.day-menu-sheet{width:min(100%,520px);max-height:82vh;overflow:auto;background:#fff;border-radius:24px;padding:18px;box-shadow:0 20px 55px rgba(0,0,0,.2)}
+.day-menu-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+.day-menu-head h2{margin:0;font-size:20px;color:var(--child-deep,#2F746B)}
+.day-menu-close{border:0;background:var(--child-sub,#EAF7F5);color:var(--child-deep,#2F746B);border-radius:12px;width:38px;height:38px;font-size:20px}
+.day-job-list{display:flex;flex-direction:column;gap:9px}
+.day-job-row{border:2px solid var(--line);border-radius:15px;padding:11px}
+.day-job-name{font-weight:700}
+.day-job-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.day-job-actions{display:flex;gap:8px;margin-top:9px}
+.day-job-actions button{flex:1;border-radius:12px;padding:9px 8px;font-weight:700;border:2px solid var(--line);background:#fff;color:var(--child-deep,#2F746B)}
+.day-job-actions .missed{border-color:#E7C1C1;color:#9A5B5B;background:#FFF7F7}
+.day-job-actions .restore{border-color:var(--child-main,#8CCBC2);background:var(--child-sub,#EAF7F5)}
+.cancel-day-btn{width:100%;margin-top:12px;border:2px dashed #D5A9A9;background:#FFF7F7;color:#925454;border-radius:15px;padding:12px;font-weight:700}
+.day-menu-note{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}
+
+
+
+/* v0.9.9 FUERU公式ロゴ */
+.fueru-brand-topbar{min-height:76px;margin-bottom:14px}
+.fueru-parent-bird{
+  display:flex;align-items:center;justify-content:center;
+  width:72px;height:72px;justify-self:center
+}
+.fueru-parent-bird svg{display:block;width:64px;height:64px}
+.fueru-parent-brand{
+  min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--fueru-main);line-height:1
+}
+.fueru-parent-brand .fueru-logo-svg{display:block;width:min(100%,205px);height:auto;overflow:visible}
+.fueru-parent-label{
+  margin-top:4px;color:#2F746B;font-size:13px;font-weight:700;letter-spacing:.18em;
+  padding-left:.18em;white-space:nowrap
+}
+@media(max-width:390px){
+  .fueru-parent-bird{width:58px;height:58px}
+  .fueru-parent-bird svg{width:54px;height:54px}
+  .fueru-parent-brand .fueru-logo-svg{width:min(100%,174px)}
+  .fueru-parent-label{font-size:12px}
+}
+
+
+/* v0.9.11 ヘッダー小鳥調整 */
+.fueru-parent-bird{
+  transform:translateX(10px);
+}
+@media(max-width:390px){
+  .fueru-parent-bird{
+    transform:translateX(7px);
+  }
+}
+
+
+/* v0.9.12 header bird size */
+.fueru-parent-bird{
+  width:88px !important;
+  height:88px !important;
+}
+.fueru-parent-bird svg{
+  width:80px !important;
+  height:80px !important;
+}
+@media(max-width:390px){
+ .fueru-parent-bird{width:72px !important;height:72px !important;}
+ .fueru-parent-bird svg{width:66px !important;height:66px !important;}
+}
+
+
+/* v0.9.13 FUERU標準ボタン・報告確認画面 */
+:root{
+  --fueru-primary:#8CCBC2;
+  --fueru-primary-deep:#4D9E93;
+  --fueru-primary-shadow:#B8D9D4;
+  --fueru-danger:#B95F5F;
+  --fueru-danger-line:#E7AAAA;
+}
+
+/* 決定・保存・送金 */
+.primary,
+.save-btn,
+.payout-due-btn,
+.confirm-delete-btn{
+  width:100%;
+  min-height:52px;
+  border:0 !important;
+  border-radius:15px !important;
+  background:var(--child-main,var(--fueru-primary)) !important;
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  font-weight:700 !important;
+  box-shadow:0 7px 0 var(--fueru-primary-shadow) !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  filter:none !important;
+}
+
+/* 押せない状態 */
+.primary:disabled,
+.save-btn:disabled,
+.payout-due-btn:disabled{
+  background:#CBD6D4 !important;
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  box-shadow:0 7px 0 #B7C2C0 !important;
+  opacity:1 !important;
+  cursor:default !important;
+}
+
+/* 危険操作 */
+.secondary-danger,
+.delete-btn{
+  width:100%;
+  min-height:52px;
+  border:2px solid var(--fueru-danger-line) !important;
+  border-radius:15px !important;
+  background:#fff !important;
+  color:var(--fueru-danger) !important;
+  -webkit-text-fill-color:var(--fueru-danger) !important;
+  font-weight:700 !important;
+  box-shadow:none !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+}
+.secondary-danger:disabled,
+.delete-btn:disabled{
+  border-color:#E4D3D3 !important;
+  color:#BFAAAA !important;
+  -webkit-text-fill-color:#BFAAAA !important;
+  background:#fff !important;
+  opacity:1 !important;
+}
+
+/* 戻る・補助 */
+.soft-btn{
+  background:#fff !important;
+  color:#2F746B !important;
+  -webkit-text-fill-color:#2F746B !important;
+  border:2px solid #91D0C6 !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+}
+
+/* 報告確認画面 */
+.select-all-row{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin:-2px 4px 14px;
+  padding:10px 4px;
+  color:#2F746B;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  user-select:none;
+}
+.select-all-row input{
+  width:24px;
+  height:24px;
+  margin:0;
+  accent-color:var(--child-main,var(--fueru-primary));
+}
+.actions{
+  position:sticky;
+  bottom:12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:16px;
+  padding:14px;
+}
+.actions .primary,
+.actions .secondary-danger{
+  width:100%;
+  margin:0;
+}
+
+
+/* v0.9.14 保護者版：決定ボタンはミント固定 */
+:root{
+  --parent-primary:#8CCBC2;
+  --parent-primary-shadow:#B8D9D4;
+}
+.primary,
+.save-btn,
+.payout-due-btn,
+.confirm-delete-btn{
+  background:var(--parent-primary) !important;
+  box-shadow:0 7px 0 var(--parent-primary-shadow) !important;
+}
+.primary:disabled,
+.save-btn:disabled,
+.payout-due-btn:disabled{
+  background:#CBD6D4 !important;
+  box-shadow:0 7px 0 #B7C2C0 !important;
+}
+
+/* 保護者履歴内FUERU通帳：子ども版と同じ3列レイアウト */
+.history-passbook-heading{
+  margin:18px 4px 10px;
+  color:var(--child-deep,#2F746B);
+  font-size:19px;
+  font-weight:700;
+}
+.history-passbook-card{
+  overflow:hidden;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:22px;
+  box-shadow:var(--shadow);
+}
+.history-passbook-period{
+  padding:12px 15px;
+  background:var(--child-sub,#EAF7F5);
+  color:var(--child-deep,#2F746B);
+  font-size:16px;
+  font-weight:700;
+  border-bottom:1px solid var(--line);
+}
+.history-passbook-card .transaction-list{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.history-passbook-card .transaction-day{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  column-gap:7px;
+  align-items:start;
+  padding:15px 14px;
+  border-bottom:1px solid var(--line);
+}
+.history-passbook-card .transaction-day:last-child{
+  border-bottom:0;
+}
+.history-passbook-card .transaction-day-date{
+  grid-column:1;
+  grid-row:1 / span 2;
+  text-align:left;
+  padding-top:1px;
+  color:var(--ink);
+  font-weight:700;
+  line-height:1.1;
+}
+.history-passbook-card .transaction-day-date .md{
+  display:block;
+  font-size:11px;
+  white-space:nowrap;
+}
+.history-passbook-card .transaction-day-date .dow{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:8px;
+  white-space:nowrap;
+}
+.history-passbook-card .transaction-day-type{
+  grid-column:2;
+  grid-row:1;
+  justify-self:start;
+  text-align:left;
+  min-width:0;
+  color:var(--ink);
+  font-size:14px;
+  font-weight:700;
+  line-height:1.4;
+}
+.history-passbook-card .transaction-day-total{
+  grid-column:3;
+  grid-row:1;
+  justify-self:end;
+  text-align:right;
+  color:var(--child-deep,#2F746B);
+  font-size:16px;
+  font-weight:700;
+  line-height:1.4;
+  white-space:nowrap;
+}
+.history-passbook-card .transaction-day-total.minus{
+  color:#B95F5F;
+}
+.history-passbook-card .transaction-lines{
+  grid-column:2 / 4;
+  grid-row:2;
+  margin-top:6px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.history-passbook-card .transaction-line{
+  display:block;
+  padding:0;
+}
+.history-passbook-card .transaction-line-title{
+  min-width:0;
+  color:var(--ink);
+  font-size:12px;
+  font-weight:600;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.history-passbook-card .transaction-inline-amount{
+  margin-left:3px;
+  color:var(--child-deep,#2F746B);
+  font-size:.92em;
+  font-weight:700;
+  white-space:nowrap;
+}
+.history-passbook-card .special-message-line .transaction-line-title{
+  color:var(--muted);
+}
+
+
+
+/* v0.9.15 出金確認 */
+.withdraw-request-btn{
+  grid-column:1/-1;border:0;border-radius:14px;background:var(--child-main,#8CCBC2);color:#fff;
+  min-height:48px;padding:11px 14px;font-size:15px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12)
+}
+.withdraw-request-btn small{display:block;font-size:10px;font-weight:600;margin-top:3px;opacity:.92}
+.withdraw-confirm-card{padding:18px}
+.withdraw-child-head{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+.withdraw-child-icon{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.withdraw-child-icon svg{width:56px;height:56px}
+.withdraw-child-name{font-size:21px;font-weight:700}
+.withdraw-amount-box{padding:16px;border-radius:16px;background:var(--child-sub,#EAF7F5);text-align:center;margin-bottom:15px}
+.withdraw-amount-label{font-size:12px;color:var(--muted);font-weight:700}
+.withdraw-amount-value{margin-top:4px;font-size:32px;color:var(--child-deep,#2F746B);font-weight:700}
+.withdraw-instruction{margin:0 0 15px;color:var(--ink);font-size:14px;line-height:1.75;text-align:center;font-weight:600}
+.withdraw-pin-input{width:100%;border:2px solid var(--line);border-radius:15px;padding:14px;text-align:center;font-size:24px;font-weight:700;letter-spacing:.35em;padding-left:calc(14px + .35em);outline:none}
+.withdraw-pin-input:focus{border-color:var(--child-main,#8CCBC2)}
+.withdraw-pin-note{margin-top:9px;color:var(--muted);font-size:11px;line-height:1.65;text-align:center}
+.withdraw-confirm-btn{width:100%;margin-top:15px;border:0;border-radius:15px;background:var(--child-main,#8CCBC2);color:#fff;padding:14px;font-size:16px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.withdraw-error{display:none;margin-top:12px;padding:11px;border-radius:13px;background:var(--danger-soft);color:#B95F5F;font-size:12px;font-weight:700;text-align:center}
+.withdraw-error.show{display:block}
+
+
+/* v0.9.19.Step2 おこづかい帳設定 */
+.ledger-settings-list{display:flex;flex-direction:column;gap:14px}
+.ledger-child-card{
+  background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);
+  padding:15px;display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:13px;align-items:center
+}
+.ledger-child-icon{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.ledger-child-icon svg{width:56px;height:56px;display:block}
+.ledger-child-name{font-size:19px;font-weight:700;margin-bottom:5px}
+.ledger-child-summary{font-size:12px;color:var(--muted);line-height:1.55}
+.ledger-mode-badge{
+  display:inline-flex;align-items:center;padding:5px 9px;margin-top:7px;border-radius:999px;
+  background:var(--child-sub,#EAF7F5);color:var(--child-deep,#2F746B);font-size:11px;font-weight:700
+}
+.ledger-edit-card{padding:18px}
+.ledger-profile-head{display:flex;align-items:center;gap:12px;margin-bottom:17px}
+.ledger-profile-icon{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.ledger-profile-icon svg{width:58px;height:58px}
+.ledger-profile-name{font-size:21px;font-weight:700}
+.ledger-profile-caption{margin-top:4px;color:var(--muted);font-size:11px}
+.ledger-section{margin-top:18px}
+.ledger-section:first-of-type{margin-top:0}
+.ledger-section-title{margin:0 0 9px;color:#2F746B;font-size:17px;font-weight:700}
+.ledger-section-note{margin:-3px 0 11px;color:var(--muted);font-size:11px;line-height:1.65}
+.ledger-mode-stack{display:flex;flex-direction:column;gap:9px}
+.ledger-mode-option{
+  position:relative;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;
+  align-items:start;border:2px solid var(--line);border-radius:16px;padding:13px;background:#fff
+}
+.ledger-mode-option.selected{border-color:#8CCBC2;background:#F8FCFB;box-shadow:0 0 0 3px #EAF7F5}
+.ledger-mode-option input{width:20px;height:20px;margin:2px 0 0;accent-color:#8CCBC2}
+.ledger-mode-option strong{display:block;color:var(--ink);font-size:15px}
+.ledger-mode-option small{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.55}
+.spending-list{display:flex;flex-direction:column;gap:9px}
+.spending-item{
+  display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:10px;align-items:center;
+  border:2px solid var(--line);border-radius:15px;padding:10px 11px;background:#fff
+}
+.spending-icon{
+  width:42px;height:42px;border-radius:13px;background:#F4F8F7;display:grid;place-items:center;
+  font-size:23px;line-height:1
+}
+.spending-name{font-weight:700;line-height:1.35}
+.spending-category{margin-top:3px;color:var(--muted);font-size:10px}
+.spending-actions{display:flex;gap:6px}
+.spending-actions button{
+  border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 8px;
+  color:#2F746B;font-size:11px;font-weight:700
+}
+.spending-actions .remove{color:#B95F5F;border-color:#E7CACA}
+.add-spending-btn{
+  width:100%;margin-top:10px;border:2px dashed #9CCFC7;background:#F8FCFB;color:#2F746B;
+  border-radius:15px;padding:12px;font-weight:700
+}
+.spending-editor{
+  display:none;margin-top:11px;border:2px solid #B8D9D4;border-radius:17px;padding:14px;background:#FBFEFD
+}
+.spending-editor.show{display:block}
+.spending-editor-grid{display:grid;grid-template-columns:82px minmax(0,1fr);gap:10px}
+.spending-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+.spending-cancel{
+  border:2px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:11px;font-weight:700
+}
+.spending-apply{
+  border:0;background:#8CCBC2;color:#fff;border-radius:14px;padding:11px;font-weight:700;
+  box-shadow:0 4px 0 #B8D9D4
+}
+.ledger-save-area{margin-top:20px}
+.ledger-empty{padding:18px;border:2px dashed var(--line);border-radius:15px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7}
+@media(max-width:390px){
+  .ledger-child-card{grid-template-columns:56px minmax(0,1fr) auto;padding:13px}
+  .ledger-child-icon{width:56px;height:56px}
+  .spending-item{grid-template-columns:39px minmax(0,1fr) auto;padding:9px}
+  .spending-actions{flex-direction:column}
+}
+
+
+/* v0.9.20.Step2 出納帳リストをアコーディオン化 */
+.ledger-list-accordion{
+  margin-top:14px;border:2px solid var(--line);border-radius:18px;overflow:hidden;background:#fff
+}
+.ledger-list-toggle{
+  width:100%;border:0;background:#fff;padding:15px 16px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;text-align:left;color:var(--ink)
+}
+.ledger-list-toggle strong{display:block;color:#2F746B;font-size:17px}
+.ledger-list-toggle small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:600;line-height:1.5}
+.ledger-list-toggle .arrow{font-size:21px;color:#2F746B;transition:.2s}
+.ledger-list-accordion.open .ledger-list-toggle .arrow{transform:rotate(180deg)}
+.ledger-list-body{display:none;padding:0 14px 14px}
+.ledger-list-accordion.open .ledger-list-body{display:block}
+.ledger-list-body .spending-list{margin-top:2px}
+.income-note{
+  margin:0 0 11px;padding:10px 12px;border-radius:13px;background:#F7FBFA;
+  color:var(--muted);font-size:11px;line-height:1.65
+}
+.ledger-mode-card{margin-bottom:14px}
+.ledger-list-tile{
+  margin-top:14px;
+  padding:0;
+  overflow:hidden;
+}
+.ledger-list-tile .ledger-list-accordion{
+  margin-top:0;
+  border:0;
+  border-radius:0;
+}
+.ledger-list-tile .ledger-list-toggle{
+  padding:17px 18px;
+}
+.ledger-list-tile .ledger-list-body{
+  padding:0 16px 16px;
+}
+
+/* v0.9.19.Step2a 修正 */
+.editor-actions .delete-btn{
+  width:auto !important;
+  flex:0 0 38%;
+}
+.editor-actions .save-btn{
+  width:auto !important;
+  flex:1 1 auto;
+}
+
+
+/* v0.9.22.Step2 出金設定 */
+.withdraw-settings-list{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.withdraw-setting-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:22px;
+  box-shadow:var(--shadow);
+  padding:16px;
+}
+.withdraw-setting-head{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:12px;
+  align-items:center;
+  margin-bottom:15px;
+}
+.withdraw-setting-icon{
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.withdraw-setting-icon svg{
+  width:53px;
+  height:53px;
+  display:block;
+}
+.withdraw-setting-name{
+  font-size:19px;
+  font-weight:700;
+}
+.withdraw-setting-current{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.55;
+}
+.withdraw-unit-label{
+  display:block;
+  margin-bottom:7px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+}
+.withdraw-unit-select{
+  width:100%;
+  min-height:50px;
+  border:2px solid var(--line);
+  border-radius:14px;
+  padding:10px 13px;
+  background:#fff;
+  color:var(--ink);
+  font-size:16px;
+  font-weight:700;
+  outline:none;
+}
+.withdraw-unit-select:focus{
+  border-color:#8CCBC2;
+  box-shadow:0 0 0 3px #EAF7F5;
+}
+.withdraw-unit-note{
+  margin-top:9px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.65;
+}
+.withdraw-settings-empty{
+  padding:22px;
+  border:2px dashed var(--line);
+  border-radius:16px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+</style>
+</head>
+<body>
+<main class="app">
+  <section id="homeView" class="view active">
+    <header class="topbar fueru-brand-topbar">
+      <div class="fueru-parent-bird" id="parentTitleBird" aria-hidden="true"></div>
+      <div class="fueru-parent-brand" aria-label="FUERU 保護者版">
+        <svg class="fueru-logo-svg" aria-hidden="true" focusable="false" stroke-miterlimit="10" style="fill-rule:nonzero;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;" version="1.1" viewBox="0 0 1590 360" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs/><g id="レイヤー-2"><path d="M187.335 8.7822L47.6784 9.87595C38.2979 10.2241 27.8114 12.8931 20.4909 20.9385C12.4324 29.7948 8.37394 42.1822 8.39713 49.4385L8.27213 325.095C8.27212 339.118 19.6237 350.47 33.6471 350.47C47.6706 350.47 59.0534 339.118 59.0534 325.095L59.0534 218.87C59.0534 213.437 63.4579 209.032 68.8912 209.032L166.303 209.032C179.166 209.032 189.585 198.613 189.585 185.751C189.585 172.888 179.166 162.438 166.303 162.438L69.8353 162.438C63.8806 162.438 59.0534 157.611 59.0534 151.657L59.0534 76.5947C59.0534 66.4165 67.3127 58.1572 77.4909 58.1572L187.335 58.1572C200.964 58.1572 211.991 47.0992 211.991 33.4697C211.991 19.8402 200.964 8.7822 187.335 8.7822Z" fill="currentColor" fill-rule="nonzero" opacity="1" stroke="none"/><path d="M334.199 37.9863C333.65 222.523 319.645 244.724 361.958 292.151C400.392 335.23 491.155 329.661 519.645 279.686C547.01 231.684 540.06 188.999 540.67 35.442" fill="none" opacity="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="58.6923"/><path d="M703.874 9.52683C684.805 9.68354 672.509 23.2422 673.004 47.3314C673.004 47.3314 673.863 179.307 673.863 179.307C674.182 179.178 672.99 284.6 672.688 315.384C672.528 331.765 689.082 349.656 712.143 348.712C720.127 348.385 849.176 349.339 849.176 349.339C862.587 349.339 873.457 338.468 873.457 325.057C873.457 311.646 862.588 300.776 849.176 300.776L737.426 300.776C729.141 300.776 722.426 294.06 722.426 285.776L722.426 213.62C722.426 208.097 726.903 203.62 732.426 203.62L828.426 203.62C841.837 203.62 852.707 192.719 852.707 179.307C852.707 165.896 841.837 155.026 828.426 155.026L732.426 155.026C726.903 155.026 722.426 150.549 722.426 145.026L722.426 72.8699C722.426 64.5857 729.141 57.8699 737.426 57.8699L851.457 57.8699C864.868 57.87 875.738 46.9999 875.738 33.5887C875.738 20.1774 864.869 9.30743 851.457 9.30743C851.457 9.30743 703.874 9.52683 703.874 9.52683Z" fill="currentColor" fill-rule="nonzero" opacity="1" stroke="none"/><g opacity="1"><path d="M1052.62 8.68845C1052.62 8.68845 1002.56 9.65629 1002.55 9.6572C994.414 10.3684 986.419 12.6868 980.741 18.751C975.063 24.815 969.762 33.8692 969.897 44.8135C969.897 44.8135 969.991 322.845 969.991 322.845C969.991 337.731 982.074 349.782 996.96 349.782C1011.85 349.782 1023.9 337.731 1023.9 322.845L1023.9 237.282C1023.9 228.998 1030.61 222.282 1038.9 222.282L1077.62 222.282C1077.71 222.444 1077.74 222.622 1077.83 222.782L1145.27 337.907C1152.47 350.195 1168.3 354.326 1180.58 347.126C1192.87 339.926 1196.97 324.101 1189.77 311.813L1122.33 196.72C1120.62 193.788 1118.37 191.335 1115.83 189.376C1112.37 180.091 1103.48 173.438 1092.99 173.438L1038.9 173.438C1030.61 173.438 1023.9 166.723 1023.9 158.438L1023.9 77.6572C1023.9 69.3729 1030.61 62.6572 1038.9 62.6572L1052.62 62.6572C1067.52 62.6572 1079.58 50.589 1079.58 35.6885C1079.58 20.7879 1067.52 8.68845 1052.62 8.68845Z" fill="currentColor" fill-rule="nonzero" opacity="1" stroke="none"/><path d="M1057.09 35.779C1095.13 35.779 1121.71 42.2016 1137.73 57.3689C1147.01 66.1537 1157.84 81.3846 1161.59 97.3141C1165.87 115.496 1162.76 141.513 1154.9 155.948C1146.92 170.599 1119.1 195.75 1094.98 199.876" fill="none" opacity="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="53.8182"/></g><g opacity="1"><path d="M1393.28 188.049C1369.03 187.754 1352.78 202.52 1354 220.72C1354.77 232.193 1363.9 244.389 1377.4 245.914C1391.64 247.524 1396.25 236.519 1412.71 235.446C1427.65 234.473 1431.24 247.272 1434.98 240.485C1438.71 247.24 1442.29 234.474 1457.21 235.446C1473.67 236.519 1478.26 247.524 1492.5 245.914C1506 244.389 1515.16 232.193 1515.93 220.72C1517.15 202.52 1500.86 187.754 1476.62 188.049C1466.37 188.174 1456.5 196.198 1451.13 200.695C1441.85 208.471 1437 219.016 1434.95 227.222C1432.9 219.016 1428.08 208.471 1418.79 200.695C1413.42 196.198 1403.53 188.174 1393.28 188.049Z" fill="#b7d7a8" fill-rule="nonzero" opacity="1" stroke="none"/><path d="M1429.81 240.079C1429.81 237.232 1432.12 234.924 1434.96 234.924L1434.96 234.924C1437.81 234.924 1440.12 237.232 1440.12 240.079L1440.12 304.164C1440.12 307.011 1437.81 309.319 1434.96 309.319L1434.96 309.319C1432.12 309.319 1429.81 307.011 1429.81 304.164L1429.81 240.079Z" fill="#b7d7a8" fill-rule="nonzero" opacity="1" stroke="none"/></g><g opacity="1"><path d="M1315.03 192.179C1308.86 235.084 1332.15 329.825 1439.79 330.763C1570.79 331.906 1567.4 176.373 1542.71 129.778" fill="none" opacity="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="53.8182"/><path d="M1290.49 112.124C1290.49 90.6202 1307.93 73.188 1329.43 73.188C1350.93 73.188 1368.36 90.6202 1368.36 112.124C1368.36 133.627 1350.93 151.059 1329.43 151.059C1307.93 151.059 1290.49 133.627 1290.49 112.124Z" fill="currentColor" fill-rule="nonzero" opacity="1" stroke="none"/><path d="M1449.02 47.9522C1449.02 24.4012 1468.11 5.30939 1491.66 5.30939C1515.21 5.30939 1534.3 24.4012 1534.3 47.9522C1534.3 71.5032 1515.21 90.5951 1491.66 90.5951C1468.11 90.5951 1449.02 71.5032 1449.02 47.9522Z" fill="currentColor" fill-rule="nonzero" opacity="1" stroke="none"/></g></g></svg>
+        <span class="fueru-parent-label">保護者版</span>
+      </div>
+      <button class="soft-btn right" id="openSettings">設定</button>
+    </header>
+
+    <section class="card summary-card">
+      <div class="label">確認待ち</div>
+      <div class="count"><span id="totalWaiting">0</span>件</div>
+    </section>
+
+    <div class="children" id="childrenList"></div>
+  </section>
+
+  <section id="childView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backHome">戻る</button>
+      <h1 id="childTitle">子どものお仕事</h1>
+      <div></div>
+    </header>
+
+    <div class="complete" id="completeMessage">確定しました</div>
+    <section class="card summary-card">
+      <div class="label">確認待ち</div>
+      <div class="count"><span id="childWaitingCount">0</span>件</div>
+    </section>
+
+    <label class="select-all-row" for="selectAll">
+      <input id="selectAll" type="checkbox">
+      <span>すべて選択</span>
+    </label>
+
+    <div class="confirm-list" id="confirmList"></div>
+
+    <div class="actions">
+      <button class="primary" id="confirmSelected" disabled>選択した報告を確定</button>
+      <button class="secondary-danger" id="returnSelected" disabled>選択した報告を未達成へ戻す</button>
+    </div>
+  </section>
+
+
+
+  <section id="withdrawConfirmView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromWithdrawConfirm">戻る</button>
+      <h1>出金の受け取り確認</h1>
+      <div></div>
+    </header>
+
+    <section class="card withdraw-confirm-card" id="withdrawConfirmCard">
+      <div class="withdraw-child-head">
+        <div class="withdraw-child-icon" id="withdrawChildIcon"></div>
+        <div class="withdraw-child-name" id="withdrawChildName"></div>
+      </div>
+      <div class="withdraw-amount-box">
+        <div class="withdraw-amount-label">出金希望額</div>
+        <div class="withdraw-amount-value" id="withdrawRequestAmount">0円</div>
+      </div>
+      <p class="withdraw-instruction">現金を渡したあと、<br><strong>お子さん本人</strong>にPINを入力してもらってください。</p>
+      <input class="withdraw-pin-input" id="withdrawConfirmPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" aria-label="出金確認用PIN">
+      <div class="withdraw-pin-note">PINは保護者には表示されません。入力が一致した場合だけ出金を確定します。</div>
+      <div class="withdraw-error" id="withdrawConfirmError"></div>
+      <button class="withdraw-confirm-btn" type="button" id="confirmWithdrawalReceipt" onclick="completeWithdrawal()">出金を確定する</button>
+    </section>
+  </section>
+
+  <section id="settingsView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromSettings">戻る</button>
+      <h1>保護者設定</h1>
+      <div></div>
+    </header>
+
+    <div class="settings-menu">
+      <button class="settings-link" type="button" id="openChildManage">
+        <span>子ども管理<small>追加・編集・テーマ・表示順</small></span><span class="chevron">›</span>
+      </button>
+      <button class="settings-link" type="button" id="openLedgerSettings">
+        <span>おこづかい帳設定<small>記録方法・入金理由・使い道リスト</small></span><span class="chevron">›</span>
+      </button>
+      <button class="settings-link" type="button" id="openWithdrawSettings">
+        <span>出金設定<small>子どもごとの出金単位</small></span><span class="chevron">›</span>
+      </button>
+      <button class="settings-link" type="button">
+        <span>端末・共有設定<small>保護者用・子ども用端末の管理</small></span><span class="chevron">›</span>
+      </button>
+      <button class="settings-link" type="button">
+        <span>アプリ全体の設定<small>表示・バックアップ・その他</small></span><span class="chevron">›</span>
+      </button>
+    </div>
+    <div class="parent-settings-note">お小遣い・お仕事・履歴は、保護者ホームの各子どもタイルから開きます。</div>
+  </section>
+
+
+
+  <section id="withdrawSettingsView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromWithdrawSettings">戻る</button>
+      <h1>出金設定</h1>
+      <div></div>
+    </header>
+
+    <div class="notice" id="withdrawSettingsNotice">保存しました</div>
+    <p class="setting-guidance">
+      子どもがFUERU口座から引き出せる金額の単位を設定します。
+      設定した単位は、子どもの出金依頼画面に反映されます。
+    </p>
+    <div class="withdraw-settings-list" id="withdrawSettingsList"></div>
+  </section>
+
+  <section id="ledgerSettingsView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromLedgerSettings">戻る</button>
+      <h1>おこづかい帳設定</h1>
+      <div></div>
+    </header>
+    <div class="notice" id="ledgerSettingsNotice">保存しました</div>
+    <p class="setting-guidance">お子さんの成長に合わせて、おこづかい帳の記録方法を選べます。設定は子どもごとに保存されます。</p>
+    <div class="ledger-settings-list" id="ledgerSettingsList"></div>
+  </section>
+
+  <section id="ledgerEditView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromLedgerEdit">戻る</button>
+      <h1>おこづかい帳設定</h1>
+      <div></div>
+    </header>
+
+    <section class="card ledger-edit-card ledger-mode-card">
+      <div class="ledger-profile-head">
+        <div class="ledger-profile-icon" id="ledgerProfileIcon"></div>
+        <div>
+          <div class="ledger-profile-name" id="ledgerProfileName"></div>
+          <div class="ledger-profile-caption">この子のおこづかい帳を設定します</div>
+        </div>
+      </div>
+
+      <section class="ledger-section">
+        <h2 class="ledger-section-title">記録方法</h2>
+        <div class="ledger-mode-stack" id="ledgerModeStack">
+          <label class="ledger-mode-option">
+            <input type="radio" name="ledgerMode" value="easy">
+            <span><strong>すいすいモード</strong><small>保護者が登録した「入金理由」や「使い道」から選び金額を入力するだけ。初めてのおこづかい帳に向いています。</small></span>
+          </label>
+          <label class="ledger-mode-option">
+            <input type="radio" name="ledgerMode" value="simple">
+            <span><strong>かんたんモード</strong><small>保護者が登録した「入金理由」や「使い道」から選んで入力。必要に応じて書き換え可能。費目の入力まではせず、一般的なおこづかい帳が作れます。</small></span>
+          </label>
+          <label class="ledger-mode-option">
+            <input type="radio" name="ledgerMode" value="full">
+            <span><strong>しっかりモード</strong><small>家計簿作りの練習ステージ。何に使ったか、費目の分類など、自分の収入支出を正確に把握するおこづかい帳を目指します。</small></span>
+          </label>
+        </div>
+      </section>
+    </section>
+
+    <section class="card ledger-list-tile">
+      <div class="ledger-list-accordion" id="incomeReasonAccordion">
+        <button class="ledger-list-toggle" type="button" data-ledger-accordion="incomeReasonAccordion">
+          <span><strong>入金理由リスト</strong><small>すいすいモードでは選ぶだけ。かんたんモードでは、選んだ理由を書き換えられます。</small></span>
+          <span class="arrow">⌄</span>
+        </button>
+        <div class="ledger-list-body">
+          <p class="income-note">「FUERU口座から引き出し」は、出金確定時に自動で記録されるため、このリストには含まれません。</p>
+          <div class="spending-list" id="incomeReasonList"></div>
+          <button class="add-spending-btn" type="button" id="addIncomeReason">＋ 入金理由を追加</button>
+
+          <div class="spending-editor" id="incomeReasonEditor">
+            <div class="spending-editor-grid">
+              <div>
+                <label class="field-label" for="incomeReasonIconInput">アイコン</label>
+                <input class="text-input" id="incomeReasonIconInput" maxlength="4" placeholder="✨">
+              </div>
+              <div>
+                <label class="field-label" for="incomeReasonNameInput">入金理由</label>
+                <input class="text-input" id="incomeReasonNameInput" maxlength="24" placeholder="臨時収入">
+              </div>
+            </div>
+            <div class="spending-editor-actions">
+              <button class="spending-cancel" type="button" id="cancelIncomeReasonEdit">キャンセル</button>
+              <button class="spending-apply" type="button" id="applyIncomeReasonEdit">リストに反映</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card ledger-list-tile">
+      <div class="ledger-list-accordion" id="spendingAccordion">
+        <button class="ledger-list-toggle" type="button" data-ledger-accordion="spendingAccordion">
+          <span><strong>使い道リスト</strong><small>すいすいモードでは選ぶだけ。かんたんモードでは、選んだ使い道を書き換えられます。</small></span>
+          <span class="arrow">⌄</span>
+        </button>
+        <div class="ledger-list-body">
+          <p class="ledger-section-note">費目は集計用に内部でひも付きます。</p>
+          <div class="spending-list" id="spendingList"></div>
+          <button class="add-spending-btn" type="button" id="addSpendingItem">＋ 使い道を追加</button>
+
+          <div class="spending-editor" id="spendingEditor">
+            <div class="spending-editor-grid">
+              <div>
+                <label class="field-label" for="spendingIconInput">アイコン</label>
+                <input class="text-input" id="spendingIconInput" maxlength="4" placeholder="🍪">
+              </div>
+              <div>
+                <label class="field-label" for="spendingNameInput">使い道</label>
+                <input class="text-input" id="spendingNameInput" maxlength="24" placeholder="おかし">
+              </div>
+            </div>
+            <label class="field-label" for="spendingCategoryInput">費目</label>
+            <select class="select-input" id="spendingCategoryInput"></select>
+            <div class="spending-editor-actions">
+              <button class="spending-cancel" type="button" id="cancelSpendingEdit">キャンセル</button>
+              <button class="spending-apply" type="button" id="applySpendingEdit">リストに反映</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ledger-save-area">
+      <button class="save-btn" type="button" id="saveLedgerSettings">保存</button>
+    </div>
+  </section>
+
+  <section id="childManageView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromChildManage">戻る</button>
+      <h1>子ども管理</h1>
+      <div></div>
+    </header>
+    <div class="notice" id="childManageNotice">保存しました</div>
+    <div class="manage-list" id="childManageList"></div>
+    <button class="add-child" id="addChild">＋ 子どもを追加</button>
+  </section>
+
+  <section id="childEditView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromChildEdit">戻る</button>
+      <h1 id="childEditTitle">子どもプロフィール</h1>
+      <div></div>
+    </header>
+
+    <section class="card editor-card">
+      <div class="editor-preview">
+        <div class="editor-icon" id="editorPreviewIcon"></div>
+        <div class="editor-name" id="editorPreviewName">名前</div>
+      </div>
+
+      <label class="field-label" for="childNameInput">名前</label>
+      <input class="text-input" id="childNameInput" maxlength="16">
+
+      <div class="field-label">アイコン</div>
+      <div class="option-grid" id="iconOptionGrid"></div>
+
+      <div class="field-label">メインカラー</div>
+      <div class="option-grid" id="mainColorGrid"></div>
+
+      <div class="field-label">サブカラー</div>
+      <div class="option-grid" id="subColorGrid"></div>
+
+      <div class="editor-actions">
+        <button class="delete-btn" id="deleteChild">削除</button>
+        <button class="save-btn" id="saveChild">保存</button>
+      </div>
+    </section>
+  </section>
+
+
+  <section id="allowanceView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromAllowance">戻る</button>
+      <h1>支給設定</h1>
+      <div></div>
+    </header>
+    <div class="notice" id="allowanceNotice">保存しました</div>
+    <div class="allowance-list" id="allowanceList"></div>
+  </section>
+
+  <section id="allowanceEditView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromAllowanceEdit">戻る</button>
+      <h1 id="allowanceEditTitle">支給設定</h1>
+      <div></div>
+    </header>
+
+    <section class="card editor-card">
+      <div class="editor-preview">
+        <div class="editor-icon" id="allowancePreviewIcon"></div>
+        <div class="editor-name" id="allowancePreviewName">名前</div>
+      </div>
+
+      <section class="setting-edit-accordion" id="allowanceSettingSection">
+        <button class="setting-edit-toggle" type="button">
+          <span><strong>お小遣い設定</strong><small id="allowanceSettingSummary">定額 0円</small></span><span class="arrow">⌄</span>
+        </button>
+        <div class="setting-edit-body">
+          <label class="field-label" for="allowanceAmount">毎月の定額お小遣い</label>
+          <input class="text-input" id="allowanceAmount" type="number" min="0" step="10" inputmode="numeric">
+
+          <div class="field-label">支給日</div>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="payType" value="day"><span>毎月指定日に支給</span></label>
+            <label class="radio-option"><input type="radio" name="payType" value="monthEnd"><span>月末に支給</span></label>
+          </div>
+          <div class="form-row" id="payDayRow"><div><label class="field-label" for="payDay">定額お小遣いの支給日</label><select class="select-input" id="payDay"></select></div></div>
+
+        </div>
+      </section>
+
+      <section class="setting-edit-accordion" id="rewardSettingSection">
+        <button class="setting-edit-toggle" type="button">
+          <span><strong>お仕事報酬設定</strong><small id="rewardSettingSummary">承認のたびに入金</small></span><span class="arrow">⌄</span>
+        </button>
+        <div class="setting-edit-body">
+          <div class="field-label">お仕事報酬の支給方法</div>
+          <select class="select-input" id="rewardTiming"><option value="immediate">承認のたびに通帳へ入金</option><option value="payday">支給日にまとめて入金</option></select>
+          <div id="rewardPaydayOptions" style="margin-top:12px">
+            <label class="field-label" for="rewardPaySchedule">お仕事報酬の支給日</label>
+            <select class="select-input" id="rewardPaySchedule"><option value="allowance">定額お小遣いと同じ日</option><option value="day">毎月指定日</option><option value="monthEnd">月末</option></select>
+            <div id="rewardPayDayRow" style="margin-top:10px"><label class="field-label" for="rewardPayDay">指定日</label><select class="select-input" id="rewardPayDay"></select></div>
+          </div>
+          <p class="small-note">承認した報酬は、まとめて入金を選んだ場合だけ支給日まで未支給として保留されます。承認ごとに入金する場合は、その場でFUERU通帳へ反映されます。</p>
+        </div>
+      </section>
+
+      <section class="setting-edit-accordion" id="closeSettingSection">
+        <button class="setting-edit-toggle" type="button">
+          <span><strong>締め日設定</strong><small id="closeSettingSummary">月末締め</small></span><span class="arrow">⌄</span>
+        </button>
+        <div class="setting-edit-body">
+          <div class="field-label">締め日</div>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="closeType" value="monthEnd"><span>月末締め</span></label>
+            <label class="radio-option"><input type="radio" name="closeType" value="day"><span>毎月指定日締め</span></label>
+          </div>
+          <div class="form-row" id="closeDayRow"><div><label class="field-label" for="closeDay">締め日</label><select class="select-input" id="closeDay"></select></div></div>
+        </div>
+      </section>
+
+      <section class="setting-edit-accordion" id="displaySettingSection">
+        <button class="setting-edit-toggle" type="button">
+          <span><strong>FUERU通帳・おこづかい帳表示設定</strong><small id="displaySettingSummary">支給サイクルごと</small></span><span class="arrow">⌄</span>
+        </button>
+        <div class="setting-edit-body">
+          <div class="field-label">表示期間</div>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="periodMode" value="cycle"><span>支給サイクルごと</span></label>
+            <label class="radio-option"><input type="radio" name="periodMode" value="month"><span>月ごと</span></label>
+          </div>
+          <p class="small-note">この設定は、子ども用の「FUERU通帳」と「FUERUおこづかい帳」の表示期間に適用されます。</p>
+          <p class="small-note">「支給サイクルごと」は、締め日の翌日から次の締め日までを1つの期間として表示します。月末締めの場合は「月ごと」と同じ期間になります。</p>
+        </div>
+      </section>
+
+      <section class="setting-edit-accordion" id="payoutSettingSection">
+        <button class="setting-edit-toggle" type="button">
+          <span><strong>支給実行設定</strong><small id="payoutSettingSummary">支給日に手動で支給</small></span><span class="arrow">⌄</span>
+        </button>
+        <div class="setting-edit-body">
+          <p class="setting-guidance"><strong>定額お小遣い</strong>と<strong>「支給日にまとめて入金」</strong>に設定したお仕事報酬が対象です。</p>
+          <div class="field-label">支給方法</div>
+          <div class="radio-stack">
+            <label class="radio-option"><input type="radio" name="payoutMode" value="manual"><span>支給日に手動で支給する</span></label>
+            <label class="radio-option"><input type="radio" name="payoutMode" value="auto"><span>支給日に自動で支給する</span></label>
+          </div>
+          <p class="small-note">※「承認のたびに入金」に設定したお仕事報酬は、承認後すぐにFUERU通帳へ入金されます。</p>
+        </div>
+      </section>
+
+      <div class="editor-actions">
+        <button class="save-btn" id="saveAllowance">保存</button>
+      </div>
+    </section>
+  </section>
+
+
+  <section id="jobSettingsView" class="view">
+    <header class="topbar"><button class="soft-btn" id="backFromJobSettings">戻る</button><h1>お仕事設定</h1><div></div></header>
+    <div class="notice" id="jobSettingsNotice">保存しました</div>
+    <div class="job-settings-list" id="jobSettingsList"></div>
+  </section>
+
+  <section id="jobEditView" class="view">
+    <header class="topbar"><button class="soft-btn" id="backFromJobEdit">戻る</button><h1 id="jobEditTitle">お仕事を登録</h1><div></div></header>
+    <section class="card editor-card">
+      <label class="field-label" for="jobNameInput">仕事内容</label>
+      <input class="text-input" id="jobNameInput" maxlength="40">
+      <div class="form-row">
+        <div><label class="field-label" for="jobRewardInput">報酬</label><div class="money-input-wrap"><input class="text-input" id="jobRewardInput" type="number" min="0" step="10" inputmode="numeric"><span class="money-unit">円</span></div></div>
+        <div><label class="field-label" for="jobFrequency">頻度</label><select class="select-input" id="jobFrequency"><option value="daily">毎日</option><option value="weekdays">平日</option><option value="weekly">曜日指定</option></select></div>
+      </div>
+      <div id="weekdaySection"><div class="field-label">曜日</div><div class="weekday-grid" id="weekdayGrid"></div></div>
+      <div class="form-row">
+        <div><label class="field-label" for="jobStartDate">開始日</label><input class="text-input date-compact" id="jobStartDate" type="date"></div>
+        <div><label class="field-label" for="jobEndDate">終了日</label><input class="text-input date-compact" id="jobEndDate" type="date"></div>
+      </div>
+      <div class="editor-actions"><button class="delete-btn" id="deleteJob">削除</button><button class="save-btn" id="saveJob">保存</button></div>
+    </section>
+  </section>
+
+
+  <section id="childHubView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromChildHub">戻る</button>
+      <h1 id="childHubTitle">子どもの設定</h1>
+      <div></div>
+    </header>
+
+    <div class="accordion" id="childHubAccordion">
+      <section class="accordion-item">
+        <button class="accordion-toggle" type="button"><span>プロフィール</span><span class="arrow">›</span></button>
+        <div class="accordion-body">
+          <div class="inline-summary">
+            <span class="label">名前</span><span class="value" id="hubProfileName">-</span>
+            <span class="label">テーマ</span><span class="value" id="hubProfileTheme">-</span>
+          </div>
+          <button class="add-job-btn" type="button" id="hubEditProfile">プロフィールを編集</button>
+        </div>
+      </section>
+
+      <section class="accordion-item">
+        <button class="accordion-toggle" type="button"><span>支給設定</span><span class="arrow">›</span></button>
+        <div class="accordion-body">
+          <div class="payment-setting-block">
+            <div class="payment-setting-head"><h3 class="payment-setting-title">お小遣い設定</h3></div>
+            <div class="payment-setting-summary"><span class="label">定額お小遣い</span><span class="value" id="hubAllowance">0円</span><span class="label">支給日</span><span class="value" id="hubPayDay">-</span></div>
+          </div>
+          <div class="payment-setting-block" id="hubRewardBlock">
+            <div class="payment-setting-head"><h3 class="payment-setting-title">お仕事報酬設定</h3></div>
+            <div class="payment-setting-summary"><span class="label">支給方法</span><span class="value" id="hubRewardTiming">-</span><span class="label reward-day-row">支給日</span><span class="value reward-day-row" id="hubRewardPayDay">-</span></div>
+          </div>
+          <div class="payment-setting-block">
+            <div class="payment-setting-head"><h3 class="payment-setting-title">締め日設定</h3></div>
+            <div class="payment-setting-summary"><span class="label">締め日</span><span class="value" id="hubCloseDay">月末</span></div>
+          </div>
+          <div class="payment-setting-block">
+            <div class="payment-setting-head"><h3 class="payment-setting-title">FUERU通帳・おこづかい帳表示設定</h3></div>
+            <div class="payment-setting-summary"><span class="label">表示期間</span><span class="value" id="hubPeriodMode">支給サイクルごと</span></div>
+          </div>
+          <button class="add-job-btn" type="button" id="hubEditPayment">支給設定を編集</button>
+        </div>
+      </section>
+
+      <section class="accordion-item open">
+        <button class="accordion-toggle" type="button"><span>お仕事設定</span><span class="arrow">›</span></button>
+        <div class="accordion-body">
+          <div class="child-job-list" id="hubJobList"></div>
+          <button class="add-job-btn" type="button" id="hubAddJob">＋ お仕事を追加</button>
+        </div>
+      </section>
+
+      <section class="accordion-item">
+        <button class="accordion-toggle" type="button"><span>端末・共有</span><span class="arrow">›</span></button>
+        <div class="accordion-body">
+          <div class="muted-note">端末・共有設定は、今後のバージョンで実装します。</div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+
+  <section id="specialRewardView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromSpecialReward">戻る</button>
+      <h1 id="specialRewardTitle">特別報酬</h1>
+      <div></div>
+    </header>
+    <div class="special-success" id="specialRewardSuccess"></div>
+    <section class="card special-card">
+      <div class="special-child-head">
+        <div class="special-child-icon" id="specialRewardIcon"></div>
+        <div class="special-child-name" id="specialRewardChildName">-</div>
+      </div>
+      <label class="field-label" for="specialRewardAmount">金額</label>
+      <div class="money-input-wrap">
+        <input class="text-input" id="specialRewardAmount" type="number" min="0" step="1" inputmode="numeric" value="0">
+        <span class="money-suffix">円</span>
+      </div>
+      <label class="field-label" for="specialRewardReason">理由</label>
+      <textarea class="text-input reason-input" id="specialRewardReason" placeholder="例：テストをよく頑張りました"></textarea>
+      <div class="special-date-wrap">
+        <label class="field-label" for="specialRewardDate">送金日</label>
+        <input class="text-input date-compact" id="specialRewardDate" type="date">
+      </div>
+      <p class="special-note">送金すると、FUERU通帳へ加算され、理由付きで履歴に残ります。過去の日付まで遡って登録できます。</p>
+      <div class="editor-actions"><button class="save-btn" id="grantSpecialReward">FUERU通帳に送金</button></div>
+    </section>
+  </section>
+
+  <section id="childHistoryView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromChildHistory">戻る</button>
+      <h1 id="childHistoryTitle">履歴</h1>
+      <div></div>
+    </header>
+
+    <section class="card calendar-wrap">
+      <div class="calendar-head">
+        <button class="calendar-nav" id="historyPrevMonth">‹</button>
+        <h2 id="historyMonthTitle">2026年7月</h2>
+        <button class="calendar-nav" id="historyNextMonth">›</button>
+      </div>
+      <div class="calendar-grid" id="historyCalendar"></div>
+      <div class="legend">
+        <span><i style="background:var(--child-main)"></i>完了</span>
+        <span><i style="background:var(--child-mix)"></i>未達成あり</span>
+        <span><i style="background:var(--child-accent)"></i>確認待ち</span>
+        <span><i style="background:var(--child-sub);box-shadow:inset 0 0 0 1px var(--child-accent)"></i>未報告</span>
+      </div>
+    </section>
+
+    <div class="history-summary">
+      <span class="label">次回支給日</span><span class="value" id="historyPayDate">-</span>
+      <span class="label">定額お小遣い</span><span class="value" id="historyAllowance">0円</span>
+      <span class="label">確定済み支給額 <small class="summary-note">（お小遣い＋お仕事報酬）</small></span><span class="value" id="historyConfirmed">0円</span>
+      <span class="label">FUERU通帳残高</span><span class="value" id="historyBalance">0円</span>
+    </div>
+
+    <h2 class="history-passbook-heading" id="historyPassbookTitle">FUERU通帳</h2>
+    <section class="card history-passbook-card">
+      <div class="history-passbook-period" id="historyPassbookPeriod">2026年7月</div>
+      <div class="transaction-list" id="historyTransactions"></div>
+    </section>
+  </section>
+
+</main>
+
+  <div class="delete-modal" id="deleteChildModal" aria-hidden="true">
+    <div class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteChildModalTitle">
+      <h2 id="deleteChildModalTitle">子どもを削除しますか？</h2>
+      <p><span class="delete-target" id="deleteChildTargetName">この子ども</span>のプロフィール、お仕事設定、履歴、確認待ちデータを削除します。</p>
+      <p class="delete-warning">この操作は元に戻せません。</p>
+      <div class="delete-dialog-actions">
+        <button type="button" class="cancel-delete-btn" id="cancelDeleteChild">操作取消</button>
+        <button type="button" class="confirm-delete-btn" id="confirmDeleteChild">削除する</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="day-menu-modal" id="parentDayMenu" aria-hidden="true">
+    <div class="day-menu-sheet" role="dialog" aria-modal="true" aria-labelledby="parentDayMenuTitle">
+      <div class="day-menu-head">
+        <h2 id="parentDayMenuTitle">この日の仕事</h2>
+        <button class="day-menu-close" id="closeParentDayMenu" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="day-job-list" id="parentDayJobList"></div>
+      <button class="cancel-day-btn" id="cancelAllDayJobs" type="button">この日の仕事をすべて取り消す</button>
+      <p class="day-menu-note">親による「未達成」または「取り消し」は子どものカレンダーにも反映されます。取り消しは、その日だけを対象にします。</p>
+    </div>
+  </div>
+
+<script>
+const STORAGE_KEY="FUERU_DATA_V1";
+const LEGACY_STORAGE_KEY="oshigoto_parent_v01";
+const seed={
+  children:[
+    {
+      id:"karen",name:"KAREN",icon:"bird",main:"#8BBFE5",sub:"#EAF5FC",deep:"#376E98",
+      allowance:3000,payType:"day",payDay:25,rewardTiming:"together",closeType:"monthEnd",closeDay:31,periodMode:"cycle",withdrawalUnit:100,
+      confirmed:460,
+      reports:[
+        {id:"r1",date:"2026-07-19",name:"風呂掃除＆お湯張り",frequency:"毎日",reward:10,status:"waiting"},
+        {id:"r2",date:"2026-07-19",name:"洗濯物の片付け",frequency:"毎日",reward:20,status:"waiting"},
+        {id:"r3",date:"2026-07-18",name:"11:00までに公文を完了",frequency:"平日",reward:50,status:"waiting"}
+      ]
+    },
+    {
+      id:"younger",name:"次女",icon:"bird",main:"#B59AD9",sub:"#F1EBF8",deep:"#68508F",
+      allowance:2000,payType:"monthEnd",payDay:31,rewardTiming:"together",closeType:"monthEnd",closeDay:31,periodMode:"cycle",withdrawalUnit:100,
+      confirmed:280,
+      reports:[
+        {id:"r4",date:"2026-07-19",name:"テーブルを拭く",frequency:"毎日",reward:10,status:"waiting"}
+      ]
+    }
+  ]
+};
+let state=load();
+processDueRewards();
+let currentChildId=null;
+
+let editingChildId=null;
+let childDraft=null;
+let allowanceEditingId=null;
+let allowanceEditorFromHub=false;
+let jobEditingChildId=null;
+let jobEditingId=null;
+let jobDraft=null;
+let childHubId=null;
+let childHistoryId=null;
+let specialRewardChildId=null;
+let historyCursor=new Date(2026,6,1);
+
+const palette=[
+  {id:"mint",label:"ミント",main:"#8CCBC2",sub:"#EAF7F5",deep:"#2F746B"},
+  {id:"sky",label:"スカイ",main:"#8BBFE5",sub:"#EAF5FC",deep:"#376E98"},
+  {id:"lavender",label:"ラベンダー",main:"#B59AD9",sub:"#F1EBF8",deep:"#68508F"},
+  {id:"coral",label:"コーラル",main:"#EF9A8B",sub:"#FDEDEA",deep:"#995044"},
+  {id:"pink",label:"ピンク",main:"#EFA6C5",sub:"#FCEEF4",deep:"#965572"},
+  {id:"orange",label:"オレンジ",main:"#F3B26F",sub:"#FFF1E2",deep:"#98602E"},
+  {id:"lemon",label:"レモン",main:"#F2D16F",sub:"#FFF8D9",deep:"#8D7428"},
+  {id:"blue",label:"ブルー",main:"#8FA9D8",sub:"#ECF1FA",deep:"#495F8E"}
+];
+
+function iconSvg(type,main,bg){
+  if(type==="bird")return birdSvg(main,bg);
+  let shape="";
+  if(type==="star")shape=`<path d="M60 20l11 23 25 4-18 18 4 25-22-12-22 12 4-25-18-18 25-4z" fill="${main}"/>`;
+  if(type==="flower")shape=`<g fill="${main}"><circle cx="60" cy="37" r="17"/><circle cx="81" cy="53" r="17"/><circle cx="73" cy="78" r="17"/><circle cx="47" cy="78" r="17"/><circle cx="39" cy="53" r="17"/></g><circle cx="60" cy="60" r="15" fill="#F7E7C6"/>`;
+  if(type==="moon")shape=`<path d="M78 26c-24 4-35 34-20 53 10 13 27 16 40 8-8 14-23 23-40 22-24-1-43-21-42-45 1-25 22-44 47-43 5 0 10 2 15 5z" fill="${main}"/>`;
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="58" fill="${bg}"/>${shape}</svg>`;
+}
+function nearestPaletteByMain(main){
+  return palette.find(p=>p.main===main)||palette[0];
+}
+function nearestPaletteBySub(sub){
+  return palette.find(p=>p.sub===sub)||palette[2];
+}
+
+
+function load(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY)||"null");
+    const data=saved&&saved.children?saved:structuredClone(seed);
+    data.children.forEach((child,index)=>{
+      if(typeof child.allowance!=="number")child.allowance=index===0?3000:2000;
+      if(!child.payType)child.payType="day";
+      if(!child.payDay)child.payDay=25;
+      if(!child.rewardTiming||child.rewardTiming==="together"||child.rewardTiming==="separate")child.rewardTiming="immediate";
+      if(!child.rewardPaySchedule)child.rewardPaySchedule="allowance";
+      if(!child.rewardPayDay)child.rewardPayDay=25;
+      if(!child.closeType)child.closeType="monthEnd";
+      if(!child.closeDay)child.closeDay=31;
+      if(!child.periodMode)child.periodMode="cycle";
+      if(!child.payoutMode)child.payoutMode="manual";
+      if(!child.lastAllowancePayoutDate)child.lastAllowancePayoutDate="";
+      if(!Array.isArray(child.pendingRewards))child.pendingRewards=[];
+      if(!child.icon)child.icon="bird";
+      if(!Array.isArray(child.jobs))child.jobs=[];
+      if(!Array.isArray(child.transactions))child.transactions=[];
+      if(!Array.isArray(child.withdrawalRequests))child.withdrawalRequests=[];
+      if(![1,10,100,500,1000].includes(Number(child.withdrawalUnit)))child.withdrawalUnit=100;
+      if(!Array.isArray(child.cancelledJobDates))child.cancelledJobDates=[];
+      if(!["easy","simple","full"].includes(child.ledgerMode))child.ledgerMode="easy";
+      if(!Array.isArray(child.spendingItems)||!child.spendingItems.length){
+        child.spendingItems=[
+          {id:"sp_snack",icon:"🍪",name:"おかし",category:"食費"},
+          {id:"sp_drink",icon:"🥤",name:"飲み物",category:"食費"},
+          {id:"sp_stationery",icon:"✏️",name:"文房具",category:"文房具"},
+          {id:"sp_game",icon:"🎮",name:"ゲーム・遊び",category:"趣味・娯楽"},
+          {id:"sp_book",icon:"📚",name:"本・マンガ",category:"趣味・娯楽"},
+          {id:"sp_gift",icon:"🎁",name:"プレゼント",category:"プレゼント"},
+          {id:"sp_transport",icon:"🚌",name:"電車・バス",category:"交通費"},
+          {id:"sp_other",icon:"🧺",name:"その他",category:"その他"}
+        ];
+      }
+      if(typeof child.passbookBalance!=="number")child.passbookBalance=child.id==="karen"?5320:0;
+    });
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    return data;
+  }catch(e){return structuredClone(seed)}
+}
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function normalizeReport(report){
+  if(!report)return report;
+  if(!report.status){
+    if(report.finalized===true||report.done===true||report.approved===true)report.status="done";
+    else if(report.missed===true||report.returned===true)report.status="missed";
+    else report.status="waiting";
+  }
+  report.reward=Number(report.reward??report.amount??report.snapshot?.reward??0)||0;
+  report.name=report.name||report.snapshot?.name||"お仕事";
+  report.date=report.date||report.reportDate||report.completedDate||new Date().toISOString().slice(0,10);
+  if(!report.id)report.id="legacy_"+report.date+"_"+report.name+"_"+Math.random().toString(36).slice(2,8);
+  return report;
+}
+function waitingReports(child){
+  child.reports=(child.reports||[]).map(normalizeReport);
+  return child.reports.filter(r=>r.status==="waiting");
+}
+function totalWaiting(){return state.children.reduce((n,c)=>n+waitingReports(c).length,0)}
+function birdSvg(main,bg){
+  var drawing=`
+
+<!-- Created with Linearity Curve (http://linearity.io/curve) -->
+<svg height="810.0px" stroke-miterlimit="10" style="fill-rule:nonzero;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;" version="1.1" viewBox="0 0 820 810" width="819.9999999999999px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs/>
+<clipPath id="ArtboardFrame">
+<rect height="810" width="820" x="0" y="0"/>
+</clipPath>
+<g clip-path="url(#ArtboardFrame)" id="bird">
+<path d="M533.25 710.469L510.906 720L535.125 776.844C520.556 781.113 512.828 788.125 518.156 795C523.963 802.492 538.258 793.218 565.031 792.75C575.239 792.663 581.284 794.788 591 797.281C600.716 799.774 608.723 799.546 610.875 791.625C614.785 777.234 588.889 772.192 564.719 772.719C561.425 772.791 558.182 772.982 555.031 773.25L533.25 710.469Z" fill="#7a6e65" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M404.188 710.656L379.531 718.188L399.156 780.656C384.267 783.48 376.085 789.665 380.188 797.406C386.233 808.816 400.707 796.388 427.844 800.344C458.641 808.585 471.973 815.011 476.281 803.844C482.465 783.948 448.77 779.483 422.719 779.062L404.188 710.656Z" fill="#7a6e65" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M450.088 368.305C416.19 218.669 414.15 98.9243 557.107 59.2167C700.064 19.509 734.329 94.1801 781.139 293.539C823.735 452.549 772.867 580.027 679.863 601.096C586.86 622.165 483.986 517.94 450.088 368.305Z" fill="#fffbfb" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M602.894 190.018C602.894 172.107 617.413 157.588 635.324 157.588C653.234 157.588 667.753 172.107 667.753 190.018C667.753 207.928 653.234 222.447 635.324 222.447C617.413 222.447 602.894 207.928 602.894 190.018Z" fill="#7a6e65" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M563.983 272.24C563.983 256.121 577.051 243.053 593.17 243.053C609.289 243.053 622.356 256.121 622.356 272.24C622.356 288.359 609.289 301.427 593.17 301.427C577.051 301.427 563.983 288.359 563.983 272.24Z" fill="#f48ba8" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M260.457 683.248C319.382 718.173 313.697 719.386 388.474 729.656C463.252 739.926 543.182 733.607 610.353 702.678C677.524 671.75 727.266 619.237 760.889 559.055C794.512 498.873 807.347 427.377 794.436 361.184C794.436 361.184 717.253 354.725 640.201 396.108C563.148 437.492 503.892 551.123 460.825 574.225C460.825 574.225 260.457 683.248 260.457 683.248Z" fill="#f7e7c6" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M538.562 9.8125C482.687 9.52215 429.074 29.9599 385.844 64.4062C367.455 78.9566 355.714 86.8122 337.719 115.406C314.731 151.933 289.279 192.035 286.031 287.438C285.642 298.876 279.972 317.738 277.031 334.531C270.312 339.935 263.714 345.619 257.437 351.906C215.508 393.907 179.876 463.455 166.375 528.156C144.14 575.623 124.254 608.255 101.031 627.344C55.6558 664.643 9.79639 659.397 9.8125 687.438C9.8239 707.287 18.7416 724.79 45.1562 734.969C62.1253 741.507 90.5637 744.759 114.469 744.562C153.008 744.245 198.214 730.121 214.625 720.812C231.735 711.107 246.495 699.199 259.906 686.469C295.512 687.75 336.292 678.833 373.094 663.281C417.719 644.423 459.493 615.497 490.094 584.844C514.759 560.137 533.333 527.305 544.125 497.938C566.858 436.073 552.972 369.462 510.25 326.812C497.918 314.502 483.62 305.133 468.094 298.438C468.023 298.033 468.015 297.66 467.938 297.25C463.39 273.218 459.334 222.512 466.625 192.75C475.491 156.559 498.7 131.626 508.062 121.781C536.04 92.3599 579.584 77.633 610.344 76.2188C691.734 69.1465 736.875 140.031 736.875 140.031C736.521 132.726 713.191 93.1093 708.062 87C673.915 46.3231 618.622 17.552 562.625 11.25C554.574 10.3439 546.545 9.85398 538.562 9.8125Z" fill="__MAIN__" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M731.91 139.388C730.576 135.322 734.205 131.363 738.371 132.338L802.543 147.357C814.278 150.103 818.745 164.447 810.643 173.371L769.166 219.057C765.52 223.072 758.899 221.66 757.208 216.507L731.91 139.388Z" fill="#7a6e65" fill-rule="nonzero" opacity="1" stroke="none"/>
+</g>
+`.replace(/__MAIN__/g,main);
+  return '<svg viewBox="0 0 120 120" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="60" cy="60" r="58" fill="'+bg+'"/>'+
+    '<svg x="12" y="10" width="96" height="96" viewBox="0 0 820 810" preserveAspectRatio="xMidYMid meet">'+
+      drawing+
+    '</svg>'+
+  '</svg>';
+}
+function headerBirdSvg(main){
+  return birdSvg(main,"transparent").replace(
+    '<circle cx="60" cy="60" r="58" fill="transparent"/>',
+    ''
+  );
+}
+function bindClick(id,handler){
+  const el=document.getElementById(id);
+  if(el)el.onclick=handler;
+}
+function showView(id){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function formatDate(s){
+  const d=new Date(s+"T00:00:00");
+  return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+let activeWithdrawalChildId=null;
+function pendingWithdrawal(child){
+  return (child.withdrawalRequests||[]).find(r=>r.status==="waiting")||null;
+}
+function openWithdrawConfirm(childId){
+  state=load();
+  const child=state.children.find(c=>c.id===childId);if(!child)return;
+  const req=pendingWithdrawal(child);if(!req){alert("この出金依頼はすでに完了しています。");renderHome();return;}
+  activeWithdrawalChildId=childId;
+  document.getElementById("withdrawChildIcon").style.background=child.sub;
+  document.getElementById("withdrawChildIcon").innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
+  document.getElementById("withdrawChildName").textContent=child.name;
+  document.getElementById("withdrawRequestAmount").textContent=Number(req.amount||0).toLocaleString()+"円";
+  document.getElementById("withdrawConfirmPin").value="";
+  document.getElementById("withdrawConfirmError").classList.remove("show");
+  const card=document.getElementById("withdrawConfirmCard");
+  card.style.setProperty("--child-main",child.main);card.style.setProperty("--child-sub",child.sub);card.style.setProperty("--child-deep",child.deep);
+  showView("withdrawConfirmView");
+}
+function completeWithdrawal(){
+  state=load();
+  const child=state.children.find(c=>c.id===activeWithdrawalChildId);if(!child)return;
+  const req=pendingWithdrawal(child);if(!req){alert("この出金依頼はすでに完了しています。");showView("homeView");renderHome();return;}
+  const input=String(document.getElementById("withdrawConfirmPin").value||"").replace(/\D/g,"").slice(0,4);
+  const error=document.getElementById("withdrawConfirmError");
+  if(!/^\d{4}$/.test(input)){
+    error.textContent="4桁のPINを入力してください。";
+    error.classList.add("show");
+    return;
+  }
+  const expectedPin=String(req.pin||child.withdrawalPin||"");
+  if(input!==expectedPin){
+    error.textContent="PINが違います。お子さん本人に確認してください。";
+    error.classList.add("show");
+    document.getElementById("withdrawConfirmPin").value="";
+    return;
+  }
+  error.classList.remove("show");
+  const amount=Number(req.amount||0);
+  if(amount<=0||amount>Number(child.passbookBalance||0)){
+    error.textContent="残高が不足しているため出金を確定できません。";error.classList.add("show");return;
+  }
+  const now=new Date();
+  const date=localISO(now);
+  child.transactions=Array.isArray(child.transactions)?child.transactions:[];
+  child.transactions.push({id:"tx_withdrawal_"+Date.now(),type:"withdrawal",amount:-amount,date:date,reason:"出金",requestId:req.id});
+  child.passbookBalance=Number(child.passbookBalance||0)-amount;
+  req.status="completed";req.completedAt=now.toISOString();req.completedDate=date;
+  save();
+  activeWithdrawalChildId=null;
+  showView("homeView");renderHome();
+  alert("出金が完了しました。\nFUERU通帳へ記録しました。");
+}
+
+function renderHome(){
+  const parentTitleBird=document.getElementById("parentTitleBird");
+  if(parentTitleBird)parentTitleBird.innerHTML=headerBirdSvg("#8CCBC2");
+  const totalEl=document.getElementById("totalWaiting");
+  const box=document.getElementById("childrenList");
+  if(!totalEl||!box)return;
+
+  totalEl.textContent=totalWaiting();
+  box.innerHTML="";
+
+  state.children.forEach(child=>{
+    const waiting=waitingReports(child).length;
+
+    const tile=document.createElement("section");
+    tile.className="child-card";
+    tile.style.setProperty("--child-main",child.main);
+    tile.style.setProperty("--child-deep",child.deep);
+
+    const icon=document.createElement("span");
+    icon.className="child-icon";
+    icon.style.background=child.sub;
+    icon.innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
+
+    const main=document.createElement("span");
+    main.className="child-main";
+
+    const name=document.createElement("span");
+    name.className="child-name";
+    name.style.color=child.deep;
+    name.textContent=child.name;
+
+    const meta=document.createElement("span");
+    meta.className="child-meta";
+
+    const nextTitle=document.createElement("span");
+    nextTitle.className="next-payment-title";
+    nextTitle.textContent="次回（"+nextPayLabel(child)+"）支給額";
+
+    const allowanceMetric=document.createElement("span");
+    allowanceMetric.className="metric";
+    const allowanceLabel=document.createElement("span");
+    allowanceLabel.className="metric-label";
+    allowanceLabel.textContent="定額お小遣い";
+    const allowanceValue=document.createElement("span");
+    allowanceValue.className="metric-value";
+    allowanceValue.textContent=Number(child.allowance||0).toLocaleString()+"円";
+    allowanceMetric.append(allowanceLabel,allowanceValue);
+
+    const rewardMetric=document.createElement("span");
+    rewardMetric.className="metric";
+    const rewardLabel=document.createElement("span");
+    rewardLabel.className="metric-label";
+    rewardLabel.textContent="お仕事報酬";
+    const rewardValue=document.createElement("span");
+    rewardValue.className="metric-value";
+    syncConfirmed(child);
+    rewardValue.textContent=Number(child.confirmed||0).toLocaleString()+"円";
+    rewardMetric.append(rewardLabel,rewardValue);
+
+    meta.append(nextTitle,allowanceMetric,rewardMetric);
+    main.append(name,meta);
+
+    const buttons=document.createElement("span");
+    buttons.className="child-card-buttons";
+
+    const settingsButton=document.createElement("button");
+    settingsButton.type="button";
+    settingsButton.className="child-sub-btn settings";
+    settingsButton.textContent="設定";
+    settingsButton.onclick=()=>openChildHub(child.id);
+
+    const historyButton=document.createElement("button");
+    historyButton.type="button";
+    historyButton.className="child-sub-btn history";
+    historyButton.textContent="履歴";
+    historyButton.onclick=()=>openChildHistory(child.id);
+
+    const specialButton=document.createElement("button");
+    specialButton.type="button";
+    specialButton.className="child-sub-btn special-btn";
+    specialButton.textContent="特別報酬";
+    specialButton.onclick=()=>openSpecialReward(child.id);
+
+    buttons.append(settingsButton,historyButton,specialButton);
+    const withdrawal=pendingWithdrawal(child);
+    if(withdrawal){
+      const withdrawalButton=document.createElement("button");
+      withdrawalButton.type="button";
+      withdrawalButton.className="withdraw-request-btn";
+      withdrawalButton.innerHTML=`出金依頼　${Number(withdrawal.amount||0).toLocaleString()}円<small>現金を渡したら、お子さん本人がPINを入力</small>`;
+      withdrawalButton.onclick=()=>openWithdrawConfirm(child.id);
+      buttons.appendChild(withdrawalButton);
+    }
+    const payout=payoutStatus(child,new Date());
+    if((child.payoutMode||"manual")==="manual"&&payout.isDue){
+      const payoutButton=document.createElement("button");
+      payoutButton.type="button";
+      payoutButton.className="payout-due-btn";
+      payoutButton.innerHTML=`支給する　${payout.amount.toLocaleString()}円<small>定額お小遣いと支給日到来分のお仕事報酬を入金</small>`;
+      payoutButton.onclick=()=>{
+        if(!confirm(`${child.name}へ${payout.amount.toLocaleString()}円を支給しますか？`))return;
+        const result=executePayout(child,payout.payoutDate,"manual",payout.includeAllowance);
+        save();renderHome();
+        alert(`お仕事報酬とお小遣いを\nFUERU通帳へ送金しました。\n\n支給額は${result.total.toLocaleString()}円です。`);
+      };
+      buttons.appendChild(payoutButton);
+    }
+    tile.append(icon,main,buttons);
+
+    if(waiting>0){
+      const waitingButton=document.createElement("button");
+      waitingButton.type="button";
+      waitingButton.className="waiting-badge";
+      waitingButton.style.background=child.main;
+      waitingButton.textContent="確認待ち "+waiting+"件";
+      waitingButton.onclick=()=>openChild(child.id);
+      tile.appendChild(waitingButton);
+    }
+
+    box.appendChild(tile);
+  });
+}
+function openChild(id){
+  currentChildId=id;
+  const child=state.children.find(c=>c.id===id);
+  document.documentElement.style.setProperty("--child-main",child.main);
+  document.getElementById("childTitle").textContent=child.name+"のお仕事";
+  document.getElementById("completeMessage").classList.remove("show");
+  showView("childView");
+  renderChild();
+}
+function renderChild(){
+  const child=state.children.find(c=>c.id===currentChildId);
+  const waiting=waitingReports(child);
+  document.getElementById("childWaitingCount").textContent=waiting.length;
+  const box=document.getElementById("confirmList");
+  box.innerHTML="";
+  if(!waiting.length){
+    box.innerHTML='<div class="card empty">確認待ちの報告はありません</div>';
+  }else{
+    const groups={};
+    waiting.forEach(r=>(groups[r.date]??=[]).push(r));
+    Object.keys(groups).sort().reverse().forEach(date=>{
+      const group=document.createElement("section");
+      group.className="card date-group";
+      const title=document.createElement("div");
+      title.className="date-title";
+      title.textContent=formatDate(date);
+      group.appendChild(title);
+      groups[date].forEach(report=>{
+        const row=document.createElement("label");
+        row.className="report-row";
+        row.innerHTML=`
+          <input class="report-check" type="checkbox" value="${report.id}">
+          <span><span class="report-name">${report.name}</span><span class="report-sub">${report.frequency}</span></span>
+          <span class="report-money">${report.reward}円</span>`;
+        group.appendChild(row);
+      });
+      box.appendChild(group);
+    });
+  }
+  document.querySelectorAll(".report-check").forEach(c=>c.onchange=updateActions);
+  updateActions();
+}
+
+
+
+function localISO(date){
+  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+function rewardScheduleLabel(child){
+  const schedule=child.rewardPaySchedule||"allowance";
+  if(schedule==="allowance"){
+    return "定額お小遣いと同じ日";
+  }
+  if(schedule==="monthEnd"){
+    return "月末";
+  }
+  return "毎月"+(Number(child.rewardPayDay||25))+"日";
+}
+function rewardDueDate(child,approvedDate){
+  const base=new Date((approvedDate||localISO(new Date()))+"T00:00:00");
+  let type=child.rewardPaySchedule||"allowance",day=Number(child.rewardPayDay||25);
+  if(type==="allowance"){type=child.payType||"day";day=Number(child.payDay||25)}
+  let y=base.getFullYear(),m=base.getMonth(),due;
+  if(type==="monthEnd")due=new Date(y,m+1,0);
+  else{
+    const max=new Date(y,m+1,0).getDate();
+    due=new Date(y,m,Math.min(day,max));
+  }
+  if(base>due){
+    m++;
+    if(type==="monthEnd")due=new Date(y,m+1,0);
+    else due=new Date(y,m,Math.min(day,new Date(y,m+1,0).getDate()));
+  }
+  return localISO(due);
+}
+function allowanceDueDateForMonth(child,year,month){
+  if((child.payType||"day")==="monthEnd")return new Date(year,month+1,0);
+  const max=new Date(year,month+1,0).getDate();
+  return new Date(year,month,Math.min(Number(child.payDay||1),max));
+}
+function currentOrNextAllowanceDue(child,baseDate=new Date()){
+  const today=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate());
+  let due=allowanceDueDateForMonth(child,today.getFullYear(),today.getMonth());
+  if(due<today&&child.lastAllowancePayoutDate===localISO(due)){
+    due=allowanceDueDateForMonth(child,today.getFullYear(),today.getMonth()+1);
+  }
+  return due;
+}
+function pendingRewardTotal(child,dueDate=null){
+  const list=Array.isArray(child.pendingRewards)?child.pendingRewards:[];
+  return list.filter(x=>!dueDate||(x.dueDate||dueDate)<=dueDate).reduce((n,x)=>n+Number(x.amount||0),0);
+}
+function syncConfirmed(child){
+  child.confirmed=(child.rewardTiming||"immediate")==="payday"?pendingRewardTotal(child):0;
+}
+function executePayout(child,dueDate,source="manual",includeAllowance=true){
+  const date=dueDate||localISO(new Date());
+  child.transactions=Array.isArray(child.transactions)?child.transactions:[];
+  child.pendingRewards=Array.isArray(child.pendingRewards)?child.pendingRewards:[];
+  let total=0;
+  const allowanceAlreadyPaid=child.lastAllowancePayoutDate===date;
+  const allowanceAmount=includeAllowance&&!allowanceAlreadyPaid?Number(child.allowance||0):0;
+  if(allowanceAmount>0){
+    child.transactions.push({id:"tx_allowance_"+date+"_"+Date.now(),type:"allowance",amount:allowanceAmount,date,reason:"定額お小遣い",payoutSource:source});
+    total+=allowanceAmount;
+    child.lastAllowancePayoutDate=date;
+  }
+  const dueItems=child.pendingRewards.filter(x=>(x.dueDate||date)<=date);
+  if(dueItems.length){
+    const rewardAmount=dueItems.reduce((n,x)=>n+Number(x.amount||0),0);
+    child.transactions.push({id:"tx_payday_"+date+"_"+Date.now(),type:"job",amount:rewardAmount,date,reason:"お仕事報酬",payoutSource:source,items:dueItems.map(x=>({name:x.name,amount:Number(x.amount||0),workDate:x.workDate}))});
+    total+=rewardAmount;
+    const ids=new Set(dueItems.map(x=>x.id));
+    child.pendingRewards=child.pendingRewards.filter(x=>!ids.has(x.id));
+  }
+  if(total>0)child.passbookBalance=Number(child.passbookBalance||0)+total;
+  syncConfirmed(child);
+  return {total,allowanceAmount,rewardAmount:Math.max(0,total-allowanceAmount)};
+}
+function payoutStatus(child,baseDate=new Date()){
+  const due=currentOrNextAllowanceDue(child,baseDate);
+  const dueISO=localISO(due);
+  const todayISO=localISO(baseDate);
+  const allowanceDue=dueISO<=todayISO&&child.lastAllowancePayoutDate!==dueISO;
+  const dueRewards=(child.pendingRewards||[]).filter(x=>(x.dueDate||todayISO)<=todayISO);
+  const rewardsDue=dueRewards.length>0;
+  const rewardDate=rewardsDue?dueRewards.map(x=>x.dueDate||todayISO).sort().pop():todayISO;
+  const payoutDate=allowanceDue?dueISO:rewardDate;
+  return {due,dueISO,todayISO,payoutDate,includeAllowance:allowanceDue,isDue:allowanceDue||rewardsDue,amount:(allowanceDue?Number(child.allowance||0):0)+dueRewards.reduce((n,x)=>n+Number(x.amount||0),0)};
+}
+function processDueRewards(showMessage=true){
+  let changed=false;
+  const messages=[];
+  state.children.forEach(child=>{
+    syncConfirmed(child);
+    if((child.payoutMode||"manual")!=="auto")return;
+    const status=payoutStatus(child,new Date());
+    if(!status.isDue)return;
+    const result=executePayout(child,status.payoutDate,"auto",status.includeAllowance);
+    if(result.total>0){
+      changed=true;
+      messages.push(`${child.name}：お仕事報酬とお小遣いを\nFUERU通帳へ自動で送金しました。\n\n支給額は${result.total.toLocaleString()}円です。`);
+    }
+  });
+  if(changed)save();
+  if(showMessage&&messages.length)setTimeout(()=>alert(messages.join("\n\n────────\n\n")),50);
+  return messages;
+}
+function nextPayLabel(child){
+  const due=currentOrNextAllowanceDue(child,new Date());
+  return (due.getMonth()+1)+"/"+due.getDate();
+}
+function frequencyLabel(job){
+  if(job.frequency==="daily")return "毎日";
+  if(job.frequency==="weekdays")return "平日";
+  const labels=["日","月","火","水","木","金","土"];
+  return (job.weekdays||[]).map(i=>labels[i]).join("・")||"曜日未設定";
+}
+function renderJobSettings(){
+  const box=document.getElementById("jobSettingsList");box.innerHTML="";
+  state.children.forEach(child=>{
+    const card=document.createElement("section");card.className="job-child-card";
+    card.innerHTML=`<div class="job-child-head"><div class="job-child-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</div><div class="job-child-name" style="color:${child.deep}">${child.name}</div></div><div class="job-list"></div><button class="add-job-btn">＋ お仕事を追加</button>`;
+    const list=card.querySelector(".job-list");
+    if(!child.jobs.length)list.innerHTML='<div class="empty">登録されているお仕事はありません</div>';
+    child.jobs.forEach(job=>{
+      const item=document.createElement("div");item.className="job-item"+(job.enabled?"":" off");
+      item.innerHTML=`<div><div class="job-item-name">${job.name}</div><div class="job-item-meta">${frequencyLabel(job)}／${job.reward}円</div></div><div class="job-item-actions"><span class="job-status ${job.enabled?"":"off"}">${job.enabled?"ON":"OFF"}</span><button class="mini-btn">編集</button></div>`;
+      item.querySelector("button").onclick=()=>openJobEditor(child.id,job.id);list.appendChild(item);
+    });
+    card.querySelector(".add-job-btn").onclick=()=>openJobEditor(child.id,null);box.appendChild(card);
+  });
+}
+function openJobEditor(childId,jobId){
+  jobEditingChildId=childId;jobEditingId=jobId;
+  const child=state.children.find(c=>c.id===childId),existing=jobId?child.jobs.find(j=>j.id===jobId):null;
+  jobDraft=existing?JSON.parse(JSON.stringify(existing)):{id:"job_"+Date.now(),name:"",reward:0,frequency:"daily",weekdays:[],startDate:new Date().toISOString().slice(0,10),endDate:"",enabled:true};
+  document.getElementById("jobEditTitle").textContent=existing?"お仕事を編集":"お仕事を登録";
+  document.getElementById("deleteJob").style.display=existing?"block":"none";
+  document.getElementById("jobNameInput").value=jobDraft.name;document.getElementById("jobRewardInput").value=jobDraft.reward;
+  document.getElementById("jobFrequency").value=jobDraft.frequency;document.getElementById("jobStartDate").value=jobDraft.startDate||"";
+  document.getElementById("jobEndDate").value=jobDraft.endDate||"";
+  renderWeekdayGrid();updateWeekdayVisibility();showView("jobEditView");
+}
+function renderWeekdayGrid(){
+  const labels=["日","月","火","水","木","金","土"],box=document.getElementById("weekdayGrid");box.innerHTML="";
+  labels.forEach((label,index)=>{const b=document.createElement("button");b.type="button";b.className="weekday-btn"+((jobDraft.weekdays||[]).includes(index)?" selected":"");b.textContent=label;b.onclick=()=>{const s=new Set(jobDraft.weekdays||[]);s.has(index)?s.delete(index):s.add(index);jobDraft.weekdays=[...s].sort();renderWeekdayGrid()};box.appendChild(b)});
+}
+function updateWeekdayVisibility(){document.getElementById("weekdaySection").style.display=document.getElementById("jobFrequency").value==="weekly"?"block":"none"}
+function showJobNotice(text){const n=document.getElementById("jobSettingsNotice");n.textContent=text;n.classList.add("show");setTimeout(()=>n.classList.remove("show"),1200)}
+
+
+function applyChildTheme(child){
+  document.documentElement.style.setProperty("--child-main",child.main);
+  document.documentElement.style.setProperty("--child-deep",child.deep);
+  document.documentElement.style.setProperty("--child-sub",child.sub);
+  document.documentElement.style.setProperty("--child-accent",child.main);
+  document.documentElement.style.setProperty("--child-mix",mixHexLocal(child.main,child.deep,.45));
+}
+function mixHexLocal(a,b,t){
+  const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16);
+  const ar=(pa>>16)&255,ag=(pa>>8)&255,ab=pa&255;
+  const br=(pb>>16)&255,bg=(pb>>8)&255,bb=pb&255;
+  const c=(x,y)=>Math.round(x+(y-x)*t);
+  return "#"+((1<<24)+(c(ar,br)<<16)+(c(ag,bg)<<8)+c(ab,bb)).toString(16).slice(1);
+}
+function openChildHub(id){
+  childHubId=id;
+  const child=state.children.find(c=>c.id===id);if(!child)return;
+  applyChildTheme(child);
+  document.getElementById("childHubTitle").textContent=child.name+"の設定";
+  document.getElementById("hubProfileName").textContent=child.name;
+  document.getElementById("hubProfileTheme").textContent="テーマカラー";
+  document.getElementById("hubAllowance").textContent=Number(child.allowance||0).toLocaleString()+"円";
+  document.getElementById("hubPayDay").textContent=child.payType==="monthEnd"?"月末":("毎月"+(child.payDay||1)+"日");
+  document.getElementById("hubRewardTiming").textContent=child.rewardTiming==="payday"?"支給日にまとめて入金":"承認のたびに入金";
+  document.getElementById("hubRewardPayDay").textContent=rewardScheduleLabel(child);
+  document.getElementById("hubCloseDay").textContent=child.closeType==="day"?`毎月${child.closeDay||1}日`:"月末";
+  document.getElementById("hubPeriodMode").textContent=child.periodMode==="month"?"月ごと":"支給サイクルごと";
+  document.getElementById("hubRewardBlock").classList.toggle("no-day",child.rewardTiming!=="payday");
+  document.querySelectorAll("#childHubView .accordion-item").forEach(item=>item.classList.remove("open"));
+  renderHubJobs();
+  showView("childHubView");
+}
+function renderHubJobs(){
+  const child=state.children.find(c=>c.id===childHubId);
+  const box=document.getElementById("hubJobList");box.innerHTML="";
+  if(!child.jobs.length)box.innerHTML='<div class="empty">登録されているお仕事はありません</div>';
+  child.jobs.forEach(job=>{
+    const row=document.createElement("div");row.className="child-job-row";
+    row.innerHTML=`<div><div class="child-job-name">${job.name}</div><div class="child-job-meta">${frequencyLabel(job)}／${job.reward}円</div></div>
+      <label class="compact-switch"><input type="checkbox" ${job.enabled!==false?"checked":""}><span></span></label>
+      <button class="mini-btn">編集</button>`;
+    row.querySelector("input").onchange=e=>{job.enabled=e.target.checked;save();renderHubJobs()};
+    row.querySelector("button").onclick=()=>openJobEditor(child.id,job.id);
+    box.appendChild(row);
+  });
+}
+function localDateString(date){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,"0");
+  const d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+function openSpecialReward(id){
+  specialRewardChildId=id;
+  const child=state.children.find(c=>c.id===id);if(!child)return;
+  applyChildTheme(child);
+  document.getElementById("specialRewardTitle").textContent=child.name+"へ特別報酬";
+  document.getElementById("specialRewardChildName").textContent=child.name;
+  document.getElementById("specialRewardChildName").style.color=child.deep;
+  const icon=document.getElementById("specialRewardIcon");
+  icon.style.background=child.sub;icon.innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
+  document.getElementById("specialRewardAmount").value=0;
+  document.getElementById("specialRewardReason").value="";
+  const today=localDateString(new Date());
+  const specialDate=document.getElementById("specialRewardDate");
+  specialDate.value=today;
+  specialDate.max=today;
+  document.getElementById("specialRewardSuccess").classList.remove("show");
+  showView("specialRewardView");
+}
+function grantSpecialReward(){
+  const child=state.children.find(c=>c.id===specialRewardChildId);if(!child)return;
+  const amount=Math.floor(Number(document.getElementById("specialRewardAmount").value)||0);
+  const reason=document.getElementById("specialRewardReason").value.trim();
+  const date=document.getElementById("specialRewardDate").value||localDateString(new Date());
+  const today=localDateString(new Date());
+  if(amount<=0){alert("特別報酬の金額を入力してください");return}
+  if(!reason){alert("特別報酬の理由を入力してください");return}
+  if(date>today){alert("未来の日付には送金できません");return}
+  child.transactions??=[];
+  child.transactions.push({id:"tx_"+Date.now(),type:"special",amount,reason,date});
+  child.passbookBalance=Number(child.passbookBalance||0)+amount;
+  save();renderHome();
+  const message=document.getElementById("specialRewardSuccess");
+  message.textContent=child.name+"のFUERU通帳へ"+amount.toLocaleString()+"円を送金しました";
+  message.classList.add("show");
+  document.getElementById("specialRewardAmount").value=0;
+  document.getElementById("specialRewardReason").value="";
+}
+function openChildHistory(id){
+  childHistoryId=id;
+  const child=state.children.find(c=>c.id===id);if(!child)return;
+  applyChildTheme(child);
+  document.getElementById("childHistoryTitle").textContent=child.name+"の履歴";
+  document.getElementById("historyPassbookTitle").textContent=child.name+"のFUERU通帳";
+  historyCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  renderHistory();
+  showView("childHistoryView");
+}
+function parseISODate(value){
+  const parts=String(value||"").split("-").map(Number);
+  return new Date(parts[0]||1970,(parts[1]||1)-1,parts[2]||1);
+}
+function isoDate(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function isJobScheduledForParent(child,job,d){
+  if(!job||job.deleted||job.enabled===false)return false;
+  const dk=isoDate(d);
+  if(job.startDate&&dk<job.startDate)return false;
+  if(job.endDate&&dk>job.endDate)return false;
+  if((child.cancelledJobDates||[]).some(x=>x.date===dk&&(!x.jobId||x.jobId===job.id)))return false;
+  if(job.frequency==="daily")return true;
+  return (job.days||[]).includes(d.getDay());
+}
+function parentDayJobs(child,d){
+  const dk=isoDate(d);
+  const reports=(child.reports||[]).map(normalizeReport);
+  const rows=[];
+  (child.jobs||[]).forEach(job=>{
+    if(isJobScheduledForParent(child,job,d)){
+      rows.push({job,report:reports.find(r=>r.date===dk&&r.jobId===job.id)||null});
+    }
+  });
+  reports.filter(r=>r.date===dk&&r.jobId&&!rows.some(x=>x.job.id===r.jobId)).forEach(r=>{
+    const snap=r.snapshot||{};
+    rows.push({job:{id:r.jobId,name:r.name||snap.name||"お仕事",reward:Number(r.reward||snap.reward||0),frequency:snap.frequency||"daily",days:snap.days||[]},report:r});
+  });
+  return rows;
+}
+function parentDayState(child,d){
+  const list=parentDayJobs(child,d);
+  if(!list.length)return "nojob";
+  const states=list.map(x=>x.report?x.report.status:"unreported");
+  if(states.some(s=>s==="missed"))return "partial";
+  if(states.some(s=>s==="waiting"))return "wait";
+  if(states.every(s=>s==="done"))return "done";
+  return "unreported";
+}
+function signedYen(amount){
+  amount=Number(amount)||0;
+  return (amount>=0?"＋":"－")+Math.abs(amount).toLocaleString()+"円";
+}
+function transactionTypeLabel(tx){
+  if(tx.type==="special")return "特別報酬";
+  if((tx.type==="allowance"||tx.type==="job")&&tx.payoutSource)return "支給";
+  if(tx.type==="allowance")return "定額お小遣い";
+  if(tx.type==="withdrawal"||Number(tx.amount)<0)return "出金";
+  return "お仕事報酬";
+}
+function renderGroupedTransactions(child){
+  const txBox=document.getElementById("historyTransactions");
+  txBox.innerHTML="";
+  const txs=(child.transactions||[]).slice().sort((a,b)=>
+    String(b.date||"").localeCompare(String(a.date||""))||
+    String(b.id||"").localeCompare(String(a.id||""))
+  );
+
+  const period=document.getElementById("historyPassbookPeriod");
+  if(period){
+    const d=txs.length&&txs[0].date?parseISODate(txs[0].date):historyMonth;
+    period.textContent=d.getFullYear()+"年"+(d.getMonth()+1)+"月";
+  }
+
+  if(!txs.length){
+    txBox.innerHTML='<div class="empty">入出金履歴はありません</div>';
+    return;
+  }
+
+  const groups=[];
+  txs.forEach(tx=>{
+    const key=(tx.date||"")+"|"+transactionTypeLabel(tx);
+    let group=groups.find(g=>g.key===key);
+    if(!group){
+      group={key,date:tx.date,label:transactionTypeLabel(tx),transactions:[]};
+      groups.push(group);
+    }
+    group.transactions.push(tx);
+  });
+
+  groups.forEach(group=>{
+    const list=group.transactions;
+    const d=parseISODate(group.date);
+    const total=list.reduce((n,tx)=>n+(Number(tx.amount)||0),0);
+
+    const day=document.createElement("section");
+    day.className="transaction-day";
+
+    const date=document.createElement("div");
+    date.className="transaction-day-date";
+    date.innerHTML='<span class="md">'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
+      '<span class="dow">('+["日","月","火","水","木","金","土"][d.getDay()]+')</span>';
+
+    const type=document.createElement("div");
+    type.className="transaction-day-type";
+    type.textContent=group.label;
+
+    const sum=document.createElement("div");
+    sum.className="transaction-day-total "+(total>=0?"plus":"minus");
+    sum.textContent=signedYen(total);
+
+    day.append(date,type,sum);
+
+    const lines=document.createElement("div");
+    lines.className="transaction-lines";
+
+    list.forEach(tx=>{
+      if(tx.type==="special"){
+        const line=document.createElement("div");
+        line.className="transaction-line special-message-line";
+        const title=document.createElement("div");
+        title.className="transaction-line-title";
+        title.textContent=tx.reason||"特別報酬";
+        line.appendChild(title);
+        lines.appendChild(line);
+        return;
+      }
+
+      const items=Array.isArray(tx.items)&&tx.items.length
+        ? (tx.payoutSource?[{name:"お仕事報酬",amount:Number(tx.amount)||0}]:tx.items)
+        : [{name:tx.type==="allowance"&&tx.payoutSource?"定額お小遣い":(tx.reason||transactionTypeLabel(tx)),amount:Number(tx.amount)||0}];
+
+      const singleDuplicate=items.length===1 &&
+        Math.abs(Number(items[0].amount)||0)===Math.abs(Number(tx.amount)||0) &&
+        (items[0].name===transactionTypeLabel(tx) || tx.type==="allowance");
+
+      items.forEach(item=>{
+        if(singleDuplicate)return;
+        const line=document.createElement("div");
+        line.className="transaction-line";
+
+        const title=document.createElement("div");
+        title.className="transaction-line-title";
+        title.appendChild(document.createTextNode("・"+(item.name||"明細")));
+
+        const amount=document.createElement("span");
+        amount.className="transaction-inline-amount";
+        amount.textContent="（"+signedYen(item.amount)+"）";
+        title.appendChild(amount);
+
+        line.appendChild(title);
+        lines.appendChild(line);
+      });
+    });
+
+    if(lines.childNodes.length)day.appendChild(lines);
+    txBox.appendChild(day);
+  });
+}
+let parentDayMenuDate=null;
+function openParentDayMenu(dateKey){
+  const child=state.children.find(c=>c.id===childHistoryId);if(!child)return;
+  parentDayMenuDate=dateKey;
+  const d=parseISODate(dateKey);
+  document.getElementById("parentDayMenuTitle").textContent=`${d.getMonth()+1}月${d.getDate()}日のお仕事`;
+  const box=document.getElementById("parentDayJobList");box.innerHTML="";
+  const list=parentDayJobs(child,d);
+  if(!list.length){
+    box.innerHTML='<div class="empty">この日の仕事はありません</div>';
+  }else{
+    list.forEach(item=>{
+      const row=document.createElement("div");row.className="day-job-row";
+      const status=item.report?.status||"unreported";
+      row.innerHTML=`<div class="day-job-name"></div><div class="day-job-meta">${status==="done"?"完了":status==="waiting"?"確認待ち":status==="missed"?"未達成":"未報告"}／${Number(item.job.reward||0).toLocaleString()}円</div><div class="day-job-actions"></div>`;
+      row.querySelector(".day-job-name").textContent=item.job.name||"お仕事";
+      const actions=row.querySelector(".day-job-actions");
+      const missed=document.createElement("button");missed.type="button";missed.className=status==="missed"?"restore":"missed";
+      missed.textContent=status==="missed"?"未達成を解除":"未達成にする";
+      missed.onclick=()=>{
+        child.reports=child.reports||[];
+        const id=`rep_${child.id}_${dateKey}_${item.job.id}`;
+        let report=child.reports.find(r=>r.id===id)||child.reports.find(r=>r.date===dateKey&&r.jobId===item.job.id);
+        if(status==="missed"){
+          if(report)child.reports=child.reports.filter(r=>r!==report);
+        }else{
+          const payload={id,date:dateKey,name:item.job.name,reward:Number(item.job.reward)||0,status:"missed",jobId:item.job.id,
+            snapshot:{jobId:item.job.id,name:item.job.name,reward:Number(item.job.reward)||0,frequency:item.job.frequency,days:(item.job.days||[]).slice()}};
+          if(report)Object.assign(report,payload);else child.reports.push(payload);
+        }
+        save();renderHistory();openParentDayMenu(dateKey);
+      };
+      const cancel=document.createElement("button");cancel.type="button";cancel.textContent="この仕事を取り消す";
+      cancel.onclick=()=>{
+        child.cancelledJobDates=child.cancelledJobDates||[];
+        if(!child.cancelledJobDates.some(x=>x.date===dateKey&&x.jobId===item.job.id))child.cancelledJobDates.push({date:dateKey,jobId:item.job.id});
+        child.reports=(child.reports||[]).filter(r=>!(r.date===dateKey&&r.jobId===item.job.id&&r.status!=="done"));
+        save();renderHistory();openParentDayMenu(dateKey);
+      };
+      actions.append(missed,cancel);box.appendChild(row);
+    });
+  }
+  document.getElementById("cancelAllDayJobs").disabled=!list.length;
+  const modal=document.getElementById("parentDayMenu");modal.classList.add("show");modal.setAttribute("aria-hidden","false");
+}
+function closeParentDayMenu(){
+  const modal=document.getElementById("parentDayMenu");modal.classList.remove("show");modal.setAttribute("aria-hidden","true");
+}
+function renderHistory(){
+  const child=state.children.find(c=>c.id===childHistoryId);if(!child)return;
+  const y=historyCursor.getFullYear(),m=historyCursor.getMonth();
+  document.getElementById("historyMonthTitle").textContent=y+"年"+(m+1)+"月";
+  document.getElementById("historyPayDate").textContent=nextPayLabel(child);
+  syncConfirmed(child);
+  document.getElementById("historyAllowance").textContent=Number(child.allowance||0).toLocaleString()+"円";
+  document.getElementById("historyConfirmed").textContent=(Number(child.allowance||0)+Number(child.confirmed||0)).toLocaleString()+"円";
+  document.getElementById("historyBalance").textContent=Number(child.passbookBalance||0).toLocaleString()+"円";
+  renderGroupedTransactions(child);
+
+  const box=document.getElementById("historyCalendar");box.innerHTML="";
+  ["月","火","水","木","金","土","日"].forEach(w=>{const d=document.createElement("div");d.className="weekday";d.textContent=w;box.appendChild(d)});
+  const first=new Date(y,m,1),start=new Date(first);
+  start.setDate(first.getDate()-((first.getDay()+6)%7));
+  const today=new Date();today.setHours(0,0,0,0);
+  for(let i=0;i<42;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const el=document.createElement("button");el.type="button";el.className="cal-day "+parentDayState(child,d);
+    if(d.getMonth()!==m)el.classList.add("out");
+    if(isoDate(d)===isoDate(today))el.classList.add("today");
+    el.innerHTML=`<span class="date-num">${d.getDate()}</span>`;
+    el.onclick=()=>openParentDayMenu(isoDate(d));
+    box.appendChild(el);
+  }
+}
+document.getElementById("closeParentDayMenu").onclick=closeParentDayMenu;
+document.getElementById("parentDayMenu").onclick=e=>{if(e.target.id==="parentDayMenu")closeParentDayMenu()};
+document.getElementById("cancelAllDayJobs").onclick=()=>{
+  const child=state.children.find(c=>c.id===childHistoryId);if(!child||!parentDayMenuDate)return;
+  const d=parseISODate(parentDayMenuDate),list=parentDayJobs(child,d);
+  child.cancelledJobDates=child.cancelledJobDates||[];
+  list.forEach(item=>{
+    if(!child.cancelledJobDates.some(x=>x.date===parentDayMenuDate&&x.jobId===item.job.id))child.cancelledJobDates.push({date:parentDayMenuDate,jobId:item.job.id});
+  });
+  child.reports=(child.reports||[]).filter(r=>!(r.date===parentDayMenuDate&&r.status!=="done"));
+  save();closeParentDayMenu();renderHistory();
+};
+
+document.querySelectorAll(".accordion-toggle").forEach(btn=>{
+  btn.onclick=()=>btn.closest(".accordion-item").classList.toggle("open");
+});
+document.querySelectorAll(".accordion-label-button").forEach(btn=>{
+  btn.onclick=()=>btn.closest(".accordion-item").classList.toggle("open");
+});
+document.querySelectorAll(".setting-edit-toggle").forEach(btn=>{
+  btn.onclick=()=>btn.closest(".setting-edit-accordion").classList.toggle("open");
+});
+
+function renderAllowanceList(){
+  const box=document.getElementById("allowanceList");
+  box.innerHTML="";
+  state.children.forEach(child=>{
+    const card=document.createElement("button");
+    card.className="allowance-card";
+    card.type="button";
+    const payLabel=child.payType==="monthEnd"?"月末":`毎月${child.payDay}日`;
+    card.innerHTML=`
+      <span class="allowance-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</span>
+      <span class="allowance-main">
+        <span class="allowance-name" style="color:${child.deep}">${child.name}</span>
+        <span class="allowance-summary">定額 ${Number(child.allowance||0).toLocaleString()}円／${payLabel}<br>お仕事報酬：${child.rewardTiming==="payday"?"支給日にまとめて":"承認ごとに入金"}</span>
+      </span>
+      <span class="chevron" style="color:${child.deep}">›</span>`;
+    card.onclick=()=>openAllowanceEditor(child.id,"list");
+    box.appendChild(card);
+  });
+}
+function openAllowanceEditor(id,source){
+  allowanceEditorFromHub=source==="hub";
+  allowanceEditingId=id;
+  const child=state.children.find(c=>c.id===id);
+  document.getElementById("allowanceEditTitle").textContent=child.name+"の支給設定";
+  document.getElementById("allowancePreviewName").textContent=child.name;
+  document.getElementById("allowancePreviewName").style.color=child.deep;
+  document.getElementById("allowancePreviewIcon").style.background=child.sub;
+  document.getElementById("allowancePreviewIcon").innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
+  document.getElementById("allowanceAmount").value=child.allowance||0;
+  document.getElementById("rewardTiming").value=child.rewardTiming||"immediate";
+  document.getElementById("rewardPaySchedule").value=child.rewardPaySchedule||"allowance";
+  document.getElementById("rewardPayDay").value=String(child.rewardPayDay||25);
+  [...document.querySelectorAll('input[name="payType"]')].forEach(r=>r.checked=r.value===(child.payType||"day"));
+  document.getElementById("payDay").value=String(child.payDay||25);
+  [...document.querySelectorAll('input[name="closeType"]')].forEach(r=>r.checked=r.value===(child.closeType||"monthEnd"));
+  document.getElementById("closeDay").value=String(child.closeDay||31);
+  [...document.querySelectorAll('input[name="periodMode"]')].forEach(r=>r.checked=r.value===(child.periodMode||"cycle"));
+  [...document.querySelectorAll('input[name="payoutMode"]')].forEach(r=>r.checked=r.value===(child.payoutMode||"manual"));
+  updatePayDayVisibility();updateRewardPaydayVisibility();updateCloseDayVisibility();
+  document.getElementById("allowanceSettingSection").classList.remove("open");
+  document.getElementById("rewardSettingSection").classList.remove("open");
+  document.getElementById("closeSettingSection").classList.remove("open");
+  document.getElementById("displaySettingSection").classList.remove("open");
+  document.getElementById("payoutSettingSection").classList.remove("open");
+  updateAllowanceEditorSummaries(child);
+  showView("allowanceEditView");
+}
+
+function updateAllowanceEditorSummaries(child){
+  const payLabel=child.payType==="monthEnd"?"月末":`毎月${child.payDay||1}日`;
+  document.getElementById("allowanceSettingSummary").textContent=`定額 ${Number(child.allowance||0).toLocaleString()}円／${payLabel}`;
+  document.getElementById("rewardSettingSummary").textContent=child.rewardTiming==="payday"?`支給日にまとめて入金／${rewardScheduleLabel(child)}`:"承認のたびに入金";
+  const closeLabel=child.closeType==="day"?`毎月${child.closeDay||1}日締め`:"月末締め";
+  const periodLabel=child.periodMode==="month"?"月ごと":"支給サイクルごと";
+  document.getElementById("closeSettingSummary").textContent=closeLabel;
+  document.getElementById("displaySettingSummary").textContent=periodLabel;
+  document.getElementById("payoutSettingSummary").textContent=(child.payoutMode||"manual")==="auto"?"支給日に自動で支給":"支給日に手動で支給";
+}
+
+function updatePayDayVisibility(){
+  const selected=document.querySelector('input[name="payType"]:checked');
+  document.getElementById("payDayRow").style.opacity=selected&&selected.value==="monthEnd"?.7:1;
+  document.getElementById("payDay").disabled=selected&&selected.value==="monthEnd";
+}
+function updateRewardPaydayVisibility(){
+  const timing=document.getElementById("rewardTiming").value;
+  const options=document.getElementById("rewardPaydayOptions");
+  options.style.display=timing==="payday"?"block":"none";
+  const schedule=document.getElementById("rewardPaySchedule").value;
+  document.getElementById("rewardPayDayRow").style.display=schedule==="day"?"block":"none";
+}
+function updateCloseDayVisibility(){
+  const selected=document.querySelector('input[name="closeType"]:checked');
+  const isDay=selected&&selected.value==="day";
+  document.getElementById("closeDayRow").style.opacity=isDay?1:.7;
+  document.getElementById("closeDay").disabled=!isDay;
+}
+function showAllowanceNotice(text){
+  const n=document.getElementById("allowanceNotice");
+  n.textContent=text;n.classList.add("show");
+  setTimeout(()=>n.classList.remove("show"),1200);
+}
+
+function renderChildManage(){
+  const box=document.getElementById("childManageList");
+  box.innerHTML="";
+  state.children.forEach((child,index)=>{
+    const card=document.createElement("div");
+    card.className="manage-card";
+    card.innerHTML=`
+      <div class="manage-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</div>
+      <div>
+        <div class="manage-name" style="color:${child.deep}">${child.name}</div>
+        <div class="manage-sub">確認待ち ${waitingReports(child).length}件／確定報酬 ${child.confirmed}円</div>
+      </div>
+      <div class="manage-actions">
+        <button class="mini-btn" data-action="edit">編集</button>
+        <button class="mini-btn" data-action="up" ${index===0?"disabled":""}>↑</button>
+        <button class="mini-btn" data-action="down" ${index===state.children.length-1?"disabled":""}>↓</button>
+      </div>`;
+    card.querySelector('[data-action="edit"]').onclick=()=>openChildEditor(child.id);
+    card.querySelector('[data-action="up"]').onclick=()=>moveChild(index,-1);
+    card.querySelector('[data-action="down"]').onclick=()=>moveChild(index,1);
+    box.appendChild(card);
+  });
+}
+function moveChild(index,delta){
+  const target=index+delta;
+  if(target<0||target>=state.children.length)return;
+  [state.children[index],state.children[target]]=[state.children[target],state.children[index]];
+  save();renderChildManage();renderHome();
+  showManageNotice("表示順を変更しました");
+}
+function showManageNotice(text){
+  const n=document.getElementById("childManageNotice");
+  n.textContent=text;n.classList.add("show");
+  setTimeout(()=>n.classList.remove("show"),1200);
+}
+function openChildEditor(id){
+  editingChildId=id||null;
+  const existing=id?state.children.find(c=>c.id===id):null;
+  childDraft=existing?JSON.parse(JSON.stringify(existing)):{
+    id:"child_"+Date.now(),name:"",icon:"bird",
+    main:"#8CCBC2",sub:"#F1EBF8",deep:"#2F746B",confirmed:0,reports:[],jobs:[],transactions:[],passbookBalance:0
+  };
+  document.getElementById("childEditTitle").textContent=existing?"プロフィール編集":"子どもを追加";
+  const deleteButton=document.getElementById("deleteChild");
+  deleteButton.style.display=existing?"block":"none";
+  closeDeleteChildModal();
+  showView("childEditView");
+  renderChildEditor();
+}
+function renderChildEditor(){
+  document.getElementById("childNameInput").value=childDraft.name||"";
+  document.getElementById("editorPreviewName").textContent=childDraft.name||"名前";
+  document.getElementById("editorPreviewName").style.color=childDraft.deep;
+  document.getElementById("editorPreviewIcon").style.background=childDraft.sub;
+  document.getElementById("editorPreviewIcon").innerHTML=iconSvg(childDraft.icon||"bird",childDraft.main,childDraft.sub);
+
+  const icons=[["bird","小鳥"],["star","星"],["flower","花"],["moon","月"]];
+  const iconGrid=document.getElementById("iconOptionGrid");iconGrid.innerHTML="";
+  icons.forEach(([id,label])=>{
+    const b=document.createElement("button");
+    b.type="button";b.className="option-btn"+((childDraft.icon||"bird")===id?" selected":"");
+    b.innerHTML=iconSvg(id,childDraft.main,childDraft.sub)+`<span>${label}</span>`;
+    b.onclick=()=>{childDraft.icon=id;renderChildEditor()};
+    iconGrid.appendChild(b);
+  });
+
+  renderColorGrid("mainColorGrid","main");
+  renderColorGrid("subColorGrid","sub");
+}
+function renderColorGrid(containerId,key){
+  const box=document.getElementById(containerId);box.innerHTML="";
+  palette.forEach(p=>{
+    const selected=key==="main"?childDraft.main===p.main:childDraft.sub===p.sub;
+    const b=document.createElement("button");
+    b.type="button";b.className="option-btn"+(selected?" selected":"");
+    const color=key==="main"?p.main:p.sub;
+    b.innerHTML=`<span class="color-dot" style="background:${color}"></span><span>${p.label}</span>`;
+    b.onclick=()=>{
+      if(key==="main"){childDraft.main=p.main;childDraft.deep=p.deep}
+      else childDraft.sub=p.sub;
+      renderChildEditor();
+    };
+    box.appendChild(b);
+  });
+}
+
+function selectedIds(){return [...document.querySelectorAll(".report-check:checked")].map(c=>c.value)}
+function updateActions(){
+  const checks=[...document.querySelectorAll(".report-check")];
+  const count=checks.filter(c=>c.checked).length;
+  const selectAll=document.getElementById("selectAll");
+  document.getElementById("confirmSelected").disabled=count===0;
+  document.getElementById("returnSelected").disabled=count===0;
+  if(selectAll){
+    selectAll.checked=checks.length>0&&count===checks.length;
+    selectAll.indeterminate=count>0&&count<checks.length;
+    selectAll.disabled=checks.length===0;
+  }
+}
+
+
+function escapeHtml(value){
+  return String(value??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+const LEDGER_CATEGORIES=["食費","交通費","文房具","趣味・娯楽","衣服","プレゼント","貯金","その他"];
+const LEDGER_MODE_LABELS={easy:"すいすい",simple:"かんたん",full:"しっかり"};
+let ledgerEditingChildId=null;
+let ledgerDraft=null;
+let spendingEditingId=null;
+let incomeReasonEditingId=null;
+
+function ensureLedgerData(child){
+  if(!child)return;
+  if(!["easy","simple","full"].includes(child.ledgerMode))child.ledgerMode="easy";
+  if(!Array.isArray(child.incomeReasonItems)||!child.incomeReasonItems.length){
+    child.incomeReasonItems=[
+      {id:"in_extra",icon:"✨",name:"臨時収入"},
+      {id:"in_birthday",icon:"🎂",name:"誕生日"},
+      {id:"in_newyear",icon:"🎍",name:"お年玉"},
+      {id:"in_other",icon:"💴",name:"その他"}
+    ];
+  }
+  if(!Array.isArray(child.spendingItems)||!child.spendingItems.length){
+    child.spendingItems=[
+      {id:"sp_snack",icon:"🍪",name:"おかし",category:"食費"},
+      {id:"sp_drink",icon:"🥤",name:"飲み物",category:"食費"},
+      {id:"sp_stationery",icon:"✏️",name:"文房具",category:"文房具"},
+      {id:"sp_game",icon:"🎮",name:"ゲーム・遊び",category:"趣味・娯楽"},
+      {id:"sp_book",icon:"📚",name:"本・マンガ",category:"趣味・娯楽"},
+      {id:"sp_gift",icon:"🎁",name:"プレゼント",category:"プレゼント"},
+      {id:"sp_transport",icon:"🚌",name:"電車・バス",category:"交通費"},
+      {id:"sp_other",icon:"🧺",name:"その他",category:"その他"}
+    ];
+  }
+}
+function clonePlain(value){return JSON.parse(JSON.stringify(value))}
+
+const WITHDRAWAL_UNITS=[1,10,100,500,1000];
+
+function withdrawalUnitLabel(unit){
+  const value=Number(unit)||100;
+  return value.toLocaleString("ja-JP")+"円単位";
+}
+
+function renderWithdrawSettings(){
+  state=load();
+  const box=document.getElementById("withdrawSettingsList");
+  if(!box)return;
+  box.innerHTML="";
+  if(!state.children.length){
+    box.innerHTML='<div class="withdraw-settings-empty">先に「子ども管理」で子どもを登録してください。</div>';
+    return;
+  }
+
+  state.children.forEach(child=>{
+    const unit=WITHDRAWAL_UNITS.includes(Number(child.withdrawalUnit))
+      ? Number(child.withdrawalUnit)
+      : 100;
+
+    const card=document.createElement("section");
+    card.className="withdraw-setting-card";
+    card.style.setProperty("--child-main",child.main||"#8CCBC2");
+    card.style.setProperty("--child-sub",child.sub||"#EAF7F5");
+    card.style.setProperty("--child-deep",child.deep||"#2F746B");
+
+    card.innerHTML=`
+      <div class="withdraw-setting-head">
+        <div class="withdraw-setting-icon" style="background:${child.sub||"#EAF7F5"}">
+          ${iconSvg(child.icon||"bird",child.main||"#8CCBC2",child.sub||"#EAF7F5")}
+        </div>
+        <div>
+          <div class="withdraw-setting-name">${escapeHtml(child.name)}</div>
+          <div class="withdraw-setting-current">現在の設定：${withdrawalUnitLabel(unit)}</div>
+        </div>
+      </div>
+      <label class="withdraw-unit-label" for="withdrawUnit_${child.id}">出金単位</label>
+      <select class="withdraw-unit-select" id="withdrawUnit_${child.id}" data-child-id="${child.id}">
+        ${WITHDRAWAL_UNITS.map(value=>`
+          <option value="${value}" ${value===unit?"selected":""}>
+            ${value.toLocaleString("ja-JP")}円単位
+          </option>
+        `).join("")}
+      </select>
+      <div class="withdraw-unit-note">
+        例：100円単位なら、100円・200円・300円…で出金依頼できます。
+      </div>
+    `;
+    box.appendChild(card);
+  });
+
+  box.querySelectorAll(".withdraw-unit-select").forEach(select=>{
+    select.addEventListener("change",event=>{
+      const child=state.children.find(item=>item.id===event.currentTarget.dataset.childId);
+      if(!child)return;
+      child.withdrawalUnit=Number(event.currentTarget.value)||100;
+      save();
+      renderWithdrawSettings();
+      const notice=document.getElementById("withdrawSettingsNotice");
+      notice.textContent=child.name+"の出金単位を「"+withdrawalUnitLabel(child.withdrawalUnit)+"」に設定しました";
+      notice.classList.add("show");
+      clearTimeout(renderWithdrawSettings.noticeTimer);
+      renderWithdrawSettings.noticeTimer=setTimeout(()=>notice.classList.remove("show"),2200);
+    });
+  });
+}
+
+function renderLedgerSettingsList(){
+  state=load();
+  const box=document.getElementById("ledgerSettingsList");
+  if(!box)return;
+  box.innerHTML="";
+  if(!state.children.length){
+    box.innerHTML='<div class="ledger-empty">先に「子ども管理」で子どもを登録してください。</div>';
+    return;
+  }
+  state.children.forEach(child=>{
+    ensureLedgerData(child);
+    const card=document.createElement("section");
+    card.className="ledger-child-card";
+    card.style.setProperty("--child-main",child.main||"#8CCBC2");
+    card.style.setProperty("--child-sub",child.sub||"#EAF7F5");
+    card.style.setProperty("--child-deep",child.deep||"#2F746B");
+    const itemCount=child.spendingItems.length;
+    const incomeCount=child.incomeReasonItems.length;
+    card.innerHTML=`
+      <div class="ledger-child-icon" style="background:${child.sub||"#EAF7F5"}">${iconSvg(child.icon||"bird",child.main||"#8CCBC2",child.sub||"#EAF7F5")}</div>
+      <div>
+        <div class="ledger-child-name">${escapeHtml(child.name)}</div>
+        <div class="ledger-child-summary">入金理由 ${incomeCount}件 ／ 使い道 ${itemCount}件</div>
+        <span class="ledger-mode-badge">${LEDGER_MODE_LABELS[child.ledgerMode]||"すいすい"}モード</span>
+      </div>
+      <button class="mini-btn" type="button">編集</button>`;
+    card.querySelector("button").onclick=()=>openLedgerEditor(child.id);
+    box.appendChild(card);
+  });
+}
+function openLedgerEditor(childId){
+  state=load();
+  const child=state.children.find(c=>c.id===childId);
+  if(!child)return;
+  ensureLedgerData(child);
+  ledgerEditingChildId=childId;
+  ledgerDraft={
+    ledgerMode:child.ledgerMode,
+    incomeReasonItems:clonePlain(child.incomeReasonItems),
+    spendingItems:clonePlain(child.spendingItems)
+  };
+  spendingEditingId=null;
+  incomeReasonEditingId=null;
+  document.getElementById("ledgerProfileIcon").style.background=child.sub||"#EAF7F5";
+  document.getElementById("ledgerProfileIcon").innerHTML=iconSvg(child.icon||"bird",child.main||"#8CCBC2",child.sub||"#EAF7F5");
+  document.getElementById("ledgerProfileName").textContent=child.name;
+  document.getElementById("ledgerEditView").style.setProperty("--child-main",child.main||"#8CCBC2");
+  document.getElementById("ledgerEditView").style.setProperty("--child-sub",child.sub||"#EAF7F5");
+  document.getElementById("ledgerEditView").style.setProperty("--child-deep",child.deep||"#2F746B");
+  renderLedgerEditor();
+  showView("ledgerEditView");
+}
+function renderLedgerEditor(){
+  if(!ledgerDraft)return;
+  document.querySelectorAll('input[name="ledgerMode"]').forEach(input=>{
+    input.checked=input.value===ledgerDraft.ledgerMode;
+    input.closest(".ledger-mode-option").classList.toggle("selected",input.checked);
+  });
+  renderIncomeReasonList();
+  const list=document.getElementById("spendingList");
+  list.innerHTML="";
+  if(!ledgerDraft.spendingItems.length){
+    list.innerHTML='<div class="ledger-empty">使い道がまだありません。<br>「＋ 使い道を追加」から登録してください。</div>';
+  }else{
+    ledgerDraft.spendingItems.forEach(item=>{
+      const row=document.createElement("div");
+      row.className="spending-item";
+      row.innerHTML=`
+        <div class="spending-icon">${escapeHtml(item.icon||"🧺")}</div>
+        <div>
+          <div class="spending-name">${escapeHtml(item.name||"使い道")}</div>
+          <div class="spending-category">費目：${escapeHtml(item.category||"その他")}</div>
+        </div>
+        <div class="spending-actions">
+          <button type="button" class="edit">編集</button>
+          <button type="button" class="remove">削除</button>
+        </div>`;
+      row.querySelector(".edit").onclick=()=>openSpendingEditor(item.id);
+      row.querySelector(".remove").onclick=()=>removeSpendingItem(item.id);
+      list.appendChild(row);
+    });
+  }
+}
+function renderIncomeReasonList(){
+  if(!ledgerDraft)return;
+  const list=document.getElementById("incomeReasonList");
+  if(!list)return;
+  list.innerHTML="";
+  if(!ledgerDraft.incomeReasonItems.length){
+    list.innerHTML='<div class="ledger-empty">入金理由がまだありません。<br>「＋ 入金理由を追加」から登録してください。</div>';
+    return;
+  }
+  ledgerDraft.incomeReasonItems.forEach(item=>{
+    const row=document.createElement("div");
+    row.className="spending-item";
+    row.innerHTML=`
+      <div class="spending-icon">${escapeHtml(item.icon||"💴")}</div>
+      <div><div class="spending-name">${escapeHtml(item.name||"入金理由")}</div></div>
+      <div class="spending-actions">
+        <button type="button" class="edit">編集</button>
+        <button type="button" class="remove">削除</button>
+      </div>`;
+    row.querySelector(".edit").onclick=()=>openIncomeReasonEditor(item.id);
+    row.querySelector(".remove").onclick=()=>removeIncomeReasonItem(item.id);
+    list.appendChild(row);
+  });
+}
+function openIncomeReasonEditor(itemId){
+  if(!ledgerDraft)return;
+  incomeReasonEditingId=itemId||null;
+  const item=itemId?ledgerDraft.incomeReasonItems.find(v=>v.id===itemId):null;
+  document.getElementById("incomeReasonIconInput").value=item?.icon||"";
+  document.getElementById("incomeReasonNameInput").value=item?.name||"";
+  document.getElementById("incomeReasonEditor").classList.add("show");
+  document.getElementById("incomeReasonAccordion").classList.add("open");
+  setTimeout(()=>document.getElementById("incomeReasonNameInput").focus(),0);
+}
+function closeIncomeReasonEditor(){
+  incomeReasonEditingId=null;
+  document.getElementById("incomeReasonEditor").classList.remove("show");
+}
+function applyIncomeReasonEdit(){
+  if(!ledgerDraft)return;
+  const icon=(document.getElementById("incomeReasonIconInput").value||"💴").trim()||"💴";
+  const name=document.getElementById("incomeReasonNameInput").value.trim();
+  if(!name){
+    alert("入金理由の名前を入力してください。");
+    document.getElementById("incomeReasonNameInput").focus();
+    return;
+  }
+  if(incomeReasonEditingId){
+    const item=ledgerDraft.incomeReasonItems.find(v=>v.id===incomeReasonEditingId);
+    if(item){item.icon=icon;item.name=name}
+  }else{
+    ledgerDraft.incomeReasonItems.push({
+      id:"in_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),icon,name
+    });
+  }
+  closeIncomeReasonEditor();
+  renderIncomeReasonList();
+}
+function removeIncomeReasonItem(itemId){
+  if(!ledgerDraft)return;
+  const item=ledgerDraft.incomeReasonItems.find(v=>v.id===itemId);
+  if(!item)return;
+  if(!confirm(`「${item.name}」を入金理由リストから削除しますか？`))return;
+  ledgerDraft.incomeReasonItems=ledgerDraft.incomeReasonItems.filter(v=>v.id!==itemId);
+  if(incomeReasonEditingId===itemId)closeIncomeReasonEditor();
+  renderIncomeReasonList();
+}
+
+function populateLedgerCategories(selected){
+  const select=document.getElementById("spendingCategoryInput");
+  select.innerHTML=LEDGER_CATEGORIES.map(c=>`<option value="${c}"${c===selected?" selected":""}>${c}</option>`).join("");
+}
+function openSpendingEditor(itemId){
+  if(!ledgerDraft)return;
+  spendingEditingId=itemId||null;
+  const item=itemId?ledgerDraft.spendingItems.find(v=>v.id===itemId):null;
+  document.getElementById("spendingIconInput").value=item?.icon||"";
+  document.getElementById("spendingNameInput").value=item?.name||"";
+  populateLedgerCategories(item?.category||"その他");
+  document.getElementById("spendingEditor").classList.add("show");
+  setTimeout(()=>document.getElementById("spendingNameInput").focus(),0);
+}
+function closeSpendingEditor(){
+  spendingEditingId=null;
+  document.getElementById("spendingEditor").classList.remove("show");
+}
+function applySpendingEdit(){
+  if(!ledgerDraft)return;
+  const icon=(document.getElementById("spendingIconInput").value||"🧺").trim()||"🧺";
+  const name=document.getElementById("spendingNameInput").value.trim();
+  const category=document.getElementById("spendingCategoryInput").value||"その他";
+  if(!name){
+    alert("使い道の名前を入力してください。");
+    document.getElementById("spendingNameInput").focus();
+    return;
+  }
+  if(spendingEditingId){
+    const item=ledgerDraft.spendingItems.find(v=>v.id===spendingEditingId);
+    if(item){item.icon=icon;item.name=name;item.category=category}
+  }else{
+    ledgerDraft.spendingItems.push({
+      id:"sp_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),
+      icon,name,category
+    });
+  }
+  closeSpendingEditor();
+  renderLedgerEditor();
+}
+function removeSpendingItem(itemId){
+  if(!ledgerDraft)return;
+  const item=ledgerDraft.spendingItems.find(v=>v.id===itemId);
+  if(!item)return;
+  if(!confirm(`「${item.name}」を使い道リストから削除しますか？`))return;
+  ledgerDraft.spendingItems=ledgerDraft.spendingItems.filter(v=>v.id!==itemId);
+  if(spendingEditingId===itemId)closeSpendingEditor();
+  renderLedgerEditor();
+}
+function saveLedgerSettings(){
+  const child=state.children.find(c=>c.id===ledgerEditingChildId);
+  if(!child||!ledgerDraft)return;
+  child.ledgerMode=ledgerDraft.ledgerMode;
+  child.incomeReasonItems=clonePlain(ledgerDraft.incomeReasonItems);
+  child.spendingItems=clonePlain(ledgerDraft.spendingItems);
+  save();
+  showView("ledgerSettingsView");
+  renderLedgerSettingsList();
+  const notice=document.getElementById("ledgerSettingsNotice");
+  notice.textContent=child.name+"のおこづかい帳設定を保存しました";
+  notice.classList.add("show");
+  setTimeout(()=>notice.classList.remove("show"),2200);
+}
+document.querySelectorAll('input[name="ledgerMode"]').forEach(input=>{
+  input.addEventListener("change",()=>{
+    if(!ledgerDraft)return;
+    ledgerDraft.ledgerMode=input.value;
+    renderLedgerEditor();
+  });
+});
+
+document.getElementById("selectAll").onchange=(event)=>{
+  const checks=[...document.querySelectorAll(".report-check")];
+  checks.forEach(c=>c.checked=event.currentTarget.checked);
+  updateActions();
+};
+document.getElementById("confirmSelected").onclick=()=>{
+  const ids=selectedIds(),child=state.children.find(c=>c.id===currentChildId);
+  child.reports.forEach(r=>{
+    if(ids.includes(r.id)&&r.status==="waiting"){
+      r.status="done";
+      const paid=Number(r.reward)||0;
+      if((child.rewardTiming||"immediate")==="payday"){
+        child.pendingRewards=Array.isArray(child.pendingRewards)?child.pendingRewards:[];
+        child.pendingRewards.push({id:"pending_"+r.id,amount:paid,name:r.name,workDate:r.date||localISO(new Date()),dueDate:rewardDueDate(child,localISO(new Date()))});
+        syncConfirmed(child);
+      }else{
+        child.transactions??=[];
+        child.transactions.push({id:"tx_"+Date.now()+"_"+r.id,type:"job",amount:paid,reason:r.name,date:r.date||localISO(new Date())});
+        child.passbookBalance=Number(child.passbookBalance||0)+paid;
+      }
+    }
+  });
+  save();
+  const msg=document.getElementById("completeMessage");
+  msg.textContent=ids.length+"件を確定しました";
+  msg.classList.add("show");
+  renderChild();renderHome();
+};
+document.getElementById("returnSelected").onclick=()=>{
+  const ids=selectedIds(),child=state.children.find(c=>c.id===currentChildId);
+  child.reports.forEach(r=>{if(ids.includes(r.id)&&r.status==="waiting")r.status="missed"});
+  save();
+  const msg=document.getElementById("completeMessage");
+  msg.textContent=ids.length+"件を未達成へ戻しました";
+  msg.classList.add("show");
+  renderChild();renderHome();
+};
+document.getElementById("backHome").onclick=()=>{showView("homeView");renderHome()};
+document.getElementById("openSettings").onclick=()=>showView("settingsView");
+document.getElementById("openChildManage").onclick=()=>{showView("childManageView");renderChildManage()};
+document.getElementById("openLedgerSettings").onclick=()=>{showView("ledgerSettingsView");renderLedgerSettingsList()};
+document.getElementById("openWithdrawSettings").onclick=()=>{showView("withdrawSettingsView");renderWithdrawSettings()};
+document.getElementById("backFromWithdrawSettings").onclick=()=>showView("settingsView");
+document.getElementById("backFromLedgerSettings").onclick=()=>showView("settingsView");
+document.getElementById("backFromLedgerEdit").onclick=()=>{closeIncomeReasonEditor();closeSpendingEditor();showView("ledgerSettingsView");renderLedgerSettingsList()};
+document.querySelectorAll("[data-ledger-accordion]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    const panel=document.getElementById(button.dataset.ledgerAccordion);
+    if(panel)panel.classList.toggle("open");
+  });
+});
+document.getElementById("addIncomeReason").onclick=()=>openIncomeReasonEditor(null);
+document.getElementById("cancelIncomeReasonEdit").onclick=closeIncomeReasonEditor;
+document.getElementById("applyIncomeReasonEdit").onclick=applyIncomeReasonEdit;
+document.getElementById("addSpendingItem").onclick=()=>openSpendingEditor(null);
+document.getElementById("cancelSpendingEdit").onclick=closeSpendingEditor;
+document.getElementById("applySpendingEdit").onclick=applySpendingEdit;
+document.getElementById("saveLedgerSettings").onclick=saveLedgerSettings;
+document.getElementById("backFromSettings").onclick=()=>showView("homeView");
+document.getElementById("backFromChildManage").onclick=()=>showView("settingsView");
+document.getElementById("backFromAllowance").onclick=()=>showView("settingsView");
+document.getElementById("backFromJobSettings").onclick=()=>showView("settingsView");
+document.getElementById("backFromJobEdit").onclick=()=>{if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings()}};
+document.getElementById("backFromAllowanceEdit").onclick=()=>{
+  if(allowanceEditorFromHub&&childHubId){openChildHub(childHubId)}
+  else{showView("allowanceView");renderAllowanceList()}
+};
+document.getElementById("backFromChildEdit").onclick=()=>{showView("childManageView");renderChildManage()};
+document.getElementById("addChild").onclick=()=>openChildEditor(null);
+document.getElementById("childNameInput").oninput=function(){
+  childDraft.name=this.value.trimStart();
+  document.getElementById("editorPreviewName").textContent=childDraft.name||"名前";
+};
+document.getElementById("saveChild").onclick=()=>{
+  childDraft.name=(document.getElementById("childNameInput").value.trim()||"なまえ");
+  const index=state.children.findIndex(c=>c.id===editingChildId);
+  if(index>=0)state.children[index]=childDraft;
+  else state.children.push(childDraft);
+  save();renderHome();showView("childManageView");renderChildManage();showManageNotice("保存しました");
+};
+
+
+
+bindClick("backFromWithdrawConfirm",()=>{activeWithdrawalChildId=null;showView("homeView");renderHome()});
+const confirmWithdrawalButton=document.getElementById("confirmWithdrawalReceipt");
+if(confirmWithdrawalButton){
+  confirmWithdrawalButton.disabled=false;
+  confirmWithdrawalButton.style.pointerEvents="auto";
+}
+window.addEventListener("focus",function(){state=load();renderHome();});
+document.addEventListener("visibilitychange",function(){if(!document.hidden){state=load();renderHome();}});
+
+const withdrawConfirmPin=document.getElementById("withdrawConfirmPin");
+if(withdrawConfirmPin){
+  withdrawConfirmPin.addEventListener("input",function(){this.value=String(this.value||"").replace(/\D/g,"").slice(0,4)});
+  withdrawConfirmPin.addEventListener("keydown",function(e){if(e.key==="Enter")completeWithdrawal()});
+}
+
+window.addEventListener("focus",function(){state=load();if(document.getElementById("homeView").classList.contains("active"))renderHome();});
+window.addEventListener("storage",function(e){if(e.key===STORAGE_KEY||e.key===LEGACY_STORAGE_KEY){state=load();if(document.getElementById("homeView").classList.contains("active"))renderHome();}});
+
+document.getElementById("backFromChildHub").onclick=()=>{showView("homeView");renderHome()};
+document.getElementById("backFromChildHistory").onclick=()=>{showView("homeView");renderHome()};
+document.getElementById("backFromSpecialReward").onclick=()=>{showView("homeView");renderHome()};
+document.getElementById("grantSpecialReward").onclick=grantSpecialReward;
+document.getElementById("hubEditProfile").onclick=()=>openChildEditor(childHubId);
+document.getElementById("hubEditPayment").onclick=()=>openAllowanceEditor(childHubId,"hub");
+document.getElementById("hubAddJob").onclick=()=>openJobEditor(childHubId,null);
+document.getElementById("historyPrevMonth").onclick=()=>{historyCursor=new Date(historyCursor.getFullYear(),historyCursor.getMonth()-1,1);renderHistory()};
+document.getElementById("historyNextMonth").onclick=()=>{historyCursor=new Date(historyCursor.getFullYear(),historyCursor.getMonth()+1,1);renderHistory()};
+
+document.getElementById("jobFrequency").onchange=function(){jobDraft.frequency=this.value;updateWeekdayVisibility()};
+document.getElementById("saveJob").onclick=()=>{
+  const child=state.children.find(c=>c.id===jobEditingChildId);if(!child)return;
+  jobDraft.name=document.getElementById("jobNameInput").value.trim()||"名前のないお仕事";
+  jobDraft.reward=Math.max(0,Number(document.getElementById("jobRewardInput").value)||0);
+  jobDraft.frequency=document.getElementById("jobFrequency").value;
+  jobDraft.startDate=document.getElementById("jobStartDate").value;jobDraft.endDate=document.getElementById("jobEndDate").value;
+  jobDraft.enabled=jobDraft.enabled!==false;
+  const i=child.jobs.findIndex(j=>j.id===jobEditingId);if(i>=0)child.jobs[i]=jobDraft;else child.jobs.push(jobDraft);
+  save();if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings();showJobNotice("お仕事を保存しました")};
+};
+document.getElementById("deleteJob").onclick=()=>{
+  const child=state.children.find(c=>c.id===jobEditingChildId);if(!child||!jobEditingId)return;
+  if(!confirm("このお仕事を削除しますか？"))return;
+  child.jobs=child.jobs.filter(j=>j.id!==jobEditingId);save();if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings();showJobNotice("お仕事を削除しました")};
+};
+
+document.querySelectorAll('input[name="payType"]').forEach(r=>r.onchange=updatePayDayVisibility);
+document.getElementById("rewardTiming").onchange=updateRewardPaydayVisibility;
+document.getElementById("rewardPaySchedule").onchange=updateRewardPaydayVisibility;
+document.querySelectorAll('input[name="closeType"]').forEach(r=>r.onchange=updateCloseDayVisibility);
+document.getElementById("saveAllowance").onclick=()=>{
+  const child=state.children.find(c=>c.id===allowanceEditingId);
+  if(!child)return;
+  child.allowance=Math.max(0,Number(document.getElementById("allowanceAmount").value)||0);
+  const payType=document.querySelector('input[name="payType"]:checked');
+  child.payType=payType?payType.value:"day";
+  child.payDay=Number(document.getElementById("payDay").value)||25;
+  const payoutMode=document.querySelector('input[name="payoutMode"]:checked');
+  child.payoutMode=payoutMode?payoutMode.value:"manual";
+  child.rewardTiming=document.getElementById("rewardTiming").value;
+  child.rewardPaySchedule=document.getElementById("rewardPaySchedule").value;
+  child.rewardPayDay=Number(document.getElementById("rewardPayDay").value)||25;
+  const closeType=document.querySelector('input[name="closeType"]:checked');
+  child.closeType=closeType?closeType.value:"monthEnd";
+  child.closeDay=Number(document.getElementById("closeDay").value)||31;
+  const periodMode=document.querySelector('input[name="periodMode"]:checked');
+  child.periodMode=periodMode?periodMode.value:"cycle";
+  save();processDueRewards();renderHome();
+  if(allowanceEditorFromHub&&childHubId){openChildHub(childHubId)}
+  else{showView("allowanceView");renderAllowanceList();showAllowanceNotice("支給設定を保存しました")};
+};
+document.getElementById("deleteChild").onclick=()=>{
+  if(!editingChildId)return;
+  const child=state.children.find(c=>c.id===editingChildId);
+  document.getElementById("deleteChildTargetName").textContent=child?`「${child.name}」`:"この子ども";
+  const modal=document.getElementById("deleteChildModal");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+};
+
+function closeDeleteChildModal(){
+  const modal=document.getElementById("deleteChildModal");
+  if(!modal)return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden","true");
+}
+
+document.getElementById("cancelDeleteChild").onclick=closeDeleteChildModal;
+document.getElementById("deleteChildModal").onclick=(event)=>{
+  if(event.target.id==="deleteChildModal")closeDeleteChildModal();
+};
+document.getElementById("confirmDeleteChild").onclick=()=>{
+  if(!editingChildId)return;
+  const deletedChild=state.children.find(c=>c.id===editingChildId);
+  state.children=state.children.filter(c=>c.id!==editingChildId);
+  if(childHubId===editingChildId)childHubId=null;
+  editingChildId=null;
+  closeDeleteChildModal();
+  save();renderHome();showView("childManageView");renderChildManage();
+  showManageNotice((deletedChild?deletedChild.name:"子ども")+"を削除しました");
+};
+
+const payDaySelect=document.getElementById("payDay");
+const rewardPayDaySelect=document.getElementById("rewardPayDay");
+const closeDaySelect=document.getElementById("closeDay");
+for(let d=1;d<=31;d++){
+  if(payDaySelect && payDaySelect.options.length<31){
+    const option=document.createElement("option");option.value=String(d);option.textContent=d+"日";payDaySelect.appendChild(option);
+  }
+  if(rewardPayDaySelect && rewardPayDaySelect.options.length<31){
+    const option=document.createElement("option");option.value=String(d);option.textContent=d+"日";rewardPayDaySelect.appendChild(option);
+  }
+  if(closeDaySelect && closeDaySelect.options.length<31){
+    const option=document.createElement("option");option.value=String(d);option.textContent=d+"日";closeDaySelect.appendChild(option);
+  }
+}
+
+renderHome();
+</script>
+</body>
+</html>

@@ -37,7 +37,7 @@
       font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
     }
 
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; }
 
     .shell {
@@ -120,7 +120,7 @@
       font-weight: 800;
     }
 
-    input {
+    input, select {
       width: 100%;
       min-height: 52px;
       padding: 12px 14px;
@@ -133,7 +133,7 @@
       transition: border-color .15s, box-shadow .15s;
     }
 
-    input:focus {
+    input:focus, select:focus {
       border-color: var(--mint-600);
       box-shadow: 0 0 0 4px rgba(60, 145, 135, .12);
     }
@@ -206,6 +206,91 @@
 
     .family-name { margin: 0; font-size: 19px; font-weight: 900; }
     .family-code { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+
+    .child-list { display: grid; gap: 8px; margin-top: 14px; }
+    .child-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 13px;
+      background: var(--mint-050);
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .child-status { color: var(--mint-700); font-size: 11px; white-space: nowrap; }
+    .child-status.pending { color: var(--danger); }
+    .mini-button {
+      min-height: 38px;
+      padding: 8px 11px;
+      border: 0;
+      border-radius: 11px;
+      background: var(--mint-600);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .child-setup {
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+    .field + .field { margin-top: 15px; }
+    .key-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .key-choice {
+      display: flex;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin: 0;
+      padding: 10px;
+      border: 2px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .key-choice:has(input:checked) { border-color: var(--mint-600); background: var(--mint-050); }
+    .key-choice input { width: 18px; min-height: 18px; margin: 0; accent-color: var(--mint-600); }
+    .pin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pin-grid label { font-size: 12px; }
+
+    .pattern-wrap { margin-top: 16px; }
+    .pattern-pad {
+      position: relative;
+      display: grid;
+      width: min(100%, 290px);
+      aspect-ratio: 1;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      margin: 12px auto 0;
+      border: 2px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, #fbfefd, #f5effd);
+      touch-action: none;
+      user-select: none;
+    }
+    .pattern-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .pattern-lines line { stroke: var(--mint-600); stroke-width: 5; stroke-linecap: round; opacity: .72; }
+    .pattern-dot {
+      position: relative;
+      z-index: 1;
+      width: 32px;
+      height: 32px;
+      align-self: center;
+      justify-self: center;
+      border: 8px solid var(--mint-100);
+      border-radius: 50%;
+      background: var(--mint-600);
+      box-shadow: 0 2px 7px rgba(47, 117, 109, .2);
+      cursor: crosshair;
+    }
+    .pattern-dot.selected { border-color: var(--lavender-500); transform: scale(1.08); }
+    .pattern-note { min-height: 26px; margin: 10px 0 0; text-align: center; font-size: 13px; font-weight: 800; }
+    .resume-note { margin: 0 0 14px; padding: 11px 12px; border-radius: 13px; background: var(--lavender-100); font-size: 13px; font-weight: 800; }
 
     .signed-in-as {
       margin: 0 0 18px;
@@ -318,6 +403,64 @@
         <p id="homeEmail" class="signed-in-as"></p>
         <div id="familyList" class="family-list"></div>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
+
+        <section class="child-setup" aria-labelledby="childSetupTitle">
+          <h3 id="childSetupTitle">子どもを登録する</h3>
+          <p class="muted compact">名前と、その子だけの鍵を設定します。鍵は後から保護者が設定し直せます。</p>
+          <p id="resumeNote" class="resume-note hidden"></p>
+
+          <form id="childForm">
+            <div class="field">
+              <label for="childFamily">家庭</label>
+              <select id="childFamily" name="childFamily" required></select>
+            </div>
+            <div class="field" id="childNameField">
+              <label for="childName">子どもの表示名</label>
+              <input id="childName" name="childName" type="text" maxlength="40" placeholder="例：KAREN" autocomplete="off" required>
+            </div>
+            <div class="field">
+              <label>自分の鍵を選ぶ</label>
+              <div class="key-choices">
+                <label class="key-choice"><input type="radio" name="keyType" value="pin" checked>4桁PIN</label>
+                <label class="key-choice"><input type="radio" name="keyType" value="pattern">9点パターン</label>
+              </div>
+            </div>
+
+            <div id="pinFields" class="field pin-grid">
+              <div>
+                <label for="childPin">4桁PIN</label>
+                <input id="childPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="●●●●">
+              </div>
+              <div>
+                <label for="childPinAgain">もう一度</label>
+                <input id="childPinAgain" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="●●●●">
+              </div>
+            </div>
+
+            <div id="patternFields" class="pattern-wrap hidden">
+              <p class="muted compact">4点以上を一筆でなぞります。同じパターンを2回入力してください。</p>
+              <div id="patternPad" class="pattern-pad" aria-label="9点パターン入力">
+                <svg id="patternLines" class="pattern-lines" viewBox="0 0 300 300" aria-hidden="true"></svg>
+                <button class="pattern-dot" type="button" data-pattern-point="0" aria-label="左上"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="1" aria-label="上"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="2" aria-label="右上"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="3" aria-label="左"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="4" aria-label="中央"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="5" aria-label="右"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="6" aria-label="左下"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="7" aria-label="下"></button>
+                <button class="pattern-dot" type="button" data-pattern-point="8" aria-label="右下"></button>
+              </div>
+              <p id="patternNote" class="pattern-note" role="status" aria-live="polite">1回目をなぞってください</p>
+              <button id="resetPatternButton" class="mini-button" type="button">パターンをやり直す</button>
+            </div>
+
+            <button id="createChildButton" class="button" type="submit">子どもを登録する</button>
+            <button id="cancelResumeButton" class="button ghost hidden" type="button">新しい子どもの登録に戻る</button>
+          </form>
+          <p id="childMessage" class="message hidden" role="status" aria-live="polite"></p>
+        </section>
+
         <a class="button secondary" href="parent.html">現在の保護者画面を開く</a>
         <button class="button ghost logout-button" type="button">ログアウト</button>
       </section>
@@ -346,6 +489,14 @@
       const byId = (id) => document.getElementById(id);
       let client = null;
       let rendering = false;
+      let currentFamilies = [];
+      let currentChildren = [];
+      let pendingChildId = null;
+      let patternFirst = [];
+      let patternSecond = [];
+      let patternDraft = [];
+      let patternStage = 1;
+      let drawingPattern = false;
 
       function showView(id) {
         views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
@@ -400,7 +551,33 @@
         }
       }
 
-      function renderFamilyList(families) {
+      async function loadChildren(families) {
+        if (!families.length) return [];
+        const { data, error } = await client
+          .from('children')
+          .select('id, family_id, display_name, icon, setup_state')
+          .in('family_id', families.map((family) => family.id))
+          .is('archived_at', null)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+      }
+
+      function populateChildFamilies(families) {
+        const select = byId('childFamily');
+        const selected = select.value;
+        select.replaceChildren();
+        families.forEach((family) => {
+          const option = document.createElement('option');
+          option.value = family.id;
+          option.textContent = family.name;
+          select.append(option);
+        });
+        if (families.some((family) => family.id === selected)) select.value = selected;
+      }
+
+      function renderFamilyList(families, children) {
         const list = byId('familyList');
         list.replaceChildren();
 
@@ -416,9 +593,178 @@
           code.className = 'family-code';
           code.textContent = `家族コード：${family.family_code}`;
 
-          article.append(name, code);
+          const childList = document.createElement('div');
+          childList.className = 'child-list';
+          const familyChildren = children.filter((child) => child.family_id === family.id);
+
+          if (!familyChildren.length) {
+            const empty = document.createElement('div');
+            empty.className = 'child-row muted';
+            empty.textContent = '子どもはまだ登録されていません';
+            childList.append(empty);
+          } else {
+            familyChildren.forEach((child) => {
+              const row = document.createElement('div');
+              row.className = 'child-row';
+
+              const childName = document.createElement('span');
+              childName.textContent = child.display_name;
+              row.append(childName);
+
+              if (child.setup_state === 'active') {
+                const status = document.createElement('span');
+                status.className = 'child-status';
+                status.textContent = '鍵を登録済み';
+                row.append(status);
+              } else {
+                const resume = document.createElement('button');
+                resume.type = 'button';
+                resume.className = 'mini-button';
+                resume.textContent = '鍵の設定を続ける';
+                resume.addEventListener('click', () => beginResumeChild(child));
+                row.append(resume);
+              }
+
+              childList.append(row);
+            });
+          }
+
+          article.append(name, code, childList);
           list.append(article);
         });
+      }
+
+      function patternCoordinates(point) {
+        const values = [50, 150, 250];
+        return { x: values[point % 3], y: values[Math.floor(point / 3)] };
+      }
+
+      function drawPattern(points) {
+        const svg = byId('patternLines');
+        svg.replaceChildren();
+        for (let index = 1; index < points.length; index += 1) {
+          const from = patternCoordinates(points[index - 1]);
+          const to = patternCoordinates(points[index]);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(from.x));
+          line.setAttribute('y1', String(from.y));
+          line.setAttribute('x2', String(to.x));
+          line.setAttribute('y2', String(to.y));
+          svg.append(line);
+        }
+        document.querySelectorAll('[data-pattern-point]').forEach((dot) => {
+          dot.classList.toggle('selected', points.includes(Number(dot.dataset.patternPoint)));
+        });
+      }
+
+      function resetPattern(text = '1回目をなぞってください') {
+        patternFirst = [];
+        patternSecond = [];
+        patternDraft = [];
+        patternStage = 1;
+        drawingPattern = false;
+        byId('patternNote').textContent = text;
+        drawPattern([]);
+      }
+
+      function addPatternPoint(point) {
+        if (!drawingPattern || patternDraft.includes(point)) return;
+        patternDraft.push(point);
+        drawPattern(patternDraft);
+      }
+
+      function finishPattern() {
+        if (!drawingPattern) return;
+        drawingPattern = false;
+
+        if (patternDraft.length < 4) {
+          patternDraft = [];
+          drawPattern([]);
+          byId('patternNote').textContent = '4点以上をなぞってください';
+          return;
+        }
+
+        if (patternStage === 1) {
+          patternFirst = [...patternDraft];
+          patternDraft = [];
+          patternStage = 2;
+          drawPattern([]);
+          byId('patternNote').textContent = '同じパターンをもう一度なぞしてください';
+          return;
+        }
+
+        const matches = patternFirst.length === patternDraft.length
+          && patternFirst.every((point, index) => point === patternDraft[index]);
+
+        if (!matches) {
+          resetPattern('一致しませんでした。1回目からやり直してください');
+          return;
+        }
+
+        patternSecond = [...patternDraft];
+        patternDraft = [];
+        patternStage = 3;
+        drawPattern(patternSecond);
+        byId('patternNote').textContent = 'パターンが一致しました';
+      }
+
+      function toggleKeyFields() {
+        const keyType = document.querySelector('input[name="keyType"]:checked').value;
+        byId('pinFields').classList.toggle('hidden', keyType !== 'pin');
+        byId('patternFields').classList.toggle('hidden', keyType !== 'pattern');
+        setMessage('childMessage', '');
+      }
+
+      function clearKeyInputs() {
+        byId('childPin').value = '';
+        byId('childPinAgain').value = '';
+        resetPattern();
+      }
+
+      function resetChildForm() {
+        pendingChildId = null;
+        byId('childFamily').disabled = false;
+        byId('childName').disabled = false;
+        byId('childName').required = true;
+        byId('childName').value = '';
+        byId('resumeNote').classList.add('hidden');
+        byId('cancelResumeButton').classList.add('hidden');
+        byId('createChildButton').textContent = '子どもを登録する';
+        document.querySelector('input[name="keyType"][value="pin"]').checked = true;
+        clearKeyInputs();
+        toggleKeyFields();
+      }
+
+      function beginResumeChild(child) {
+        pendingChildId = child.id;
+        byId('childFamily').value = child.family_id;
+        byId('childFamily').disabled = true;
+        byId('childName').value = child.display_name;
+        byId('childName').disabled = true;
+        byId('childName').required = false;
+        byId('resumeNote').textContent = `${child.display_name}さんのプロフィールは作成済みです。鍵の設定だけを続けます。`;
+        byId('resumeNote').classList.remove('hidden');
+        byId('cancelResumeButton').classList.remove('hidden');
+        byId('createChildButton').textContent = 'この鍵を設定する';
+        clearKeyInputs();
+        setMessage('childMessage', '');
+        byId('childSetupTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function collectChildKey() {
+        const keyType = document.querySelector('input[name="keyType"]:checked').value;
+        if (keyType === 'pin') {
+          const first = byId('childPin').value;
+          const second = byId('childPinAgain').value;
+          if (!/^\d{4}$/.test(first)) throw new Error('PINは数字4桁で入力してください。');
+          if (first !== second) throw new Error('2回のPINが一致していません。');
+          return { keyType, secret: first };
+        }
+
+        if (patternStage !== 3 || patternSecond.length < 4) {
+          throw new Error('9点パターンを2回入力してください。');
+        }
+        return { keyType, secret: patternSecond.join('-') };
       }
 
       async function renderForSession(session) {
@@ -435,13 +781,18 @@
           const families = await loadFamilies(session.user);
 
           if (!families.length) {
+            currentFamilies = [];
+            currentChildren = [];
             byId('signedInEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
             showView('setupView');
             return;
           }
 
+          currentFamilies = families;
+          currentChildren = await loadChildren(families);
           byId('homeEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
-          renderFamilyList(families);
+          populateChildFamilies(families);
+          renderFamilyList(families, currentChildren);
           showView('homeView');
 
           try {
@@ -506,15 +857,116 @@
         }
       });
 
+      document.querySelectorAll('input[name="keyType"]').forEach((radio) => {
+        radio.addEventListener('change', toggleKeyFields);
+      });
+
+      document.querySelectorAll('[data-pattern-point]').forEach((dot) => {
+        dot.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          event.preventDefault();
+          if (patternStage === 3) resetPattern();
+          drawingPattern = true;
+          patternDraft = [];
+          addPatternPoint(Number(dot.dataset.patternPoint));
+        });
+      });
+
+      window.addEventListener('pointermove', (event) => {
+        if (!drawingPattern) return;
+        event.preventDefault();
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-pattern-point]');
+        if (target && byId('patternPad').contains(target)) {
+          addPatternPoint(Number(target.dataset.patternPoint));
+        }
+      }, { passive: false });
+
+      window.addEventListener('pointerup', finishPattern);
+      window.addEventListener('pointercancel', finishPattern);
+      byId('resetPatternButton').addEventListener('click', () => resetPattern());
+      byId('cancelResumeButton').addEventListener('click', resetChildForm);
+
+      byId('childForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = byId('createChildButton');
+        const familyId = byId('childFamily').value;
+        const displayName = byId('childName').value.trim();
+        let createdProfile = false;
+        let childId = pendingChildId;
+
+        setMessage('childMessage', '');
+
+        try {
+          if (!currentFamilies.some((family) => family.id === familyId)) {
+            throw new Error('家庭を確認してください。');
+          }
+          if (!childId && (displayName.length < 1 || displayName.length > 40)) {
+            throw new Error('子どもの名前を入力してください。');
+          }
+
+          const { keyType, secret } = collectChildKey();
+          button.disabled = true;
+          button.textContent = '安全に登録しています…';
+
+          if (!childId) {
+            const { data, error } = await client.rpc('create_child_profile', {
+              p_family_id: familyId,
+              p_display_name: displayName,
+              p_icon: null
+            });
+            if (error) throw error;
+            childId = data;
+            pendingChildId = childId;
+            createdProfile = true;
+          }
+
+          const { data: keyResult, error: keyError } = await client.functions.invoke('child-key', {
+            body: {
+              action: 'set',
+              child_id: childId,
+              key_type: keyType,
+              secret
+            }
+          });
+
+          if (keyError || !keyResult?.ok) throw new Error('鍵を安全に保存できませんでした。');
+
+          const registeredName = displayName || currentChildren.find((child) => child.id === childId)?.display_name || '子ども';
+          resetChildForm();
+          const { data: sessionData } = await client.auth.getSession();
+          await renderForSession(sessionData.session);
+          setMessage('childMessage', `${registeredName}さんを登録しました。鍵の内容そのものは保存していません。`);
+        } catch (error) {
+          if (createdProfile && childId) {
+            const { data: sessionData } = await client.auth.getSession();
+            await renderForSession(sessionData.session);
+            const child = currentChildren.find((item) => item.id === childId);
+            if (child) beginResumeChild(child);
+            setMessage('childMessage', 'プロフィールは作成できましたが、鍵の保存が完了していません。「鍵の設定を続ける」からもう一度お試しください。', true);
+          } else if (['PIN', '2回', '9点', '家庭', '子どもの名前']
+            .some((prefix) => String(error?.message || '').startsWith(prefix))) {
+            setMessage('childMessage', error.message, true);
+          } else {
+            setMessage('childMessage', friendlyError(error), true);
+          }
+        } finally {
+          button.disabled = false;
+          button.textContent = pendingChildId ? 'この鍵を設定する' : '子どもを登録する';
+        }
+      });
+
       document.querySelectorAll('.logout-button').forEach((button) => {
         button.addEventListener('click', async () => {
           button.disabled = true;
+          resetChildForm();
           await client.auth.signOut();
           window.history.replaceState(null, '', window.location.pathname);
           showView('loginView');
           button.disabled = false;
         });
       });
+
+      toggleKeyFields();
 
       async function start() {
         try {

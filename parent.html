@@ -3505,8 +3505,15 @@ if(returnToSharedChooser&&sharedParentMode){
   returnToSharedChooser.hidden=false;
   if(convertSharedToParent){
     convertSharedToParent.hidden=false;
-    convertSharedToParent.onclick=()=>{
+    convertSharedToParent.onclick=async()=>{
       if(!window.confirm("この端末を保護者専用に戻しますか？\n家庭のデータや子どもの端末には影響しません。"))return;
+      convertSharedToParent.disabled=true;
+      const latestSession=await remoteClient.auth.getSession();
+      if(!latestSession.data.session){
+        alert("保護者のログインを確認できませんでした。もう一度ログインしてください。");
+        location.replace("./?v=parent-mode-20260821");
+        return;
+      }
       const parentRecord={
         version:1,mode:"parent",userId:remoteParentDevice.userId,familyId:remoteParentDevice.familyId,
         connectionId:remoteParentDevice.connectionId,deviceToken:remoteParentDevice.deviceToken,
@@ -3515,7 +3522,8 @@ if(returnToSharedChooser&&sharedParentMode){
       localStorage.setItem(DEVICE_STORAGE_KEY,JSON.stringify(parentRecord));
       localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
       sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
-      location.replace("./?v=shared-device-20260821");
+      alert("この端末を保護者専用に戻しました。");
+      location.replace("parent.html?v=parent-mode-20260821");
     };
   }
   returnToSharedChooser.onclick=async()=>{

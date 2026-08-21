@@ -1721,9 +1721,48 @@ body.ledger-previewing .lp-details10-overlay .lp-detail-meta{
   justify-content:center!important;
 }
 
+body.fueru-child-booting .app{visibility:hidden}
+#fueruChildBootStatus{
+  position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:#f7fbfa;color:#2f746b;text-align:center;font-weight:900;
+}
+#fueruChildBootStatus[hidden]{display:none}
+#fueruChildBootStatus .unlock-card{
+  width:min(100%,390px);padding:24px;border-radius:24px;background:#fff;
+  box-shadow:0 14px 42px rgba(47,116,107,.16);
+}
+#fueruChildBootStatus .unlock-card h2{margin:0 0 8px;font-size:22px}
+#fueruChildBootStatus .unlock-card p{margin:0 0 16px;color:#5f7773;font-size:14px;line-height:1.6}
+#fueruChildBootStatus .unlock-pin{
+  width:10em;max-width:100%;padding:12px;border:2px solid #b8dcd6;border-radius:14px;
+  font-size:24px;font-weight:900;letter-spacing:.35em;text-align:center;
+}
+#fueruChildBootStatus .unlock-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
+#fueruChildBootStatus .unlock-actions button,
+#fueruChildBootStatus .unlock-actions a{
+  border:0;border-radius:14px;padding:11px 17px;background:#4d9e93;color:#fff;
+  font:inherit;font-weight:900;text-decoration:none;cursor:pointer;
+}
+#fueruChildBootStatus .unlock-actions .secondary{background:#eaf7f5;color:#2f746b}
+#fueruChildBootStatus .unlock-error{color:#c45f55!important;font-weight:900}
+#fueruChildBootStatus .unlock-pattern{
+  display:grid;grid-template-columns:repeat(3,64px);gap:16px;justify-content:center;
+  margin:18px auto;touch-action:none;
+}
+#fueruChildBootStatus .unlock-pattern button{
+  width:64px;height:64px;border:0;border-radius:50%;background:#d8ebe7;
+  box-shadow:inset 0 0 0 8px #f4fbf9;cursor:pointer;touch-action:none;
+}
+#fueruChildBootStatus .unlock-pattern button.selected{background:#4d9e93;box-shadow:inset 0 0 0 8px #bfe2db}
+.fueru-remote-note{
+  margin:0 0 14px;padding:11px 14px;border-radius:14px;background:#eaf7f5;
+  color:#2f746b;font-size:13px;font-weight:800;line-height:1.65;text-align:center;
+}
+
 </style>
 </head>
-<body>
+<body class="fueru-child-booting">
+<div id="fueruChildBootStatus" role="status" aria-live="polite">本人のデータを安全に読み込んでいます…</div>
 <div class="app">
 
 <section id="homeView" class="view active">
@@ -2191,22 +2230,228 @@ body.ledger-previewing .lp-details10-overlay .lp-detail-meta{
 <div class="toast" id="toast"></div>
 
 <script>
-(function(){
+(async function(){
 "use strict";
 
-var JOBS_KEY="oshigoto_jobs_v08";
-var RECORDS_KEY="oshigoto_records_v08";
-var SHARED_KEY="FUERU_DATA_V1";
-var CHILD_ID="karen";
+var FUERU_CONFIG={
+  url:"https://xftiircdvszesknamrmx.supabase.co",
+  publishableKey:"sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV"
+};
+var DEVICE_STORAGE_KEY="FUERU_DEVICE_CONNECTION_V1";
+var childConnection=null;
+try{childConnection=JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY)||"null");}catch(e){}
+var validChildConnection=childConnection&&childConnection.mode==="child"&&
+  /^[0-9a-f-]{36}$/i.test(String(childConnection.childId||""))&&
+  /^[0-9a-f-]{36}$/i.test(String(childConnection.connectionId||""))&&
+  /^fdv1_[A-Za-z0-9_-]{43}$/.test(String(childConnection.deviceToken||""));
+var childScope=validChildConnection?String(childConnection.childId):"invalid";
+var JOBS_KEY="FUERU_CHILD_JOBS_"+childScope;
+var RECORDS_KEY="FUERU_CHILD_RECORDS_"+childScope;
+var SHARED_KEY="FUERU_CHILD_DATA_"+childScope;
+var PROFILE_KEY="FUERU_CHILD_PROFILE_"+childScope;
+var CHILD_ID=validChildConnection?String(childConnection.childId):"";
+var REMOTE_READ_ONLY=true;
+
+function showChildBootFailure(message){
+  var box=document.getElementById("fueruChildBootStatus");
+  box.innerHTML='<div><div style="margin-bottom:14px">'+message+'</div><a href="./" style="color:#2f746b">FUERUの入口へ戻る</a></div>';
+}
+function requestChildUnlock(keyType,isRetry){
+  return new Promise(function(resolve){
+    var box=document.getElementById("fueruChildBootStatus");
+    var retryText=isRetry?'<p class="unlock-error">自分の鍵が一致しません。もう一度確認してください。</p>':'';
+    if(keyType==="pin"){
+      box.innerHTML='<div class="unlock-card"><h2>自分の鍵を入力</h2><p>この端末を使う人を確認します。</p>'+retryText+
+        '<input class="unlock-pin" id="fueruUnlockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="4桁PIN">'+
+        '<div class="unlock-actions"><a class="secondary" href="./">戻る</a><button type="button" id="fueruUnlockSubmit">確認する</button></div></div>';
+      var pin=document.getElementById("fueruUnlockPin");
+      var submit=function(){var value=String(pin.value||"").replace(/\D/g,"").slice(0,4);if(/^\d{4}$/.test(value))resolve({key_type:"pin",secret:value});};
+      pin.addEventListener("input",function(){this.value=String(this.value||"").replace(/\D/g,"").slice(0,4);});
+      pin.addEventListener("keydown",function(event){if(event.key==="Enter")submit();});
+      document.getElementById("fueruUnlockSubmit").addEventListener("click",submit);
+      pin.focus();
+      return;
+    }
+
+    box.innerHTML='<div class="unlock-card"><h2>自分のパターンを入力</h2><p>登録した順番で、4点以上をなぞってください。</p>'+retryText+
+      '<div class="unlock-pattern" id="fueruUnlockPattern" aria-label="9点パターン">'+
+      [0,1,2,3,4,5,6,7,8].map(function(point){return '<button type="button" data-unlock-point="'+point+'" aria-label="点 '+(point+1)+'"></button>';}).join("")+
+      '</div><p id="fueruUnlockPatternCount">0点</p><div class="unlock-actions"><a class="secondary" href="./">戻る</a><button class="secondary" type="button" id="fueruUnlockReset">やり直す</button><button type="button" id="fueruUnlockSubmit">確認する</button></div></div>';
+    var pattern=[];var drawing=false;var pad=document.getElementById("fueruUnlockPattern");
+    var count=document.getElementById("fueruUnlockPatternCount");
+    function renderPattern(){
+      Array.prototype.forEach.call(pad.querySelectorAll("[data-unlock-point]"),function(dot){dot.classList.toggle("selected",pattern.indexOf(Number(dot.dataset.unlockPoint))!==-1);});
+      count.textContent=pattern.length+"点";
+    }
+    function addPoint(point){if(pattern.indexOf(point)!==-1)return;pattern.push(point);renderPattern();}
+    Array.prototype.forEach.call(pad.querySelectorAll("[data-unlock-point]"),function(dot){
+      dot.addEventListener("pointerdown",function(event){if(event.pointerType==="mouse"&&event.button!==0)return;event.preventDefault();drawing=true;pattern=[];addPoint(Number(dot.dataset.unlockPoint));});
+    });
+    function move(event){
+      if(!drawing)return;event.preventDefault();
+      var target=document.elementFromPoint(event.clientX,event.clientY);
+      var dot=target&&target.closest?target.closest("[data-unlock-point]"):null;
+      if(dot&&pad.contains(dot))addPoint(Number(dot.dataset.unlockPoint));
+    }
+    function finish(){drawing=false;}
+    window.addEventListener("pointermove",move,{passive:false});
+    window.addEventListener("pointerup",finish,{once:false});
+    window.addEventListener("pointercancel",finish,{once:false});
+    document.getElementById("fueruUnlockReset").addEventListener("click",function(){pattern=[];renderPattern();});
+    document.getElementById("fueruUnlockSubmit").addEventListener("click",function(){if(pattern.length>=4)resolve({key_type:"pattern",secret:pattern.join("-")});});
+  });
+}
+async function invokeChildData(unlock){
+  var requestBody={
+    action:"bootstrap",
+    connection_id:childConnection.connectionId,
+    device_token:childConnection.deviceToken
+  };
+  if(unlock){requestBody.key_type=unlock.key_type;requestBody.secret=unlock.secret;}
+  var response=await fetch(FUERU_CONFIG.url+"/functions/v1/child-data",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":FUERU_CONFIG.publishableKey},
+    body:JSON.stringify(requestBody),
+    cache:"no-store"
+  });
+  var result={};
+  try{result=await response.json();}catch(e){}
+  if(!response.ok||result.ok!==true){
+    var error=new Error("child data unavailable");
+    error.code=result.code||"load_failed";
+    error.keyType=result.key_type||"";
+    throw error;
+  }
+  return result;
+}
+function mapRemoteChildData(result){
+  var profile=result.child||{},settings=result.settings||{};
+  var remoteJobs=(result.jobs||[]).map(function(job){
+    return {
+      id:job.id,name:job.name,reward:Number(job.reward_amount)||0,
+      frequency:job.frequency_type==="daily"?"daily":"weekdays",
+      days:Array.isArray(job.weekdays)?job.weekdays.map(Number):[],
+      startDate:job.start_date||"",endDate:job.end_date||"",
+      enabled:job.enabled!==false,deleted:false,updatedAt:job.updated_at||job.created_at||""
+    };
+  });
+  var jobsById={};remoteJobs.forEach(function(job){jobsById[job.id]=job;});
+  var records={};
+  var remoteReports=(result.reports||[]).map(function(report){
+    var job=jobsById[report.job_id]||{};
+    var source=report.job_snapshot&&typeof report.job_snapshot==="object"?report.job_snapshot:{};
+    var snapshot={
+      jobId:report.job_id,
+      name:source.name||source.job_name||job.name||"おしごと",
+      reward:Number(report.reward_amount)||0,
+      frequency:source.frequency||job.frequency||"daily",
+      days:Array.isArray(source.days)?source.days:(job.days||[]),
+      reportedAt:report.reported_at||report.created_at||""
+    };
+    records[report.work_date]=records[report.work_date]||{};
+    records[report.work_date][report.job_id]={
+      status:report.status,snapshot:snapshot,finalized:report.status==="done"
+    };
+    return {
+      id:report.id,date:report.work_date,name:snapshot.name,frequency:snapshot.frequency,
+      reward:snapshot.reward,status:report.status,jobId:report.job_id,snapshot:snapshot,
+      reportedAt:report.reported_at||report.created_at||""
+    };
+  });
+  var transactions=(result.transactions||[]).map(function(tx){
+    return {
+      id:tx.id,type:tx.transaction_type,amount:Number(tx.amount)||0,
+      date:tx.transaction_date,reason:tx.reason||"",items:Array.isArray(tx.items)?tx.items:[],
+      createdAt:tx.created_at||""
+    };
+  });
+  var withdrawals=(result.withdrawal_requests||[]).map(function(request){
+    return {
+      id:request.id,amount:Number(request.amount)||0,withdrawalUnit:Number(request.withdrawal_unit)||100,
+      status:request.status,requestedAt:request.requested_at||request.created_at||"",
+      completedAt:request.completed_at||null,cancelledAt:request.cancelled_at||null
+    };
+  });
+  var catalog=result.ledger_catalog_items||[];
+  var ledgerEntries=(result.ledger_entries||[]).map(function(entry){
+    return {
+      id:entry.id,kind:entry.kind,date:entry.entry_date,amount:Number(entry.amount)||0,
+      purposeId:entry.purpose_id||"",purposeName:entry.purpose_name||"記録",
+      purposeIcon:entry.icon||"●",category:entry.category||"",memo:entry.memo||"",
+      system:entry.is_system===true,sourceTxId:entry.source_transaction_id||null,
+      createdAt:entry.created_at||"",updatedAt:entry.updated_at||""
+    };
+  });
+  var cancelled=(result.schedule_exceptions||[]).map(function(item){
+    return {date:item.exception_date,jobId:item.job_id||null};
+  });
+  var passbookBalance=transactions.reduce(function(total,tx){return total+(Number(tx.amount)||0);},0);
+  var sharedChildState={
+    id:profile.id,name:profile.display_name||childConnection.childName||"なまえ",
+    icon:profile.icon||"bird",main:profile.theme_main||"#8CCBC2",
+    sub:profile.theme_sub||"#F1EBF8",deep:profile.theme_deep||"#2F746B",
+    allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",
+    payDay:Number(settings.pay_day)||25,rewardTiming:settings.reward_timing||"immediate",
+    rewardPaySchedule:settings.reward_pay_schedule||"allowance",
+    rewardPayDay:Number(settings.reward_pay_day)||25,payoutMode:settings.payout_mode||"manual",
+    closeType:settings.close_type||"monthEnd",closeDay:Number(settings.close_day)||31,
+    periodMode:settings.period_mode||"cycle",withdrawalUnit:Number(settings.withdrawal_unit)||100,
+    ledgerMode:settings.ledger_mode||"easy",reports:remoteReports,jobs:remoteJobs,
+    transactions:transactions,withdrawalRequests:withdrawals,cancelledJobDates:cancelled,
+    passbookBalance:passbookBalance,ledgerEntries:ledgerEntries,
+    spendingItems:catalog.filter(function(item){return item.kind==="expense_item";}),
+    incomeReasonItems:catalog.filter(function(item){return item.kind==="income_reason";})
+  };
+  return {shared:{children:[sharedChildState]},jobs:remoteJobs,records:records,profile:{
+    name:sharedChildState.name,icon:/^(bird|star|flower|moon)$/.test(sharedChildState.icon)?sharedChildState.icon:"bird",
+    main:"mint",sub:"lavender"
+  }};
+}
+async function initializeRemoteChild(){
+  if(!validChildConnection){
+    showChildBootFailure("この端末の子ども接続を確認できませんでした。");
+    return false;
+  }
+  var unlock=null;var retry=false;
+  while(true){
+    try{
+      var result=await invokeChildData(unlock);
+      if(result.mode!=="child"||result.child_id!==childConnection.childId||!result.child){
+        throw new Error("invalid child data");
+      }
+      var mapped=mapRemoteChildData(result);
+      localStorage.setItem(SHARED_KEY,JSON.stringify(mapped.shared));
+      localStorage.setItem(JOBS_KEY,JSON.stringify(mapped.jobs));
+      localStorage.setItem(RECORDS_KEY,JSON.stringify(mapped.records));
+      localStorage.setItem(PROFILE_KEY,JSON.stringify(mapped.profile));
+      unlock=null;
+      return true;
+    }catch(error){
+      unlock=null;
+      if(error&&(error.code==="child_unlock_required"||error.code==="invalid_credentials")&&
+          (error.keyType==="pin"||error.keyType==="pattern")){
+        unlock=await requestChildUnlock(error.keyType,error.code==="invalid_credentials"||retry);
+        retry=true;
+        continue;
+      }
+      if(error&&error.code==="invalid_device"){
+        localStorage.removeItem(DEVICE_STORAGE_KEY);
+        showChildBootFailure("この端末の接続が無効になっています。もう一度つないでください。");
+      }else if(error&&error.code==="temporarily_locked"){
+        showChildBootFailure("入力回数が多いため、一時的に確認を停止しています。10分ほど待ってから、もう一度お試しください。");
+      }else{
+        showChildBootFailure("本人のデータを読み込めませんでした。通信状態を確認して、もう一度お試しください。");
+      }
+      return false;
+    }
+  }
+}
 function loadSharedState(){
   try{
     var raw=localStorage.getItem(SHARED_KEY);
     if(raw){var parsed=JSON.parse(raw);if(parsed&&Array.isArray(parsed.children))return parsed;}
   }catch(e){}
-  var initial={children:[
-    {id:"karen",name:"KAREN",icon:"bird",main:"#8BBFE5",sub:"#EAF5FC",deep:"#376E98",allowance:3000,payType:"day",payDay:25,rewardTiming:"together",confirmed:0,reports:[],jobs:[],transactions:[],cancelledJobDates:[],passbookBalance:5320,withdrawalUnit:100},
-    {id:"younger",name:"次女",icon:"bird",main:"#B59AD9",sub:"#F1EBF8",deep:"#68508F",allowance:2000,payType:"monthEnd",payDay:31,rewardTiming:"together",confirmed:0,reports:[],jobs:[],transactions:[],cancelledJobDates:[],passbookBalance:0,withdrawalUnit:100}
-  ]};
+  var initial={children:[]};
   localStorage.setItem(SHARED_KEY,JSON.stringify(initial));
   return initial;
 }
@@ -2572,6 +2817,8 @@ var defaultJobs=[
   makeJob("job_kumon","11:00までに公文を完了",50,"weekdays",[0,6],true)
 ];
 
+if(!await initializeRemoteChild())return;
+
 var jobs=loadJson(JOBS_KEY,defaultJobs);
 var records=loadJson(RECORDS_KEY,seedRecords());
 
@@ -2611,7 +2858,6 @@ var jobBreakdown=document.getElementById("jobBreakdown");
 var dailyHistory=document.getElementById("dailyHistory");
 var settingsComplete=document.getElementById("settingsComplete");
 
-var PROFILE_KEY="oshigoto_profile_v1";
 var colorPalettes={
   mint:{label:"ミント",main:"#8CCBC2",dark:"#4D9E93",deep:"#2F746B",light:"#EAF7F5"},
   sky:{label:"スカイ",main:"#8BBFE5",dark:"#5A97C3",deep:"#376E98",light:"#EAF5FC"},
@@ -3716,6 +3962,26 @@ loadProfile();
 
 renderHome();renderSettings();resetForm();
 renderLedgerHomeStatus();
+var remoteNote=document.createElement("div");
+remoteNote.className="fueru-remote-note";
+var remoteChildForNote=sharedChild(loadSharedState());
+remoteNote.textContent=(remoteChildForNote?remoteChildForNote.name:"本人")+"さん本人のSupabaseデータを表示しています。現在は安全な読み込み確認版です。報告・出金・編集は次の更新で接続します。";
+homeView.insertBefore(remoteNote,homeView.children[1]||null);
+document.addEventListener("click",function(event){
+  var target=event.target&&event.target.closest?event.target.closest(
+    "#reportButton,#submitWithdrawal,#cancelWithdrawalRequest,#saveProfile,#saveJob,#confirmDelete,#saveLedgerIncome,#saveLedgerExpense,#saveLedgerEdit,#deleteLedgerEntry,.job-setting-actions button,.ledger-history-row.editable"
+  ):null;
+  if(!REMOTE_READ_ONLY||!target)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  showToast("この操作は次の更新で安全につなぎます");
+},true);
+jobForm.addEventListener("submit",function(event){
+  if(!REMOTE_READ_ONLY)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  showToast("この操作は次の更新で安全につなぎます");
+},true);
+document.body.classList.remove("fueru-child-booting");
+document.getElementById("fueruChildBootStatus").hidden=true;
 })();
 </script>
 </body>

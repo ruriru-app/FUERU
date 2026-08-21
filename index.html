@@ -882,7 +882,7 @@
       function configureLogin(mode = 'parent') {
         const sharedParent = mode === 'shared-parent';
         byId('loginTitle').innerHTML = sharedParent
-          ? '保護者の方を<br>確認します'
+          ? '保護者の方の確認'
           : '保護者の方から<br>はじめます';
         byId('loginLead').textContent = sharedParent
           ? '子どもが保護者画面へ入れないよう、登録したメールで確認します。'

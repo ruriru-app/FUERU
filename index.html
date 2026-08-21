@@ -287,6 +287,50 @@
     .pattern-note { min-height: 26px; margin: 10px 0 0; text-align: center; font-size: 13px; font-weight: 800; }
     .resume-note { margin: 0 0 14px; padding: 11px 12px; border-radius: 13px; background: var(--lavender-100); font-size: 13px; font-weight: 800; }
 
+    .device-choice {
+      margin: 20px 0 8px;
+      padding: 20px 17px;
+      border: 2px solid var(--mint-600);
+      border-radius: 20px;
+      background: var(--mint-050);
+      text-align: center;
+    }
+    .device-icon { display: block; margin-bottom: 7px; font-size: 38px; line-height: 1; }
+    .device-choice h3 { color: var(--mint-700); }
+    .device-choice p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .device-coming {
+      margin: 14px 0 0;
+      padding: 12px 13px;
+      border-radius: 13px;
+      background: var(--lavender-100);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .device-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 16px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--mint-050);
+      color: var(--mint-700);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .device-badge button {
+      border: 0;
+      background: transparent;
+      color: var(--mint-700);
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
     .signed-in-as {
       margin: 0 0 18px;
       padding: 10px 12px;
@@ -371,9 +415,35 @@
         <button class="button ghost logout-button" type="button">ログアウト</button>
       </section>
 
+      <section id="deviceView" class="card hidden">
+        <h2>このスマホの使い方</h2>
+        <p id="deviceEmail" class="signed-in-as"></p>
+        <p id="deviceLead" class="muted compact">この設定は最初の1回だけです。次回から保護者用としてFUERUを開きます。</p>
+
+        <div class="device-choice">
+          <span class="device-icon" aria-hidden="true">👤</span>
+          <h3>保護者として使う</h3>
+          <p>家庭の設定、子どもの登録、確認や承認を行う端末です。</p>
+        </div>
+
+        <div class="field">
+          <label for="deviceFamily">接続する家庭</label>
+          <select id="deviceFamily" required></select>
+        </div>
+
+        <button id="registerParentDeviceButton" class="button" type="button">このスマホを保護者用にする</button>
+        <p id="deviceMessage" class="message hidden" role="status" aria-live="polite"></p>
+        <p class="device-coming">「子どもとして使う」「家族みんなで使う」は、安全な端末接続を整えてから追加します。</p>
+        <button class="button ghost logout-button" type="button">ログアウト</button>
+      </section>
+
       <section id="homeView" class="card hidden">
         <h2>おかえりなさい</h2>
         <p id="homeEmail" class="signed-in-as"></p>
+        <div id="deviceBadge" class="device-badge hidden">
+          <span>この端末：保護者用</span>
+          <button id="showDeviceSettingsButton" type="button">確認</button>
+        </div>
         <div id="familyList" class="family-list"></div>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
 
@@ -456,8 +526,9 @@
         url: 'https://xftiircdvszesknamrmx.supabase.co',
         publishableKey: 'sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV'
       });
+      const DEVICE_STORAGE_KEY = 'FUERU_DEVICE_CONNECTION_V1';
 
-      const views = ['loadingView', 'loginView', 'setupView', 'homeView', 'fatalView'];
+      const views = ['loadingView', 'loginView', 'setupView', 'deviceView', 'homeView', 'fatalView'];
       const byId = (id) => document.getElementById(id);
       let client = null;
       let rendering = false;
@@ -469,6 +540,7 @@
       let patternDraft = [];
       let patternStage = 1;
       let drawingPattern = false;
+      let currentDevice = null;
 
       function showView(id) {
         views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
@@ -491,6 +563,55 @@
 
       function redirectUrl() {
         return `${window.location.origin}${window.location.pathname}`;
+      }
+
+      function isUuid(value) {
+        return typeof value === 'string'
+          && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+      }
+
+      function readDeviceConnection(user, families) {
+        try {
+          const saved = JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY) || 'null');
+          if (!saved || saved.version !== 1 || saved.mode !== 'parent') return null;
+          if (saved.userId !== user.id) return null;
+          if (!families.some((family) => family.id === saved.familyId)) return null;
+          if (!isUuid(saved.connectionId)) return null;
+          if (typeof saved.deviceToken !== 'string'
+              || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(saved.deviceToken)) return null;
+          return saved;
+        } catch {
+          return null;
+        }
+      }
+
+      function populateDeviceFamilies(families, selectedFamilyId = '') {
+        const select = byId('deviceFamily');
+        select.replaceChildren();
+        families.forEach((family) => {
+          const option = document.createElement('option');
+          option.value = family.id;
+          option.textContent = family.name;
+          select.append(option);
+        });
+        if (families.some((family) => family.id === selectedFamilyId)) {
+          select.value = selectedFamilyId;
+        }
+      }
+
+      function prepareDeviceView(session, inspecting = false) {
+        populateDeviceFamilies(currentFamilies, currentDevice?.familyId || currentFamilies[0]?.id || '');
+        byId('deviceEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
+        byId('deviceFamily').disabled = Boolean(currentDevice);
+        byId('registerParentDeviceButton').dataset.action = currentDevice ? 'return' : 'register';
+        byId('registerParentDeviceButton').textContent = currentDevice
+          ? '保護者画面へ戻る'
+          : 'このスマホを保護者用にする';
+        byId('deviceLead').textContent = currentDevice
+          ? 'この端末は保護者用として登録済みです。'
+          : 'この設定は最初の1回だけです。次回から保護者用としてFUERUを開きます。';
+        setMessage('deviceMessage', inspecting && currentDevice ? '端末設定は正常です。' : '');
+        showView('deviceView');
       }
 
       async function loadFamilies(user) {
@@ -755,6 +876,7 @@
           if (!families.length) {
             currentFamilies = [];
             currentChildren = [];
+            currentDevice = null;
             byId('signedInEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
             showView('setupView');
             return;
@@ -765,13 +887,21 @@
           byId('homeEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
           populateChildFamilies(families);
           renderFamilyList(families, currentChildren);
-          showView('homeView');
+          currentDevice = readDeviceConnection(session.user, families);
+          byId('deviceBadge').classList.toggle('hidden', !currentDevice);
 
           try {
             await processAutoPayouts(families);
           } catch (error) {
             setMessage('homeMessage', '支給日の確認は次回もう一度行います。通常の確認は続けられます。', true);
           }
+
+          if (currentChildren.length && !currentDevice) {
+            prepareDeviceView(session);
+            return;
+          }
+
+          showView('homeView');
         } catch (error) {
           byId('fatalMessage').textContent = friendlyError(error);
           showView('fatalView');
@@ -925,6 +1055,76 @@
           button.disabled = false;
           button.textContent = pendingChildId ? 'この鍵を設定する' : '子どもを登録する';
         }
+      });
+
+      byId('registerParentDeviceButton').addEventListener('click', async () => {
+        const button = byId('registerParentDeviceButton');
+
+        if (button.dataset.action === 'return' && currentDevice) {
+          setMessage('deviceMessage', '');
+          showView('homeView');
+          return;
+        }
+
+        const familyId = byId('deviceFamily').value;
+        if (!currentFamilies.some((family) => family.id === familyId)) {
+          setMessage('deviceMessage', '接続する家庭を確認してください。', true);
+          return;
+        }
+
+        setMessage('deviceMessage', '');
+        button.disabled = true;
+        button.textContent = '安全に登録しています…';
+
+        try {
+          const { data: sessionData, error: sessionError } = await client.auth.getSession();
+          if (sessionError || !sessionData.session?.user) throw sessionError || new Error('session required');
+
+          const { data: result, error } = await client.functions.invoke('device-connection', {
+            body: {
+              action: 'register_parent',
+              family_id: familyId,
+              device_label: '保護者のスマートフォン'
+            }
+          });
+
+          if (error || !result?.ok || result.mode !== 'parent') {
+            throw error || new Error('device registration failed');
+          }
+          if (result.family_id !== familyId || !isUuid(result.connection_id)
+              || typeof result.device_token !== 'string'
+              || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(result.device_token)) {
+            throw new Error('invalid device response');
+          }
+
+          const record = {
+            version: 1,
+            mode: 'parent',
+            userId: sessionData.session.user.id,
+            familyId,
+            connectionId: result.connection_id,
+            deviceToken: result.device_token,
+            registeredAt: new Date().toISOString()
+          };
+          localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(record));
+          currentDevice = record;
+          await renderForSession(sessionData.session);
+        } catch (error) {
+          setMessage('deviceMessage', friendlyError(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = currentDevice ? '保護者画面へ戻る' : 'このスマホを保護者用にする';
+          button.dataset.action = currentDevice ? 'return' : 'register';
+        }
+      });
+
+      byId('showDeviceSettingsButton').addEventListener('click', async () => {
+        const { data } = await client.auth.getSession();
+        if (!data.session?.user) {
+          showView('loginView');
+          return;
+        }
+        prepareDeviceView(data.session, true);
       });
 
       document.querySelectorAll('.logout-button').forEach((button) => {

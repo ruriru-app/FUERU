@@ -331,6 +331,55 @@
       cursor: pointer;
     }
 
+    .mode-grid { display: grid; gap: 12px; margin-top: 20px; }
+    .mode-button {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 12px;
+      width: 100%;
+      min-height: 82px;
+      align-items: center;
+      padding: 15px 16px;
+      border: 2px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+    .mode-button:hover, .mode-button:focus-visible {
+      border-color: var(--mint-600);
+      background: var(--mint-050);
+      outline: none;
+    }
+    .mode-emoji { font-size: 36px; text-align: center; }
+    .mode-copy strong { display: block; color: var(--mint-700); font-size: 16px; }
+    .mode-copy small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.5; }
+    .pairing-summary {
+      margin: 16px 0;
+      padding: 13px 14px;
+      border-radius: 14px;
+      background: var(--mint-050);
+      color: var(--mint-700);
+      font-weight: 900;
+    }
+    .check-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 16px 0 0;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      font-size: 13px;
+      line-height: 1.6;
+      cursor: pointer;
+    }
+    .check-row input { width: 20px; min-height: 20px; margin: 1px 0 0; accent-color: var(--mint-600); }
+    .ready-mark { margin: 4px 0 12px; text-align: center; font-size: 54px; }
+    .ready-name { color: var(--mint-700); text-align: center; font-size: 22px; font-weight: 900; }
+
     .signed-in-as {
       margin: 0 0 18px;
       padding: 10px 12px;
@@ -380,6 +429,22 @@
         FUERUを準備しています
       </section>
 
+      <section id="entryChoiceView" class="card hidden">
+        <h2>この端末を<br>どう使いますか？</h2>
+        <p class="muted compact">この設定は初回だけです。あとから変更できるようにします。</p>
+        <div class="mode-grid">
+          <button id="chooseParentEntryButton" class="mode-button" type="button">
+            <span class="mode-emoji" aria-hidden="true">👤</span>
+            <span class="mode-copy"><strong>保護者として使う</strong><small>メールでログインし、家庭の設定や確認をします</small></span>
+          </button>
+          <button id="chooseChildEntryButton" class="mode-button" type="button">
+            <span class="mode-emoji" aria-hidden="true">🌱</span>
+            <span class="mode-copy"><strong>子どもとして使う</strong><small>家族コードと自分の鍵で家庭につなぎます</small></span>
+          </button>
+        </div>
+        <p class="device-coming">家族みんなで使う端末は、親子の切り替えを安全に整えた後で追加します。</p>
+      </section>
+
       <section id="loginView" class="card hidden">
         <h2>保護者の方から<br>はじめます</h2>
         <p class="muted compact">初めての方も、すでにFUERUを使っている方も、同じ入口です。</p>
@@ -398,7 +463,59 @@
 
         <p id="loginMessage" class="message hidden" role="status" aria-live="polite"></p>
         <p class="mail-note">パスワードは必要ありません。届いたメールのリンクをタップすると、この端末にログイン状態が保存されます。</p>
+        <button id="backToEntryFromLoginButton" class="button ghost" type="button">端末の使い方を選び直す</button>
+      </section>
 
+      <section id="childConnectView" class="card hidden">
+        <h2>子どもの端末を<br>家庭につなぎます</h2>
+        <p class="muted compact">保護者画面に表示された10文字の家族コードを入力してください。</p>
+
+        <form id="childLookupForm">
+          <label for="pairingFamilyCode">家族コード</label>
+          <input id="pairingFamilyCode" type="text" inputmode="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例：A1B2C3D4E5" required>
+          <button id="lookupFamilyButton" class="button" type="submit">家庭を確認する</button>
+        </form>
+        <p id="childLookupMessage" class="message hidden" role="status" aria-live="polite"></p>
+
+        <div id="childPairingStep" class="hidden">
+          <p id="pairingFamilySummary" class="pairing-summary"></p>
+          <form id="childConnectForm">
+            <div class="field">
+              <label for="pairingChild">だれの端末ですか？</label>
+              <select id="pairingChild" required></select>
+            </div>
+            <div id="pairingPinField" class="field">
+              <label for="pairingPin">自分の4桁PIN</label>
+              <input id="pairingPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="●●●●">
+            </div>
+            <div id="pairingPatternField" class="pattern-wrap hidden">
+              <p class="muted compact">登録した9点パターンをなぞってください。</p>
+              <div id="pairingPatternPad" class="pattern-pad" aria-label="子ども端末の9点パターン入力">
+                <svg id="pairingPatternLines" class="pattern-lines" viewBox="0 0 300 300" aria-hidden="true"></svg>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="0" aria-label="左上"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="1" aria-label="上"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="2" aria-label="右上"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="3" aria-label="左"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="4" aria-label="中央"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="5" aria-label="右"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="6" aria-label="左下"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="7" aria-label="下"></button>
+                <button class="pattern-dot" type="button" data-pairing-pattern-point="8" aria-label="右下"></button>
+              </div>
+              <p id="pairingPatternNote" class="pattern-note" role="status" aria-live="polite">パターンをなぞってください</p>
+              <button id="resetPairingPatternButton" class="mini-button" type="button">パターンをやり直す</button>
+            </div>
+            <label class="check-row" for="requiresChildUnlock">
+              <input id="requiresChildUnlock" type="checkbox" checked>
+              <span>FUERUを開くたびに自分の鍵を確認する（紛失時のプライバシー保護におすすめ）</span>
+            </label>
+            <button id="connectChildDeviceButton" class="button" type="submit">この端末をつなぐ</button>
+          </form>
+          <p id="childConnectMessage" class="message hidden" role="status" aria-live="polite"></p>
+          <button id="changeFamilyCodeButton" class="button ghost" type="button">家族コードを入力し直す</button>
+        </div>
+
+        <button id="backToEntryFromChildButton" class="button ghost" type="button">端末の使い方を選び直す</button>
       </section>
 
       <section id="setupView" class="card hidden">
@@ -507,6 +624,15 @@
         <button class="button ghost logout-button" type="button">ログアウト</button>
       </section>
 
+      <section id="childReadyView" class="card hidden">
+        <div class="ready-mark" aria-hidden="true">🌱</div>
+        <h2>接続できました</h2>
+        <p id="childReadyName" class="ready-name"></p>
+        <p id="childReadyUnlock" class="muted compact"></p>
+        <p class="message">この端末専用の安全な接続情報を保存しました。家族コードやPINそのものを、データを見るための鍵には使用しません。</p>
+        <p class="device-coming">現在は端末接続の確認段階です。既存の子ども画面とSupabaseのデータをつなぐ作業を、次に行います。</p>
+      </section>
+
       <section id="fatalView" class="card hidden">
         <h2>接続を確認してください</h2>
         <p id="fatalMessage" class="message error"></p>
@@ -528,7 +654,10 @@
       });
       const DEVICE_STORAGE_KEY = 'FUERU_DEVICE_CONNECTION_V1';
 
-      const views = ['loadingView', 'loginView', 'setupView', 'deviceView', 'homeView', 'fatalView'];
+      const views = [
+        'loadingView', 'entryChoiceView', 'loginView', 'childConnectView',
+        'setupView', 'deviceView', 'homeView', 'childReadyView', 'fatalView'
+      ];
       const byId = (id) => document.getElementById(id);
       let client = null;
       let rendering = false;
@@ -541,6 +670,11 @@
       let patternStage = 1;
       let drawingPattern = false;
       let currentDevice = null;
+      let pairingProfiles = [];
+      let pairingFamilyCode = '';
+      let pairingPattern = [];
+      let pairingPatternDraft = [];
+      let drawingPairingPattern = false;
 
       function showView(id) {
         views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
@@ -561,6 +695,34 @@
         return '処理を完了できませんでした。少し時間をおいて、もう一度お試しください。';
       }
 
+      function pairingErrorMessage(error) {
+        const code = String(error?.code || '');
+        if (code === 'family_not_found') return '家族コードを確認してください。接続できる子どもがまだいない場合は、保護者画面で先に登録してください。';
+        if (code === 'invalid_credentials') return '自分の鍵が一致しません。もう一度確認してください。';
+        if (code === 'temporarily_locked') return '入力が続けて一致しなかったため、10分ほど待ってからもう一度お試しください。';
+        if (code === 'invalid_secret') return '自分の鍵を正しく入力してください。';
+        return friendlyError(error);
+      }
+
+      async function invokeChildDevice(body) {
+        const { data, error } = await client.functions.invoke('child-device-connection', { body });
+        if (!error && data?.ok) return data;
+
+        let code = data?.code || '';
+        if (!code && error?.context) {
+          try {
+            const response = typeof error.context.clone === 'function' ? error.context.clone() : error.context;
+            const payload = await response.json();
+            code = payload?.code || '';
+          } catch {
+            code = '';
+          }
+        }
+        const pairingError = new Error(error?.message || 'child device request failed');
+        pairingError.code = code;
+        throw pairingError;
+      }
+
       function redirectUrl() {
         return `${window.location.origin}${window.location.pathname}`;
       }
@@ -568,6 +730,34 @@
       function isUuid(value) {
         return typeof value === 'string'
           && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+      }
+
+      function normalizeFamilyCode(value) {
+        const normalized = String(value || '').trim().replaceAll('-', '').toUpperCase();
+        return /^[A-Z0-9]{10}$/.test(normalized) ? normalized : '';
+      }
+
+      function readChildDeviceConnection() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY) || 'null');
+          if (!saved || saved.version !== 1 || saved.mode !== 'child') return null;
+          if (!isUuid(saved.familyId) || !isUuid(saved.childId) || !isUuid(saved.connectionId)) return null;
+          if (typeof saved.childName !== 'string' || !saved.childName.trim()) return null;
+          if (typeof saved.deviceToken !== 'string'
+              || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(saved.deviceToken)) return null;
+          if (typeof saved.requiresChildUnlock !== 'boolean') return null;
+          return saved;
+        } catch {
+          return null;
+        }
+      }
+
+      function renderChildReady(device) {
+        byId('childReadyName').textContent = `${device.childName}さんの端末`;
+        byId('childReadyUnlock').textContent = device.requiresChildUnlock
+          ? '起動時に自分の鍵を確認する設定です。'
+          : 'この専用端末では、次回から自分の鍵を省略する設定です。';
+        showView('childReadyView');
       }
 
       function readDeviceConnection(user, families) {
@@ -801,6 +991,84 @@
         byId('patternNote').textContent = 'パターンが一致しました';
       }
 
+      function drawPairingPattern(points) {
+        const svg = byId('pairingPatternLines');
+        svg.replaceChildren();
+        for (let index = 1; index < points.length; index += 1) {
+          const from = patternCoordinates(points[index - 1]);
+          const to = patternCoordinates(points[index]);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(from.x));
+          line.setAttribute('y1', String(from.y));
+          line.setAttribute('x2', String(to.x));
+          line.setAttribute('y2', String(to.y));
+          svg.append(line);
+        }
+        document.querySelectorAll('[data-pairing-pattern-point]').forEach((dot) => {
+          dot.classList.toggle('selected', points.includes(Number(dot.dataset.pairingPatternPoint)));
+        });
+      }
+
+      function resetPairingPattern(text = 'パターンをなぞってください') {
+        pairingPattern = [];
+        pairingPatternDraft = [];
+        drawingPairingPattern = false;
+        byId('pairingPatternNote').textContent = text;
+        drawPairingPattern([]);
+      }
+
+      function addPairingPatternPoint(point) {
+        if (!drawingPairingPattern || pairingPatternDraft.includes(point)) return;
+        pairingPatternDraft.push(point);
+        drawPairingPattern(pairingPatternDraft);
+      }
+
+      function finishPairingPattern() {
+        if (!drawingPairingPattern) return;
+        drawingPairingPattern = false;
+        if (pairingPatternDraft.length < 4) {
+          resetPairingPattern('4点以上をなぞってください');
+          return;
+        }
+        pairingPattern = [...pairingPatternDraft];
+        pairingPatternDraft = [];
+        drawPairingPattern(pairingPattern);
+        byId('pairingPatternNote').textContent = 'パターンを入力しました';
+      }
+
+      function selectedPairingProfile() {
+        const childId = byId('pairingChild').value;
+        return pairingProfiles.find((child) => child.id === childId) || null;
+      }
+
+      function updatePairingKeyFields() {
+        const child = selectedPairingProfile();
+        const usesPattern = child?.key_type === 'pattern';
+        byId('pairingPinField').classList.toggle('hidden', usesPattern);
+        byId('pairingPatternField').classList.toggle('hidden', !usesPattern);
+        byId('pairingPin').value = '';
+        resetPairingPattern();
+        setMessage('childConnectMessage', '');
+      }
+
+      function resetChildPairingFlow(clearCode = false) {
+        pairingProfiles = [];
+        pairingFamilyCode = '';
+        byId('pairingChild').replaceChildren();
+        byId('childPairingStep').classList.add('hidden');
+        byId('childLookupForm').classList.remove('hidden');
+        if (clearCode) byId('pairingFamilyCode').value = '';
+        byId('pairingPin').value = '';
+        resetPairingPattern();
+        setMessage('childLookupMessage', '');
+        setMessage('childConnectMessage', '');
+      }
+
+      function showChildConnectView() {
+        resetChildPairingFlow(false);
+        showView('childConnectView');
+      }
+
       function toggleKeyFields() {
         const keyType = document.querySelector('input[name="keyType"]:checked').value;
         byId('pinFields').classList.toggle('hidden', keyType !== 'pin');
@@ -865,8 +1133,16 @@
         rendering = true;
 
         try {
+          const childDevice = readChildDeviceConnection();
+          if (childDevice) {
+            currentDevice = childDevice;
+            renderChildReady(childDevice);
+            return;
+          }
+
           if (!session?.user) {
-            showView('loginView');
+            currentDevice = null;
+            showView('entryChoiceView');
             return;
           }
 
@@ -909,6 +1185,177 @@
           rendering = false;
         }
       }
+
+      byId('chooseParentEntryButton').addEventListener('click', () => {
+        setMessage('loginMessage', '');
+        showView('loginView');
+      });
+
+      byId('chooseChildEntryButton').addEventListener('click', showChildConnectView);
+      byId('backToEntryFromLoginButton').addEventListener('click', () => showView('entryChoiceView'));
+      byId('backToEntryFromChildButton').addEventListener('click', () => {
+        resetChildPairingFlow(true);
+        showView('entryChoiceView');
+      });
+
+      byId('childLookupForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = byId('lookupFamilyButton');
+        const familyCode = normalizeFamilyCode(byId('pairingFamilyCode').value);
+
+        setMessage('childLookupMessage', '');
+        if (!familyCode) {
+          setMessage('childLookupMessage', '家族コードは英数字10文字で入力してください。', true);
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = '確認しています…';
+        try {
+          const result = await invokeChildDevice({ action: 'lookup', family_code: familyCode });
+          if (typeof result.family_name !== 'string' || !Array.isArray(result.children)) {
+            throw new Error('invalid pairing response');
+          }
+
+          const profiles = result.children.filter((child) => (
+            isUuid(child?.id)
+            && typeof child?.display_name === 'string'
+            && (child.key_type === 'pin' || child.key_type === 'pattern')
+          ));
+          if (!profiles.length) {
+            const noChildren = new Error('no active children');
+            noChildren.code = 'family_not_found';
+            throw noChildren;
+          }
+
+          pairingFamilyCode = familyCode;
+          pairingProfiles = profiles;
+          const select = byId('pairingChild');
+          select.replaceChildren();
+          profiles.forEach((child) => {
+            const option = document.createElement('option');
+            option.value = child.id;
+            option.textContent = child.display_name;
+            select.append(option);
+          });
+          byId('pairingFamilySummary').textContent = `${result.family_name}が見つかりました`;
+          byId('pairingFamilyCode').value = '';
+          byId('childLookupForm').classList.add('hidden');
+          byId('childPairingStep').classList.remove('hidden');
+          updatePairingKeyFields();
+        } catch (error) {
+          setMessage('childLookupMessage', pairingErrorMessage(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = '家庭を確認する';
+        }
+      });
+
+      byId('pairingChild').addEventListener('change', updatePairingKeyFields);
+      byId('changeFamilyCodeButton').addEventListener('click', () => {
+        resetChildPairingFlow(true);
+        byId('pairingFamilyCode').focus();
+      });
+
+      document.querySelectorAll('[data-pairing-pattern-point]').forEach((dot) => {
+        dot.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          event.preventDefault();
+          drawingPairingPattern = true;
+          pairingPattern = [];
+          pairingPatternDraft = [];
+          addPairingPatternPoint(Number(dot.dataset.pairingPatternPoint));
+        });
+      });
+
+      window.addEventListener('pointermove', (event) => {
+        if (!drawingPairingPattern) return;
+        event.preventDefault();
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-pairing-pattern-point]');
+        if (target && byId('pairingPatternPad').contains(target)) {
+          addPairingPatternPoint(Number(target.dataset.pairingPatternPoint));
+        }
+      }, { passive: false });
+
+      window.addEventListener('pointerup', finishPairingPattern);
+      window.addEventListener('pointercancel', finishPairingPattern);
+      byId('resetPairingPatternButton').addEventListener('click', () => resetPairingPattern());
+
+      byId('childConnectForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = byId('connectChildDeviceButton');
+        const child = selectedPairingProfile();
+        setMessage('childConnectMessage', '');
+
+        if (!pairingFamilyCode || !child) {
+          setMessage('childConnectMessage', '家族コードと子どもをもう一度確認してください。', true);
+          return;
+        }
+
+        let secret = '';
+        if (child.key_type === 'pin') {
+          secret = byId('pairingPin').value;
+          if (!/^\d{4}$/.test(secret)) {
+            setMessage('childConnectMessage', '自分の4桁PINを入力してください。', true);
+            return;
+          }
+        } else {
+          if (pairingPattern.length < 4) {
+            setMessage('childConnectMessage', '登録した9点パターンをなぞってください。', true);
+            return;
+          }
+          secret = pairingPattern.join('-');
+        }
+
+        button.disabled = true;
+        button.textContent = '安全につないでいます…';
+        try {
+          const result = await invokeChildDevice({
+            action: 'connect',
+            family_code: pairingFamilyCode,
+            child_id: child.id,
+            key_type: child.key_type,
+            secret,
+            device_label: '子どもの端末',
+            requires_child_unlock: byId('requiresChildUnlock').checked
+          });
+
+          if (result.mode !== 'child' || result.child_id !== child.id
+              || !isUuid(result.family_id) || !isUuid(result.connection_id)
+              || typeof result.child_name !== 'string'
+              || typeof result.requires_child_unlock !== 'boolean'
+              || typeof result.device_token !== 'string'
+              || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(result.device_token)) {
+            throw new Error('invalid device response');
+          }
+
+          const record = {
+            version: 1,
+            mode: 'child',
+            familyId: result.family_id,
+            childId: result.child_id,
+            childName: result.child_name,
+            connectionId: result.connection_id,
+            deviceToken: result.device_token,
+            requiresChildUnlock: result.requires_child_unlock,
+            registeredAt: new Date().toISOString()
+          };
+          localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(record));
+          pairingFamilyCode = '';
+          byId('pairingPin').value = '';
+          resetPairingPattern();
+          currentDevice = record;
+          await client.auth.signOut({ scope: 'local' });
+          renderChildReady(record);
+        } catch (error) {
+          byId('pairingPin').value = '';
+          resetPairingPattern();
+          setMessage('childConnectMessage', pairingErrorMessage(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'この端末をつなぐ';
+        }
+      });
 
       byId('magicLinkForm').addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -1133,7 +1580,7 @@
           resetChildForm();
           await client.auth.signOut();
           window.history.replaceState(null, '', window.location.pathname);
-          showView('loginView');
+          showView('entryChoiceView');
           button.disabled = false;
         });
       });

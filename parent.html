@@ -1485,11 +1485,11 @@ button{cursor:pointer}
       </div>
       <label class="field-label" for="specialRewardAmount">金額</label>
       <div class="money-input-wrap">
-        <input class="text-input" id="specialRewardAmount" type="number" min="0" step="1" inputmode="numeric" value="0">
+        <input class="text-input" id="specialRewardAmount" type="number" min="1" max="10000000" step="1" inputmode="numeric" value="0">
         <span class="money-suffix">円</span>
       </div>
       <label class="field-label" for="specialRewardReason">理由</label>
-      <textarea class="text-input reason-input" id="specialRewardReason" placeholder="例：テストをよく頑張りました"></textarea>
+      <textarea class="text-input reason-input" id="specialRewardReason" maxlength="200" placeholder="例：テストをよく頑張りました"></textarea>
       <div class="special-date-wrap">
         <label class="field-label" for="specialRewardDate">送金日</label>
         <input class="text-input date-compact" id="specialRewardDate" type="date">
@@ -1643,7 +1643,7 @@ async function loadRemoteParentState(){
     return grouped;
   }
   const pendingByChild=groupByChild(pendingResult.data,row=>({id:row.id,amount:Number(row.amount)||0,name:row.job_name||"お仕事",workDate:row.work_date,dueDate:row.due_date,status:row.status}));
-  const transactionsByChild=groupByChild(transactionsResult.data,row=>({id:row.id,type:row.transaction_type,amount:Number(row.amount)||0,date:row.transaction_date,reason:row.reason||"",items:Array.isArray(row.items)?row.items:[],createdAt:row.created_at||""}));
+  const transactionsByChild=groupByChild(transactionsResult.data,row=>({id:row.id,type:row.transaction_type,amount:Number(row.amount)||0,date:row.transaction_date,reason:row.reason||"",items:Array.isArray(row.items)?row.items:[],sourceType:row.source_type||"",sourceKey:row.source_key||"",payoutSource:["allowance_due","pending_reward_batch"].includes(row.source_type)?"remote":"",createdAt:row.created_at||""}));
   const withdrawalsByChild=groupByChild(withdrawalsResult.data,row=>({id:row.id,amount:Number(row.amount)||0,withdrawalUnit:Number(row.withdrawal_unit)||100,status:row.status,requestedAt:row.requested_at||row.created_at||"",completedAt:row.completed_at||null,cancelledAt:row.cancelled_at||null}));
   const exceptionsByChild=groupByChild(exceptionsResult.data,row=>({date:row.exception_date,jobId:row.job_id||null}));
   const catalogByChild=groupByChild(catalogResult.data,row=>({id:row.id,icon:row.icon||"",name:row.name,category:row.category||"",kind:row.kind}));
@@ -1652,6 +1652,8 @@ async function loadRemoteParentState(){
     const pending=pendingByChild.get(child.id)||[];
     const transactions=transactionsByChild.get(child.id)||[];
     const catalog=catalogByChild.get(child.id)||[];
+    const allowanceTransactions=transactions.filter(item=>item.type==="allowance"&&item.sourceType==="allowance_due");
+    const lastAllowancePayoutDate=allowanceTransactions.map(item=>item.date||"").sort().pop()||"";
     return {id:child.id,name:child.display_name,icon:child.icon||"bird",main:child.theme_main||"#8CCBC2",sub:child.theme_sub||"#EAF7F5",deep:child.theme_deep||"#2F746B",
       allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",payDay:Number(settings.pay_day)||25,
       rewardTiming:settings.reward_timing||"immediate",rewardPaySchedule:settings.reward_pay_schedule||"allowance",rewardPayDay:Number(settings.reward_pay_day)||25,
@@ -1659,7 +1661,7 @@ async function loadRemoteParentState(){
       withdrawalUnit:Number(settings.withdrawal_unit)||100,ledgerMode:settings.ledger_mode||"easy",
       jobs:jobsByChild.get(child.id)||[],reports:reportsByChild.get(child.id)||[],pendingRewards:pending,
       confirmed:pending.filter(item=>item.status==="pending").reduce((sum,item)=>sum+Number(item.amount||0),0),
-      transactions:transactions,passbookBalance:transactions.reduce((sum,item)=>sum+Number(item.amount||0),0),
+      transactions:transactions,passbookBalance:transactions.reduce((sum,item)=>sum+Number(item.amount||0),0),lastAllowancePayoutDate:lastAllowancePayoutDate,
       withdrawalRequests:withdrawalsByChild.get(child.id)||[],cancelledJobDates:exceptionsByChild.get(child.id)||[],
       incomeReasonItems:catalog.filter(item=>item.kind==="income_reason"),spendingItems:catalog.filter(item=>item.kind==="expense_item")};
   });
@@ -2106,11 +2108,23 @@ function renderHome(){
       payoutButton.type="button";
       payoutButton.className="payout-due-btn";
       payoutButton.innerHTML=`支給する　${payout.amount.toLocaleString()}円<small>定額お小遣いと支給日到来分のお仕事報酬を入金</small>`;
-      payoutButton.onclick=()=>{
+      payoutButton.onclick=async()=>{
         if(!confirm(`${child.name}へ${payout.amount.toLocaleString()}円を支給しますか？`))return;
-        const result=executePayout(child,payout.payoutDate,"manual",payout.includeAllowance);
-        save();renderHome();
-        alert(`お仕事報酬とお小遣いを\nFUERU通帳へ送金しました。\n\n支給額は${result.total.toLocaleString()}円です。`);
+        if(remoteBusy)return;
+        remoteBusy=true;payoutButton.disabled=true;
+        const originalText=payoutButton.innerHTML;
+        payoutButton.textContent="支給しています…";
+        try{
+          const result=await remoteClient.rpc("process_child_payout",{p_child_id:child.id,p_as_of_date:localDateString(new Date()),p_trigger:"manual"});
+          if(result.error)throw result.error;
+          const row=Array.isArray(result.data)?result.data[0]:result.data;
+          const total=Number(row&&row.total_amount)||0;
+          await refreshRemoteParentState();renderHome();
+          alert(total>0
+            ?`お仕事報酬とお小遣いを\nFUERU通帳へ送金しました。\n\n支給額は${total.toLocaleString()}円です。`
+            :"現在、支給する金額はありません。");
+        }catch(error){remoteOperationError(error);payoutButton.innerHTML=originalText;}
+        finally{remoteBusy=false;payoutButton.disabled=false;}
       };
       buttons.appendChild(payoutButton);
     }
@@ -2401,24 +2415,38 @@ function openSpecialReward(id){
   document.getElementById("specialRewardSuccess").classList.remove("show");
   showView("specialRewardView");
 }
-function grantSpecialReward(){
+function newRequestUuid(){
+  if(globalThis.crypto&&typeof globalThis.crypto.randomUUID==="function")return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{
+    const r=Math.random()*16|0;return (c==="x"?r:(r&3|8)).toString(16);
+  });
+}
+async function grantSpecialReward(){
   const child=state.children.find(c=>c.id===specialRewardChildId);if(!child)return;
+  if(remoteBusy)return;
   const amount=Math.floor(Number(document.getElementById("specialRewardAmount").value)||0);
   const reason=document.getElementById("specialRewardReason").value.trim();
   const date=document.getElementById("specialRewardDate").value||localDateString(new Date());
   const today=localDateString(new Date());
-  if(amount<=0){alert("特別報酬の金額を入力してください");return}
+  if(amount<=0||amount>10000000){alert("特別報酬の金額を1円から1,000万円までで入力してください");return}
   if(!reason){alert("特別報酬の理由を入力してください");return}
+  if(reason.length>200){alert("理由は200文字以内で入力してください");return}
   if(date>today){alert("未来の日付には送金できません");return}
-  child.transactions??=[];
-  child.transactions.push({id:"tx_"+Date.now(),type:"special",amount,reason,date});
-  child.passbookBalance=Number(child.passbookBalance||0)+amount;
-  save();renderHome();
-  const message=document.getElementById("specialRewardSuccess");
-  message.textContent=child.name+"のFUERU通帳へ"+amount.toLocaleString()+"円を送金しました";
-  message.classList.add("show");
-  document.getElementById("specialRewardAmount").value=0;
-  document.getElementById("specialRewardReason").value="";
+  const button=document.getElementById("grantSpecialReward");
+  remoteBusy=true;button.disabled=true;button.textContent="送金しています…";
+  try{
+    const result=await remoteClient.rpc("grant_special_reward",{
+      p_child_id:child.id,p_amount:amount,p_transaction_date:date,p_reason:reason,p_request_key:newRequestUuid()
+    });
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();renderHome();
+    const message=document.getElementById("specialRewardSuccess");
+    message.textContent=child.name+"のFUERU通帳へ"+amount.toLocaleString()+"円を送金しました";
+    message.classList.add("show");
+    document.getElementById("specialRewardAmount").value=0;
+    document.getElementById("specialRewardReason").value="";
+  }catch(error){remoteOperationError(error);}
+  finally{remoteBusy=false;button.disabled=false;button.textContent="FUERU通帳に送金";}
 }
 function openChildHistory(id){
   childHistoryId=id;
@@ -3481,7 +3509,7 @@ for(let d=1;d<=31;d++){
 
 document.addEventListener("click",event=>{
   const target=event.target&&event.target.closest?event.target.closest(
-    "#openChildManage,#openLedgerSettings,#hubEditProfile,#grantSpecialReward,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,#cancelAllDayJobs,.day-job-actions button"
+    "#openChildManage,#openLedgerSettings,#hubEditProfile,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,#cancelAllDayJobs,.day-job-actions button"
   ):null;
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();

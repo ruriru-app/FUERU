@@ -2134,11 +2134,8 @@ body.fueru-child-booting .app{visibility:hidden}
     </div>
 
     <div class="pin-box">
-      <div class="pin-status">出金確認PIN</div>
-      <div class="pin-grid">
-        <input class="withdraw-input" id="withdrawPin" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="4桁" autocomplete="off">
-      </div>
-      <div class="pin-note">※お金を受け取ったら<br>保護者に口頭で伝えるか、<br>保護者の端末に直接入力してください。</div>
+      <div class="pin-status">お金を受け取るとき</div>
+      <div class="pin-note">保護者の端末で、自分の4桁PINまたは9点パターンを入力します。<br>鍵は出金依頼には保存されません。</div>
     </div>
 
     <div class="withdraw-error" id="withdrawError"></div>
@@ -2580,8 +2577,7 @@ function renderWithdrawalState(){
   if(notice){
     notice.classList.toggle("show",!!pending);
     if(pending){
-      var visiblePin=digitsOnly(pending.pin||child.withdrawalPin||"");
-      notice.innerHTML='出金依頼中　'+Number(pending.amount||0).toLocaleString()+'円<br>保護者から現金を受け取るまでお待ちください。'+(visiblePin?'<div class="withdraw-pending-pin">PIN：'+visiblePin+'</div>':'');
+      notice.innerHTML='出金依頼中　'+Number(pending.amount||0).toLocaleString()+'円<br>保護者から現金を受け取るまでお待ちください。';
     }else{notice.innerHTML="";}
   }
   var cancel=document.getElementById("cancelWithdrawalRequest");
@@ -2614,8 +2610,6 @@ function openWithdrawalView(){
       :"残高が"+unit.toLocaleString("ja-JP")+"円未満のため、現在は出金できません。";
 
   document.getElementById("withdrawError").classList.remove("show");
-  var savedPin=/^\d{4}$/.test(String(child.withdrawalPin||""))?String(child.withdrawalPin):"";
-  document.getElementById("withdrawPin").value=savedPin;
   updateWithdrawalAmountState(false);
 }
 async function submitWithdrawalRequest(){
@@ -2631,8 +2625,6 @@ async function submitWithdrawalRequest(){
   if(amount<=0){fail("出金する金額を入力してください。");return;}
   if(amount>balance){fail("現在の残高を超えて出金することはできません。");return;}
   if(amount%unit!==0){fail(unit.toLocaleString("ja-JP")+"円単位で入力してください。");return;}
-  var pin=digitsOnly(document.getElementById("withdrawPin").value);
-  if(!/^\d{4}$/.test(pin)){fail("4桁の数字で出金確認PINを入力してください。");return;}
   var submit=document.getElementById("submitWithdrawal");
   submit.disabled=true;
   var result=await performChildMutation("request_withdrawal",{amount:amount});
@@ -3367,9 +3359,6 @@ if(backFromWithdrawal)backFromWithdrawal.onclick=function(){
   document.getElementById("passbookView").classList.add("active");
   renderSharedPassbook();
 };
-["withdrawPin"].forEach(function(id){
-  var el=document.getElementById(id);if(el)el.addEventListener("input",function(){this.value=digitsOnly(this.value);});
-});
 var submitWithdrawal=document.getElementById("submitWithdrawal");
 if(submitWithdrawal)submitWithdrawal.onclick=submitWithdrawalRequest;
 var withdrawAmountInput=document.getElementById("withdrawAmount");

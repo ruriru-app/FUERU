@@ -759,7 +759,16 @@ button{cursor:pointer}
 .withdraw-pin-input{width:100%;border:2px solid var(--line);border-radius:15px;padding:14px;text-align:center;font-size:24px;font-weight:700;letter-spacing:.35em;padding-left:calc(14px + .35em);outline:none}
 .withdraw-pin-input:focus{border-color:var(--child-main,#8CCBC2)}
 .withdraw-pin-note{margin-top:9px;color:var(--muted);font-size:11px;line-height:1.65;text-align:center}
+.withdraw-key-field.hidden{display:none}
+.withdraw-pattern-pad{position:relative;display:grid;width:min(100%,290px);aspect-ratio:1;grid-template-columns:repeat(3,1fr);margin:12px auto 0;border:2px solid var(--line);border-radius:24px;background:linear-gradient(145deg,#fbfefd,#f5effd);touch-action:none;user-select:none}
+.withdraw-pattern-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.withdraw-pattern-lines line{stroke:var(--child-main,#8CCBC2);stroke-width:5;stroke-linecap:round;opacity:.78}
+.withdraw-pattern-dot{position:relative;z-index:1;width:32px;height:32px;align-self:center;justify-self:center;border:8px solid var(--child-sub,#EAF7F5);border-radius:50%;background:var(--child-main,#8CCBC2);box-shadow:0 2px 7px rgba(47,117,109,.2);cursor:crosshair}
+.withdraw-pattern-dot.selected{border-color:#D9C8EF;transform:scale(1.08)}
+.withdraw-pattern-note{min-height:24px;margin:10px 0 0;text-align:center;color:var(--muted);font-size:12px;font-weight:700}
+.withdraw-pattern-reset{display:block;margin:8px auto 0;border:0;background:transparent;color:var(--child-deep,#2F746B);font-size:12px;font-weight:700;text-decoration:underline}
 .withdraw-confirm-btn{width:100%;margin-top:15px;border:0;border-radius:15px;background:var(--child-main,#8CCBC2);color:#fff;padding:14px;font-size:16px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.withdraw-confirm-btn:disabled{background:#BCCAC8;box-shadow:none;cursor:wait}
 .withdraw-error{display:none;margin-top:12px;padding:11px;border-radius:13px;background:var(--danger-soft);color:#B95F5F;font-size:12px;font-weight:700;text-align:center}
 .withdraw-error.show{display:block}
 
@@ -1040,11 +1049,29 @@ button{cursor:pointer}
         <div class="withdraw-amount-label">出金希望額</div>
         <div class="withdraw-amount-value" id="withdrawRequestAmount">0円</div>
       </div>
-      <p class="withdraw-instruction">現金を渡したあと、<br><strong>お子さん本人</strong>にPINを入力してもらってください。</p>
-      <input class="withdraw-pin-input" id="withdrawConfirmPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" aria-label="出金確認用PIN">
-      <div class="withdraw-pin-note">PINは保護者には表示されません。入力が一致した場合だけ出金を確定します。</div>
+      <p class="withdraw-instruction" id="withdrawInstruction">現金を渡したあと、<br><strong>お子さん本人</strong>に自分の鍵を入力してもらってください。</p>
+      <div class="withdraw-key-field" id="withdrawPinField">
+        <input class="withdraw-pin-input" id="withdrawConfirmPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" aria-label="出金確認用PIN">
+        <div class="withdraw-pin-note">PINは保護者には表示されません。入力が一致した場合だけ出金を確定します。</div>
+      </div>
+      <div class="withdraw-key-field hidden" id="withdrawPatternField">
+        <div class="withdraw-pattern-pad" id="withdrawPatternPad" aria-label="出金確認用9点パターン">
+          <svg class="withdraw-pattern-lines" id="withdrawPatternLines" viewBox="0 0 300 300" aria-hidden="true"></svg>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="0" aria-label="左上"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="1" aria-label="上"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="2" aria-label="右上"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="3" aria-label="左"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="4" aria-label="中央"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="5" aria-label="右"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="6" aria-label="左下"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="7" aria-label="下"></button>
+          <button class="withdraw-pattern-dot" type="button" data-withdraw-pattern-point="8" aria-label="右下"></button>
+        </div>
+        <div class="withdraw-pattern-note" id="withdrawPatternNote">登録したパターンをなぞってください</div>
+        <button class="withdraw-pattern-reset" id="resetWithdrawPattern" type="button">やり直す</button>
+      </div>
       <div class="withdraw-error" id="withdrawConfirmError"></div>
-      <button class="withdraw-confirm-btn" type="button" id="confirmWithdrawalReceipt" onclick="completeWithdrawal()">出金を確定する</button>
+      <button class="withdraw-confirm-btn" type="button" id="confirmWithdrawalReceipt">出金を確定する</button>
     </section>
   </section>
 
@@ -1649,6 +1676,31 @@ function remoteOperationError(error){
   console.error(error);
   alert("保存できませんでした。通信状態を確認して、もう一度お試しください。");
 }
+async function callParentWithdrawal(action,payload={}){
+  const latestSessionResult=await remoteClient.auth.getSession();
+  const latestSession=latestSessionResult&&latestSessionResult.data?latestSessionResult.data.session:null;
+  if(!latestSession||!latestSession.access_token){
+    const authError=new Error("parent_auth_required");authError.code="parent_auth_required";throw authError;
+  }
+  const response=await fetch(FUERU_REMOTE_CONFIG.url+"/functions/v1/parent-withdrawal",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "apikey":FUERU_REMOTE_CONFIG.publishableKey,
+      "Authorization":"Bearer "+latestSession.access_token
+    },
+    body:JSON.stringify({action,...payload})
+  });
+  let result={};
+  try{result=await response.json();}catch(e){}
+  if(!response.ok||!result.ok){
+    const error=new Error(result.code||"withdrawal_request_failed");
+    error.code=result.code||"withdrawal_request_failed";
+    error.status=response.status;
+    throw error;
+  }
+  return result;
+}
 
 const seed={
   children:[
@@ -1824,57 +1876,135 @@ function formatDate(s){
 }
 
 let activeWithdrawalChildId=null;
+let activeWithdrawalRequestId=null;
+let activeWithdrawalKeyType="pin";
+let withdrawalPattern=[];
+let withdrawalPatternDraft=[];
+let drawingWithdrawalPattern=false;
+let withdrawalBusy=false;
 function pendingWithdrawal(child){
   return (child.withdrawalRequests||[]).find(r=>r.status==="waiting")||null;
 }
-function openWithdrawConfirm(childId){
+function withdrawalPatternCoordinates(point){
+  const values=[50,150,250];
+  return {x:values[point%3],y:values[Math.floor(point/3)]};
+}
+function drawWithdrawalPattern(points){
+  const svg=document.getElementById("withdrawPatternLines");
+  if(!svg)return;
+  svg.replaceChildren();
+  for(let index=1;index<points.length;index++){
+    const from=withdrawalPatternCoordinates(points[index-1]);
+    const to=withdrawalPatternCoordinates(points[index]);
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",String(from.x));line.setAttribute("y1",String(from.y));
+    line.setAttribute("x2",String(to.x));line.setAttribute("y2",String(to.y));
+    svg.append(line);
+  }
+  document.querySelectorAll("[data-withdraw-pattern-point]").forEach(dot=>{
+    dot.classList.toggle("selected",points.includes(Number(dot.dataset.withdrawPatternPoint)));
+  });
+}
+function resetWithdrawalPattern(message="登録したパターンをなぞってください"){
+  withdrawalPattern=[];withdrawalPatternDraft=[];drawingWithdrawalPattern=false;
+  drawWithdrawalPattern([]);
+  const note=document.getElementById("withdrawPatternNote");if(note)note.textContent=message;
+}
+function addWithdrawalPatternPoint(point){
+  if(!drawingWithdrawalPattern||withdrawalPatternDraft.includes(point))return;
+  withdrawalPatternDraft.push(point);drawWithdrawalPattern(withdrawalPatternDraft);
+}
+function finishWithdrawalPattern(){
+  if(!drawingWithdrawalPattern)return;
+  drawingWithdrawalPattern=false;
+  if(withdrawalPatternDraft.length<4){resetWithdrawalPattern("4点以上をなぞってください");return;}
+  withdrawalPattern=[...withdrawalPatternDraft];withdrawalPatternDraft=[];
+  drawWithdrawalPattern(withdrawalPattern);
+  document.getElementById("withdrawPatternNote").textContent="パターンを入力しました";
+}
+function setWithdrawalKeyType(keyType){
+  activeWithdrawalKeyType=keyType==="pattern"?"pattern":"pin";
+  document.getElementById("withdrawPinField").classList.toggle("hidden",activeWithdrawalKeyType!=="pin");
+  document.getElementById("withdrawPatternField").classList.toggle("hidden",activeWithdrawalKeyType!=="pattern");
+  document.getElementById("withdrawInstruction").innerHTML=activeWithdrawalKeyType==="pattern"
+    ?"現金を渡したあと、<br><strong>お子さん本人</strong>に9点パターンをなぞってもらってください。"
+    :"現金を渡したあと、<br><strong>お子さん本人</strong>に自分の4桁PINを入力してもらってください。";
+  document.getElementById("withdrawConfirmPin").value="";
+  resetWithdrawalPattern();
+}
+function withdrawalErrorMessage(code){
+  const messages={
+    parent_auth_required:"保護者のログインを確認できませんでした。FUERUの入口からもう一度開いてください。",
+    invalid_secret:"本人確認の鍵をもう一度入力してください。",
+    invalid_credentials:"鍵が違います。お子さん本人に確認してください。",
+    temporarily_locked:"入力回数が多いため、10分ほど待ってからもう一度お試しください。",
+    insufficient_balance:"残高が不足しているため出金を確定できません。",
+    withdrawal_not_waiting:"この出金依頼はすでに完了または取り消されています。",
+    withdrawal_not_found:"この出金依頼を確認できませんでした。画面を更新してください。"
+  };
+  return messages[code]||"出金を確定できませんでした。通信状態を確認して、もう一度お試しください。";
+}
+async function openWithdrawConfirm(childId){
   state=load();
   const child=state.children.find(c=>c.id===childId);if(!child)return;
   const req=pendingWithdrawal(child);if(!req){alert("この出金依頼はすでに完了しています。");renderHome();return;}
   activeWithdrawalChildId=childId;
+  activeWithdrawalRequestId=req.id;
   document.getElementById("withdrawChildIcon").style.background=child.sub;
   document.getElementById("withdrawChildIcon").innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
   document.getElementById("withdrawChildName").textContent=child.name;
   document.getElementById("withdrawRequestAmount").textContent=Number(req.amount||0).toLocaleString()+"円";
-  document.getElementById("withdrawConfirmPin").value="";
-  document.getElementById("withdrawConfirmError").classList.remove("show");
+  const error=document.getElementById("withdrawConfirmError");error.classList.remove("show");
   const card=document.getElementById("withdrawConfirmCard");
   card.style.setProperty("--child-main",child.main);card.style.setProperty("--child-sub",child.sub);card.style.setProperty("--child-deep",child.deep);
+  setWithdrawalKeyType("pin");
   showView("withdrawConfirmView");
+  const button=document.getElementById("confirmWithdrawalReceipt");
+  button.disabled=true;button.textContent="確認しています…";
+  try{
+    const prepared=await callParentWithdrawal("prepare",{request_id:req.id});
+    if(activeWithdrawalRequestId!==req.id)return;
+    document.getElementById("withdrawChildName").textContent=prepared.child_name||child.name;
+    document.getElementById("withdrawRequestAmount").textContent=Number(prepared.amount||req.amount||0).toLocaleString()+"円";
+    setWithdrawalKeyType(prepared.key_type);
+    button.disabled=false;button.textContent="出金を確定する";
+  }catch(problem){
+    error.textContent=withdrawalErrorMessage(problem.code);error.classList.add("show");
+    button.disabled=true;button.textContent="出金を確定できません";
+  }
 }
-function completeWithdrawal(){
+async function completeWithdrawal(){
+  if(withdrawalBusy||!activeWithdrawalRequestId)return;
   state=load();
   const child=state.children.find(c=>c.id===activeWithdrawalChildId);if(!child)return;
   const req=pendingWithdrawal(child);if(!req){alert("この出金依頼はすでに完了しています。");showView("homeView");renderHome();return;}
-  const input=String(document.getElementById("withdrawConfirmPin").value||"").replace(/\D/g,"").slice(0,4);
   const error=document.getElementById("withdrawConfirmError");
-  if(!/^\d{4}$/.test(input)){
-    error.textContent="4桁のPINを入力してください。";
-    error.classList.add("show");
-    return;
+  const secret=activeWithdrawalKeyType==="pattern"
+    ?withdrawalPattern.join("-")
+    :String(document.getElementById("withdrawConfirmPin").value||"").replace(/\D/g,"").slice(0,4);
+  if(activeWithdrawalKeyType==="pin"&&!/^\d{4}$/.test(secret)){
+    error.textContent="4桁のPINを入力してください。";error.classList.add("show");return;
   }
-  const expectedPin=String(req.pin||child.withdrawalPin||"");
-  if(input!==expectedPin){
-    error.textContent="PINが違います。お子さん本人に確認してください。";
-    error.classList.add("show");
-    document.getElementById("withdrawConfirmPin").value="";
-    return;
+  if(activeWithdrawalKeyType==="pattern"&&withdrawalPattern.length<4){
+    error.textContent="登録した9点パターンをなぞってください。";error.classList.add("show");return;
   }
   error.classList.remove("show");
-  const amount=Number(req.amount||0);
-  if(amount<=0||amount>Number(child.passbookBalance||0)){
-    error.textContent="残高が不足しているため出金を確定できません。";error.classList.add("show");return;
+  withdrawalBusy=true;
+  const button=document.getElementById("confirmWithdrawalReceipt");button.disabled=true;button.textContent="確定しています…";
+  try{
+    await callParentWithdrawal("confirm",{request_id:activeWithdrawalRequestId,key_type:activeWithdrawalKeyType,secret});
+    await refreshRemoteParentState();
+    activeWithdrawalChildId=null;activeWithdrawalRequestId=null;
+    showView("homeView");renderHome();
+    alert("出金が完了しました。\nFUERU通帳へ記録しました。");
+  }catch(problem){
+    error.textContent=withdrawalErrorMessage(problem.code);error.classList.add("show");
+    document.getElementById("withdrawConfirmPin").value="";
+    resetWithdrawalPattern(problem.code==="invalid_credentials"?"もう一度なぞってください":"登録したパターンをなぞってください");
+  }finally{
+    withdrawalBusy=false;
+    button.disabled=false;button.textContent="出金を確定する";
   }
-  const now=new Date();
-  const date=localISO(now);
-  child.transactions=Array.isArray(child.transactions)?child.transactions:[];
-  child.transactions.push({id:"tx_withdrawal_"+Date.now(),type:"withdrawal",amount:-amount,date:date,reason:"出金",requestId:req.id});
-  child.passbookBalance=Number(child.passbookBalance||0)-amount;
-  req.status="completed";req.completedAt=now.toISOString();req.completedDate=date;
-  save();
-  activeWithdrawalChildId=null;
-  showView("homeView");renderHome();
-  alert("出金が完了しました。\nFUERU通帳へ記録しました。");
 }
 
 function renderHome(){
@@ -3140,11 +3270,12 @@ document.getElementById("saveChild").onclick=()=>{
 
 
 
-bindClick("backFromWithdrawConfirm",()=>{activeWithdrawalChildId=null;showView("homeView");renderHome()});
+bindClick("backFromWithdrawConfirm",()=>{activeWithdrawalChildId=null;activeWithdrawalRequestId=null;showView("homeView");renderHome()});
 const confirmWithdrawalButton=document.getElementById("confirmWithdrawalReceipt");
 if(confirmWithdrawalButton){
   confirmWithdrawalButton.disabled=false;
   confirmWithdrawalButton.style.pointerEvents="auto";
+  confirmWithdrawalButton.onclick=completeWithdrawal;
 }
 async function refreshRemoteParentView(){
   if(remoteBusy)return;
@@ -3163,6 +3294,22 @@ if(withdrawConfirmPin){
   withdrawConfirmPin.addEventListener("input",function(){this.value=String(this.value||"").replace(/\D/g,"").slice(0,4)});
   withdrawConfirmPin.addEventListener("keydown",function(e){if(e.key==="Enter")completeWithdrawal()});
 }
+document.querySelectorAll("[data-withdraw-pattern-point]").forEach(dot=>{
+  dot.addEventListener("pointerdown",event=>{
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    event.preventDefault();drawingWithdrawalPattern=true;withdrawalPattern=[];withdrawalPatternDraft=[];
+    addWithdrawalPatternPoint(Number(dot.dataset.withdrawPatternPoint));
+  });
+});
+window.addEventListener("pointermove",event=>{
+  if(!drawingWithdrawalPattern)return;
+  event.preventDefault();
+  const target=document.elementFromPoint(event.clientX,event.clientY)?.closest("[data-withdraw-pattern-point]");
+  if(target&&document.getElementById("withdrawPatternPad").contains(target))addWithdrawalPatternPoint(Number(target.dataset.withdrawPatternPoint));
+},{passive:false});
+window.addEventListener("pointerup",finishWithdrawalPattern);
+window.addEventListener("pointercancel",finishWithdrawalPattern);
+bindClick("resetWithdrawPattern",()=>resetWithdrawalPattern());
 
 window.addEventListener("storage",function(e){if(e.key===STORAGE_KEY||e.key===LEGACY_STORAGE_KEY){state=load();if(document.getElementById("homeView").classList.contains("active"))renderHome();}});
 
@@ -3290,7 +3437,7 @@ for(let d=1;d<=31;d++){
 
 document.addEventListener("click",event=>{
   const target=event.target&&event.target.closest?event.target.closest(
-    "#openChildManage,#openLedgerSettings,#openWithdrawSettings,#hubEditProfile,#hubEditPayment,#grantSpecialReward,#confirmWithdrawalReceipt,#saveAllowance,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,.withdraw-request-btn,#cancelAllDayJobs,.day-job-actions button"
+    "#openChildManage,#openLedgerSettings,#openWithdrawSettings,#hubEditProfile,#hubEditPayment,#grantSpecialReward,#saveAllowance,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,#cancelAllDayJobs,.day-job-actions button"
   ):null;
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();

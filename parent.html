@@ -448,7 +448,7 @@ button{cursor:pointer}
 
 
 /* v0.9.9 FUERU公式ロゴ */
-.fueru-brand-topbar{min-height:76px;margin-bottom:14px}
+.fueru-brand-topbar{min-height:76px;margin-bottom:14px;align-items:start}
 .fueru-parent-bird{
   display:flex;align-items:center;justify-content:center;
   width:72px;height:72px;justify-self:center
@@ -473,12 +473,13 @@ button{cursor:pointer}
 
 /* v0.9.11 ヘッダー小鳥調整 */
 .fueru-parent-bird{
-  transform:translate(10px,-8px);
+  align-items:flex-start;
+  transform:translateX(10px);
 }
-.fueru-brand-topbar #openSettings{transform:translateY(-8px)}
+.fueru-brand-topbar #openSettings{align-self:start;transform:none}
 @media(max-width:390px){
   .fueru-parent-bird{
-    transform:translate(7px,-8px);
+    transform:translateX(7px);
   }
 }
 

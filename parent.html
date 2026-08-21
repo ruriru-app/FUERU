@@ -970,6 +970,7 @@ button{cursor:pointer}
   font-size:12px;
   line-height:1.7;
 }
+.remote-parent-status{margin:0 0 14px;padding:11px 14px;border-radius:15px;background:#EAF7F5;color:#2F746B;font-size:12px;font-weight:700;line-height:1.55;text-align:center}
 
 </style>
 </head>
@@ -984,6 +985,8 @@ button{cursor:pointer}
       </div>
       <button class="soft-btn right" id="openSettings">設定</button>
     </header>
+
+    <div class="remote-parent-status">家庭のデータと接続しています。おしごとの登録と報告確認が保存されます。</div>
 
     <section class="card summary-card">
       <div class="label">確認待ち</div>
@@ -1532,9 +1535,121 @@ button{cursor:pointer}
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const STORAGE_KEY="FUERU_DATA_V1";
-const LEGACY_STORAGE_KEY="oshigoto_parent_v01";
+(async function(){
+"use strict";
+
+const FUERU_REMOTE_CONFIG={
+  url:"https://xftiircdvszesknamrmx.supabase.co",
+  publishableKey:"sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV"
+};
+const DEVICE_STORAGE_KEY="FUERU_DEVICE_CONNECTION_V1";
+const remoteClient=window.supabase&&window.supabase.createClient
+  ?window.supabase.createClient(FUERU_REMOTE_CONFIG.url,FUERU_REMOTE_CONFIG.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})
+  :null;
+let remoteParentDevice=null;
+try{remoteParentDevice=JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY)||"null");}catch(e){}
+const sessionResult=remoteClient?await remoteClient.auth.getSession():{data:{session:null}};
+const remoteSession=sessionResult&&sessionResult.data?sessionResult.data.session:null;
+const validParentDevice=remoteParentDevice&&remoteParentDevice.version===1&&remoteParentDevice.mode==="parent"&&
+  remoteSession&&remoteSession.user&&remoteParentDevice.userId===remoteSession.user.id&&
+  /^[0-9a-f-]{36}$/i.test(String(remoteParentDevice.familyId||""));
+if(!validParentDevice){location.replace("./");return;}
+
+const REMOTE_FAMILY_ID=String(remoteParentDevice.familyId);
+const STORAGE_KEY="FUERU_PARENT_DATA_"+REMOTE_FAMILY_ID;
+const LEGACY_STORAGE_KEY=STORAGE_KEY;
+let remoteBusy=false;
+
+function remoteFrequencyLabel(value,weekdays){
+  if(value==="daily")return "毎日";
+  if(value==="weekdays")return "平日";
+  const labels=["日","月","火","水","木","金","土"];
+  return (weekdays||[]).map(day=>labels[Number(day)]).filter(Boolean).join("・")||"曜日指定";
+}
+async function loadRemoteParentState(){
+  const membership=await remoteClient.from("family_guardians").select("family_id").eq("family_id",REMOTE_FAMILY_ID).eq("user_id",remoteSession.user.id).maybeSingle();
+  if(membership.error||!membership.data)throw membership.error||new Error("guardian membership required");
+  const results=await Promise.all([
+    remoteClient.from("children").select("*").eq("family_id",REMOTE_FAMILY_ID).is("archived_at",null).order("sort_order",{ascending:true}),
+    remoteClient.from("child_settings").select("*").eq("family_id",REMOTE_FAMILY_ID),
+    remoteClient.from("jobs").select("*").eq("family_id",REMOTE_FAMILY_ID).is("archived_at",null).order("created_at",{ascending:true}),
+    remoteClient.from("job_reports").select("*").eq("family_id",REMOTE_FAMILY_ID).order("work_date",{ascending:false}),
+    remoteClient.from("pending_rewards").select("*").eq("family_id",REMOTE_FAMILY_ID),
+    remoteClient.from("passbook_transactions").select("*").eq("family_id",REMOTE_FAMILY_ID).order("transaction_date",{ascending:false}),
+    remoteClient.from("withdrawal_requests").select("*").eq("family_id",REMOTE_FAMILY_ID).order("requested_at",{ascending:false}),
+    remoteClient.from("job_schedule_exceptions").select("*").eq("family_id",REMOTE_FAMILY_ID),
+    remoteClient.from("ledger_catalog_items").select("*").eq("family_id",REMOTE_FAMILY_ID).eq("enabled",true).order("sort_order",{ascending:true})
+  ]);
+  const failed=results.find(result=>result.error);
+  if(failed)throw failed.error;
+  const [childrenResult,settingsResult,jobsResult,reportsResult,pendingResult,transactionsResult,withdrawalsResult,exceptionsResult,catalogResult]=results;
+  const settingsByChild=new Map((settingsResult.data||[]).map(item=>[item.child_id,item]));
+  const jobsByChild=new Map();
+  const jobsById=new Map();
+  (jobsResult.data||[]).forEach(job=>{
+    const days=Array.isArray(job.weekdays)?job.weekdays.map(Number):[];
+    const localFrequency=job.frequency_type==="selected_days"?"weekly":job.frequency_type;
+    const mapped={id:job.id,name:job.name,reward:Number(job.reward_amount)||0,frequency:localFrequency,
+      weekdays:days,days:days,startDate:job.start_date||"",endDate:job.end_date||"",enabled:job.enabled!==false};
+    if(!jobsByChild.has(job.child_id))jobsByChild.set(job.child_id,[]);
+    jobsByChild.get(job.child_id).push(mapped);
+    jobsById.set(job.id,mapped);
+  });
+  const reportsByChild=new Map();
+  (reportsResult.data||[]).forEach(report=>{
+    const snapshot=report.job_snapshot&&typeof report.job_snapshot==="object"?report.job_snapshot:{};
+    const linkedJob=jobsById.get(report.job_id)||null;
+    const reportFrequency=linkedJob?(linkedJob.frequency==="weekly"?"selected_days":linkedJob.frequency):snapshot.frequency;
+    const reportDays=linkedJob?linkedJob.weekdays:(Array.isArray(snapshot.days)?snapshot.days:[]);
+    const mapped={id:report.id,date:report.work_date,name:snapshot.name||snapshot.job_name||(linkedJob&&linkedJob.name)||"お仕事",
+      frequency:remoteFrequencyLabel(reportFrequency,reportDays),
+      reward:Number(report.reward_amount)||0,status:report.status,jobId:report.job_id,snapshot:snapshot,
+      reportedAt:report.reported_at||report.created_at||""};
+    if(!reportsByChild.has(report.child_id))reportsByChild.set(report.child_id,[]);
+    reportsByChild.get(report.child_id).push(mapped);
+  });
+  function groupByChild(rows,mapper){
+    const grouped=new Map();
+    (rows||[]).forEach(row=>{if(!grouped.has(row.child_id))grouped.set(row.child_id,[]);grouped.get(row.child_id).push(mapper(row));});
+    return grouped;
+  }
+  const pendingByChild=groupByChild(pendingResult.data,row=>({id:row.id,amount:Number(row.amount)||0,name:row.job_name||"お仕事",workDate:row.work_date,dueDate:row.due_date,status:row.status}));
+  const transactionsByChild=groupByChild(transactionsResult.data,row=>({id:row.id,type:row.transaction_type,amount:Number(row.amount)||0,date:row.transaction_date,reason:row.reason||"",items:Array.isArray(row.items)?row.items:[],createdAt:row.created_at||""}));
+  const withdrawalsByChild=groupByChild(withdrawalsResult.data,row=>({id:row.id,amount:Number(row.amount)||0,withdrawalUnit:Number(row.withdrawal_unit)||100,status:row.status,requestedAt:row.requested_at||row.created_at||"",completedAt:row.completed_at||null,cancelledAt:row.cancelled_at||null}));
+  const exceptionsByChild=groupByChild(exceptionsResult.data,row=>({date:row.exception_date,jobId:row.job_id||null}));
+  const catalogByChild=groupByChild(catalogResult.data,row=>({id:row.id,icon:row.icon||"",name:row.name,category:row.category||"",kind:row.kind}));
+  const children=(childrenResult.data||[]).filter(child=>child.setup_state==="active").map(child=>{
+    const settings=settingsByChild.get(child.id)||{};
+    const pending=pendingByChild.get(child.id)||[];
+    const transactions=transactionsByChild.get(child.id)||[];
+    const catalog=catalogByChild.get(child.id)||[];
+    return {id:child.id,name:child.display_name,icon:child.icon||"bird",main:child.theme_main||"#8CCBC2",sub:child.theme_sub||"#EAF7F5",deep:child.theme_deep||"#2F746B",
+      allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",payDay:Number(settings.pay_day)||25,
+      rewardTiming:settings.reward_timing||"immediate",rewardPaySchedule:settings.reward_pay_schedule||"allowance",rewardPayDay:Number(settings.reward_pay_day)||25,
+      closeType:settings.close_type||"monthEnd",closeDay:Number(settings.close_day)||31,periodMode:settings.period_mode||"cycle",payoutMode:settings.payout_mode||"manual",
+      withdrawalUnit:Number(settings.withdrawal_unit)||100,ledgerMode:settings.ledger_mode||"easy",
+      jobs:jobsByChild.get(child.id)||[],reports:reportsByChild.get(child.id)||[],pendingRewards:pending,
+      confirmed:pending.filter(item=>item.status==="pending").reduce((sum,item)=>sum+Number(item.amount||0),0),
+      transactions:transactions,passbookBalance:transactions.reduce((sum,item)=>sum+Number(item.amount||0),0),
+      withdrawalRequests:withdrawalsByChild.get(child.id)||[],cancelledJobDates:exceptionsByChild.get(child.id)||[],
+      incomeReasonItems:catalog.filter(item=>item.kind==="income_reason"),spendingItems:catalog.filter(item=>item.kind==="expense_item")};
+  });
+  const next={children};
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+  return next;
+}
+async function refreshRemoteParentState(){
+  const next=await loadRemoteParentState();
+  state=next;
+  return next;
+}
+function remoteOperationError(error){
+  console.error(error);
+  alert("保存できませんでした。通信状態を確認して、もう一度お試しください。");
+}
+
 const seed={
   children:[
     {
@@ -1557,8 +1672,9 @@ const seed={
     }
   ]
 };
-let state=load();
-processDueRewards();
+let state;
+try{state=await loadRemoteParentState();}
+catch(error){console.error(error);alert("保護者データを読み込めませんでした。FUERUの入口からもう一度お試しください。");location.replace("./");return;}
 let currentChildId=null;
 
 let editingChildId=null;
@@ -1603,7 +1719,7 @@ function nearestPaletteBySub(sub){
 function load(){
   try{
     const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY)||"null");
-    const data=saved&&saved.children?saved:structuredClone(seed);
+    const data=saved&&saved.children?saved:{children:[]};
     data.children.forEach((child,index)=>{
       if(typeof child.allowance!=="number")child.allowance=index===0?3000:2000;
       if(!child.payType)child.payType="day";
@@ -1636,11 +1752,11 @@ function load(){
           {id:"sp_other",icon:"🧺",name:"その他",category:"その他"}
         ];
       }
-      if(typeof child.passbookBalance!=="number")child.passbookBalance=child.id==="karen"?5320:0;
+      if(typeof child.passbookBalance!=="number")child.passbookBalance=0;
     });
     localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
     return data;
-  }catch(e){return structuredClone(seed)}
+  }catch(e){return {children:[]}}
 }
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
 function normalizeReport(report){
@@ -2117,7 +2233,16 @@ function renderHubJobs(){
     row.innerHTML=`<div><div class="child-job-name">${job.name}</div><div class="child-job-meta">${frequencyLabel(job)}／${job.reward}円</div></div>
       <label class="compact-switch"><input type="checkbox" ${job.enabled!==false?"checked":""}><span></span></label>
       <button class="mini-btn">編集</button>`;
-    row.querySelector("input").onchange=e=>{job.enabled=e.target.checked;save();renderHubJobs()};
+    row.querySelector("input").onchange=async e=>{
+      if(remoteBusy)return;
+      remoteBusy=true;e.target.disabled=true;
+      try{
+        const result=await remoteClient.from("jobs").update({enabled:e.target.checked}).eq("id",job.id).eq("family_id",REMOTE_FAMILY_ID).eq("child_id",child.id).select("id").single();
+        if(result.error)throw result.error;
+        await refreshRemoteParentState();renderHubJobs();
+      }catch(error){e.target.checked=!e.target.checked;remoteOperationError(error);}
+      finally{remoteBusy=false;e.target.disabled=false;}
+    };
     row.querySelector("button").onclick=()=>openJobEditor(child.id,job.id);
     box.appendChild(row);
   });
@@ -2945,37 +3070,29 @@ document.getElementById("selectAll").onchange=(event)=>{
   checks.forEach(c=>c.checked=event.currentTarget.checked);
   updateActions();
 };
-document.getElementById("confirmSelected").onclick=()=>{
-  const ids=selectedIds(),child=state.children.find(c=>c.id===currentChildId);
-  child.reports.forEach(r=>{
-    if(ids.includes(r.id)&&r.status==="waiting"){
-      r.status="done";
-      const paid=Number(r.reward)||0;
-      if((child.rewardTiming||"immediate")==="payday"){
-        child.pendingRewards=Array.isArray(child.pendingRewards)?child.pendingRewards:[];
-        child.pendingRewards.push({id:"pending_"+r.id,amount:paid,name:r.name,workDate:r.date||localISO(new Date()),dueDate:rewardDueDate(child,localISO(new Date()))});
-        syncConfirmed(child);
-      }else{
-        child.transactions??=[];
-        child.transactions.push({id:"tx_"+Date.now()+"_"+r.id,type:"job",amount:paid,reason:r.name,date:r.date||localISO(new Date())});
-        child.passbookBalance=Number(child.passbookBalance||0)+paid;
-      }
-    }
-  });
-  save();
-  const msg=document.getElementById("completeMessage");
-  msg.textContent=ids.length+"件を確定しました";
-  msg.classList.add("show");
-  renderChild();renderHome();
+document.getElementById("confirmSelected").onclick=async()=>{
+  const ids=selectedIds();if(!ids.length||remoteBusy)return;
+  remoteBusy=true;document.getElementById("confirmSelected").disabled=true;document.getElementById("returnSelected").disabled=true;
+  let completed=0;
+  try{
+    for(const id of ids){const result=await remoteClient.rpc("review_job_report",{p_report_id:id,p_decision:"done"});if(result.error)throw result.error;completed++;}
+    await refreshRemoteParentState();
+    const msg=document.getElementById("completeMessage");msg.textContent=completed+"件を確定しました";msg.classList.add("show");
+    renderChild();renderHome();
+  }catch(error){await refreshRemoteParentState();renderChild();renderHome();remoteOperationError(error);}
+  finally{remoteBusy=false;}
 };
-document.getElementById("returnSelected").onclick=()=>{
-  const ids=selectedIds(),child=state.children.find(c=>c.id===currentChildId);
-  child.reports.forEach(r=>{if(ids.includes(r.id)&&r.status==="waiting")r.status="missed"});
-  save();
-  const msg=document.getElementById("completeMessage");
-  msg.textContent=ids.length+"件を未達成へ戻しました";
-  msg.classList.add("show");
-  renderChild();renderHome();
+document.getElementById("returnSelected").onclick=async()=>{
+  const ids=selectedIds();if(!ids.length||remoteBusy)return;
+  remoteBusy=true;document.getElementById("confirmSelected").disabled=true;document.getElementById("returnSelected").disabled=true;
+  let completed=0;
+  try{
+    for(const id of ids){const result=await remoteClient.rpc("review_job_report",{p_report_id:id,p_decision:"missed"});if(result.error)throw result.error;completed++;}
+    await refreshRemoteParentState();
+    const msg=document.getElementById("completeMessage");msg.textContent=completed+"件を未達成へ戻しました";msg.classList.add("show");
+    renderChild();renderHome();
+  }catch(error){await refreshRemoteParentState();renderChild();renderHome();remoteOperationError(error);}
+  finally{remoteBusy=false;}
 };
 document.getElementById("backHome").onclick=()=>{showView("homeView");renderHome()};
 document.getElementById("openSettings").onclick=()=>showView("settingsView");
@@ -3029,8 +3146,17 @@ if(confirmWithdrawalButton){
   confirmWithdrawalButton.disabled=false;
   confirmWithdrawalButton.style.pointerEvents="auto";
 }
-window.addEventListener("focus",function(){state=load();renderHome();});
-document.addEventListener("visibilitychange",function(){if(!document.hidden){state=load();renderHome();}});
+async function refreshRemoteParentView(){
+  if(remoteBusy)return;
+  try{
+    await refreshRemoteParentState();
+    renderHome();
+    if(document.getElementById("childView").classList.contains("active")&&currentChildId)renderChild();
+    if(document.getElementById("childHistoryView").classList.contains("active")&&childHistoryId)renderHistory();
+  }catch(error){console.error(error);}
+}
+window.addEventListener("focus",refreshRemoteParentView);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)refreshRemoteParentView();});
 
 const withdrawConfirmPin=document.getElementById("withdrawConfirmPin");
 if(withdrawConfirmPin){
@@ -3038,7 +3164,6 @@ if(withdrawConfirmPin){
   withdrawConfirmPin.addEventListener("keydown",function(e){if(e.key==="Enter")completeWithdrawal()});
 }
 
-window.addEventListener("focus",function(){state=load();if(document.getElementById("homeView").classList.contains("active"))renderHome();});
 window.addEventListener("storage",function(e){if(e.key===STORAGE_KEY||e.key===LEGACY_STORAGE_KEY){state=load();if(document.getElementById("homeView").classList.contains("active"))renderHome();}});
 
 document.getElementById("backFromChildHub").onclick=()=>{showView("homeView");renderHome()};
@@ -3052,20 +3177,44 @@ document.getElementById("historyPrevMonth").onclick=()=>{historyCursor=new Date(
 document.getElementById("historyNextMonth").onclick=()=>{historyCursor=new Date(historyCursor.getFullYear(),historyCursor.getMonth()+1,1);renderHistory()};
 
 document.getElementById("jobFrequency").onchange=function(){jobDraft.frequency=this.value;updateWeekdayVisibility()};
-document.getElementById("saveJob").onclick=()=>{
+document.getElementById("saveJob").onclick=async()=>{
   const child=state.children.find(c=>c.id===jobEditingChildId);if(!child)return;
-  jobDraft.name=document.getElementById("jobNameInput").value.trim()||"名前のないお仕事";
+  if(remoteBusy)return;
+  jobDraft.name=document.getElementById("jobNameInput").value.trim();
+  if(!jobDraft.name){alert("仕事内容を入力してください");return;}
   jobDraft.reward=Math.max(0,Number(document.getElementById("jobRewardInput").value)||0);
   jobDraft.frequency=document.getElementById("jobFrequency").value;
   jobDraft.startDate=document.getElementById("jobStartDate").value;jobDraft.endDate=document.getElementById("jobEndDate").value;
+  if(jobDraft.startDate&&jobDraft.endDate&&jobDraft.startDate>jobDraft.endDate){alert("終了日は開始日以降にしてください");return;}
+  if(jobDraft.frequency==="weekly"&&!(jobDraft.weekdays||[]).length){alert("曜日を1つ以上選んでください");return;}
   jobDraft.enabled=jobDraft.enabled!==false;
-  const i=child.jobs.findIndex(j=>j.id===jobEditingId);if(i>=0)child.jobs[i]=jobDraft;else child.jobs.push(jobDraft);
-  save();if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings();showJobNotice("お仕事を保存しました")};
+  const payload={name:jobDraft.name,reward_amount:jobDraft.reward,
+    frequency_type:jobDraft.frequency==="weekly"?"selected_days":jobDraft.frequency,
+    weekdays:jobDraft.frequency==="daily"?[]:(jobDraft.frequency==="weekdays"?[1,2,3,4,5]:(jobDraft.weekdays||[])),
+    start_date:jobDraft.startDate||null,end_date:jobDraft.endDate||null,enabled:jobDraft.enabled};
+  const button=document.getElementById("saveJob");button.disabled=true;remoteBusy=true;
+  try{
+    let result;
+    if(jobEditingId){result=await remoteClient.from("jobs").update(payload).eq("id",jobEditingId).eq("family_id",REMOTE_FAMILY_ID).eq("child_id",child.id).select("id").single();}
+    else{result=await remoteClient.from("jobs").insert({...payload,family_id:REMOTE_FAMILY_ID,child_id:child.id}).select("id").single();}
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();
+    if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings();showJobNotice("お仕事を保存しました")}
+  }catch(error){remoteOperationError(error);}
+  finally{remoteBusy=false;button.disabled=false;}
 };
-document.getElementById("deleteJob").onclick=()=>{
+document.getElementById("deleteJob").onclick=async()=>{
   const child=state.children.find(c=>c.id===jobEditingChildId);if(!child||!jobEditingId)return;
+  if(remoteBusy)return;
   if(!confirm("このお仕事を削除しますか？"))return;
-  child.jobs=child.jobs.filter(j=>j.id!==jobEditingId);save();if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings();showJobNotice("お仕事を削除しました")};
+  const button=document.getElementById("deleteJob");button.disabled=true;remoteBusy=true;
+  try{
+    const result=await remoteClient.from("jobs").update({enabled:false,archived_at:new Date().toISOString()}).eq("id",jobEditingId).eq("family_id",REMOTE_FAMILY_ID).eq("child_id",child.id).select("id").single();
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();
+    if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings();showJobNotice("お仕事を削除しました")}
+  }catch(error){remoteOperationError(error);}
+  finally{remoteBusy=false;button.disabled=false;}
 };
 
 document.querySelectorAll('input[name="payType"]').forEach(r=>r.onchange=updatePayDayVisibility);
@@ -3139,7 +3288,17 @@ for(let d=1;d<=31;d++){
   }
 }
 
+document.addEventListener("click",event=>{
+  const target=event.target&&event.target.closest?event.target.closest(
+    "#openChildManage,#openLedgerSettings,#openWithdrawSettings,#hubEditProfile,#hubEditPayment,#grantSpecialReward,#confirmWithdrawalReceipt,#saveAllowance,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,.withdraw-request-btn,#cancelAllDayJobs,.day-job-actions button"
+  ):null;
+  if(!target)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  alert("この操作は、家庭のデータへ安全につなぐ次の更新で使用できるようにします。");
+},true);
+
 renderHome();
+})();
 </script>
 </body>
 </html>

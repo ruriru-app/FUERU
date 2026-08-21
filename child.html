@@ -2252,9 +2252,18 @@ var PROFILE_KEY="FUERU_CHILD_PROFILE_"+childScope;
 var CHILD_ID=validChildConnection?String(childConnection.childId):"";
 var REMOTE_READ_ONLY=true;
 
-function showChildBootFailure(message){
+function showChildBootFailure(message,allowReconnect){
   var box=document.getElementById("fueruChildBootStatus");
-  box.innerHTML='<div><div style="margin-bottom:14px">'+message+'</div><a href="./" style="color:#2f746b">FUERUの入口へ戻る</a></div>';
+  box.innerHTML='<div class="unlock-card"><h2>接続を確認してください</h2><p>'+message+'</p><div class="unlock-actions">'+
+    '<a class="secondary" href="./">FUERUの入口へ戻る</a>'+
+    (allowReconnect?'<button type="button" id="fueruReconnectDevice">端末をつなぎ直す</button>':'')+
+    '</div></div>';
+  if(allowReconnect){
+    document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
+      localStorage.removeItem(DEVICE_STORAGE_KEY);
+      location.href="./";
+    });
+  }
 }
 function requestChildUnlock(keyType,isRetry){
   return new Promise(function(resolve){
@@ -2435,8 +2444,7 @@ async function initializeRemoteChild(){
         continue;
       }
       if(error&&error.code==="invalid_device"){
-        localStorage.removeItem(DEVICE_STORAGE_KEY);
-        showChildBootFailure("この端末の接続が無効になっています。もう一度つないでください。");
+        showChildBootFailure("この端末の接続を確認できませんでした。一時的な場合があるため、接続情報は自動で削除していません。",true);
       }else if(error&&error.code==="temporarily_locked"){
         showChildBootFailure("入力回数が多いため、一時的に確認を停止しています。10分ほど待ってから、もう一度お試しください。");
       }else{

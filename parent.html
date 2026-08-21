@@ -1116,6 +1116,9 @@ button{cursor:pointer}
       <button class="settings-link" type="button" id="returnToSharedChooser" hidden>
         <span>使う人を選び直す<small>家族共用端末の「だれが使いますか？」へ戻る</small></span><span class="chevron">›</span>
       </button>
+      <button class="settings-link" type="button" id="convertSharedToParent" hidden>
+        <span>保護者専用端末に戻す<small>家族共用を終了し、これまでの保護者用の使い方へ戻す</small></span><span class="chevron">›</span>
+      </button>
     </div>
     <div class="parent-settings-note">お小遣い・お仕事・履歴は、保護者ホームの各子どもタイルから開きます。</div>
   </section>
@@ -3497,8 +3500,24 @@ document.getElementById("returnSelected").onclick=async()=>{
 };
 document.getElementById("backHome").onclick=()=>{showView("homeView");renderHome()};
 const returnToSharedChooser=document.getElementById("returnToSharedChooser");
+const convertSharedToParent=document.getElementById("convertSharedToParent");
 if(returnToSharedChooser&&sharedParentMode){
   returnToSharedChooser.hidden=false;
+  if(convertSharedToParent){
+    convertSharedToParent.hidden=false;
+    convertSharedToParent.onclick=()=>{
+      if(!window.confirm("この端末を保護者専用に戻しますか？\n家庭のデータや子どもの端末には影響しません。"))return;
+      const parentRecord={
+        version:1,mode:"parent",userId:remoteParentDevice.userId,familyId:remoteParentDevice.familyId,
+        connectionId:remoteParentDevice.connectionId,deviceToken:remoteParentDevice.deviceToken,
+        registeredAt:new Date().toISOString()
+      };
+      localStorage.setItem(DEVICE_STORAGE_KEY,JSON.stringify(parentRecord));
+      localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+      sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
+      location.replace("./?v=shared-device-20260821");
+    };
+  }
   returnToSharedChooser.onclick=async()=>{
     returnToSharedChooser.disabled=true;
     localStorage.removeItem(SHARED_PARENT_PENDING_KEY);

@@ -349,7 +349,12 @@
       background: var(--mint-050);
       outline: none;
     }
-    .mode-emoji { font-size: 36px; text-align: center; }
+    .mode-illustration {
+      display: block;
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
     .mode-copy strong { display: block; color: var(--mint-700); font-size: 16px; }
     .mode-copy small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.5; }
     .pairing-summary {
@@ -464,15 +469,15 @@
         <p class="muted compact">この設定は初回だけです。あとから変更できるようにします。</p>
         <div class="mode-grid">
           <button id="chooseParentEntryButton" class="mode-button" type="button">
-            <span class="mode-emoji" aria-hidden="true">👤</span>
+            <img class="mode-illustration" src="fueru-mode-parent.svg" alt="" width="48" height="48">
             <span class="mode-copy"><strong>保護者として使う</strong><small>メールでログインし、家庭の設定や確認をします</small></span>
           </button>
           <button id="chooseChildEntryButton" class="mode-button" type="button">
-            <span class="mode-emoji" aria-hidden="true">🌱</span>
+            <img class="mode-illustration" src="fueru-mode-child.svg" alt="" width="48" height="48">
             <span class="mode-copy"><strong>子どもとして使う</strong><small>家族コードと自分の鍵で家庭につなぎます</small></span>
           </button>
           <button id="chooseSharedEntryButton" class="mode-button" type="button">
-            <span class="mode-emoji" aria-hidden="true">🏠</span>
+            <img class="mode-illustration" src="fueru-mode-family.svg" alt="" width="48" height="48">
             <span class="mode-copy"><strong>家族みんなで使う</strong><small>使う人を選び、本人確認してから画面を開きます</small></span>
           </button>
         </div>

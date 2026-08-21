@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Linearity Curve (http://linearity.io/curve) -->
+<svg height="1024.0px" stroke-miterlimit="10" style="fill-rule:nonzero;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;" version="1.1" viewBox="0 0 1024 1024" width="1024.0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs/>
+<clipPath id="ArtboardFrame">
+<rect height="1024" width="1024" x="0" y="0"/>
+</clipPath>
+<g clip-path="url(#ArtboardFrame)" id="背景">
+<path d="M-5.68434e-14 150C-5.68434e-14 67.1573 67.1573 0 150 0L874 0C956.843 0 1024 67.1573 1024 150L1024 874C1024 956.843 956.843 1024 874 1024L150 1024C67.1573 1024-5.68434e-14 956.843-5.68434e-14 874L-5.68434e-14 150Z" fill="#ffffff" fill-rule="nonzero" opacity="1" stroke="none"/>
+</g>
+<g id="レイヤー-1">
+<g opacity="1">
+<path d="M290.858 200.526C254.568 200.77 223.877 215.286 203.516 244.951C167.321 297.687 181.41 364.836 236.414 392.789C279.39 414.629 328.821 401.431 373.705 390.428C425.981 377.612 467.985 388.905 495.074 401.503L495.074 422.522L495.074 750.417L528.926 750.417L528.926 422.522L528.926 401.503C556.015 388.905 598.018 377.613 650.295 390.428C695.178 401.431 744.609 414.629 787.586 392.789C842.59 364.836 856.68 297.687 820.483 244.951C800.123 215.286 769.432 200.77 733.141 200.526C704.916 200.337 673.305 208.791 640.501 225.463C587.423 252.437 537.154 339.203 512 388.042C486.846 339.203 436.577 252.437 383.499 225.463C350.693 208.792 319.084 200.337 290.858 200.526Z" fill="#b7d7a8" fill-rule="nonzero" opacity="1" stroke="none"/>
+<path d="M266.007 823.477C266.007 743.743 413.304 679.107 493.037 679.107L532.16 679.107C611.893 679.107 757.993 743.743 757.993 823.477L757.993 823.477L266.007 823.477L266.007 823.477Z" fill="#9a8f86" fill-rule="nonzero" opacity="1" stroke="none"/>
+</g>
+</g>
+</svg>

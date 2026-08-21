@@ -2383,7 +2383,7 @@ function mapRemoteChildData(result){
       completedAt:request.completed_at||null,cancelledAt:request.cancelled_at||null
     };
   });
-  var catalog=result.ledger_catalog_items||[];
+  var catalog=(result.ledger_catalog_items||[]).filter(function(item){return item.enabled!==false;});
   var ledgerEntries=(result.ledger_entries||[]).map(function(entry){
     return {
       id:entry.id,kind:entry.kind,date:entry.entry_date,amount:Number(entry.amount)||0,

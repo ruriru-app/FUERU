@@ -3352,19 +3352,43 @@ function removeSpendingItem(itemId){
   if(spendingEditingId===itemId)closeSpendingEditor();
   renderLedgerEditor();
 }
-function saveLedgerSettings(){
+function ledgerCatalogPayload(items,kind){
+  return (items||[]).map((item,index)=>({
+    id:/^[0-9a-f-]{36}$/i.test(String(item.id||""))?item.id:null,
+    name:String(item.name||"").trim(),
+    icon:String(item.icon||(kind==="income_reason"?"💴":"🧺")).trim(),
+    category:kind==="expense_item"?String(item.category||"その他").trim():null,
+    sort_order:index
+  }));
+}
+async function saveLedgerSettings(){
   const child=state.children.find(c=>c.id===ledgerEditingChildId);
-  if(!child||!ledgerDraft)return;
-  child.ledgerMode=ledgerDraft.ledgerMode;
-  child.incomeReasonItems=clonePlain(ledgerDraft.incomeReasonItems);
-  child.spendingItems=clonePlain(ledgerDraft.spendingItems);
-  save();
-  showView("ledgerSettingsView");
-  renderLedgerSettingsList();
-  const notice=document.getElementById("ledgerSettingsNotice");
-  notice.textContent=child.name+"のおこづかい帳設定を保存しました";
-  notice.classList.add("show");
-  setTimeout(()=>notice.classList.remove("show"),2200);
+  if(!child||!ledgerDraft||remoteBusy)return;
+  const incomeItems=ledgerCatalogPayload(ledgerDraft.incomeReasonItems,"income_reason");
+  const expenseItems=ledgerCatalogPayload(ledgerDraft.spendingItems,"expense_item");
+  if(!["easy","simple","full"].includes(ledgerDraft.ledgerMode)){alert("記録方法を選んでください");return;}
+  if(incomeItems.length>50||expenseItems.length>50){alert("登録できる項目はそれぞれ50件までです");return;}
+  if([...incomeItems,...expenseItems].some(item=>!item.name||item.name.length>80||item.icon.length>16||String(item.category||"").length>40)){
+    alert("入金理由または使い道の内容を確認してください");return;
+  }
+
+  const button=document.getElementById("saveLedgerSettings");
+  remoteBusy=true;button.disabled=true;button.textContent="保存しています…";
+  try{
+    const result=await remoteClient.rpc("save_ledger_settings",{
+      p_child_id:child.id,p_ledger_mode:ledgerDraft.ledgerMode,
+      p_income_items:incomeItems,p_expense_items:expenseItems
+    });
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();
+    closeIncomeReasonEditor();closeSpendingEditor();
+    showView("ledgerSettingsView");renderLedgerSettingsList();
+    const notice=document.getElementById("ledgerSettingsNotice");
+    notice.textContent=child.name+"のおこづかい帳設定を保存しました";
+    notice.classList.add("show");
+    setTimeout(()=>notice.classList.remove("show"),2200);
+  }catch(error){await refreshRemoteParentState();remoteOperationError(error);}
+  finally{remoteBusy=false;button.disabled=false;button.textContent="保存";}
 }
 document.querySelectorAll('input[name="ledgerMode"]').forEach(input=>{
   input.addEventListener("change",()=>{
@@ -3736,7 +3760,7 @@ for(let d=1;d<=31;d++){
 
 document.addEventListener("click",event=>{
   const target=event.target&&event.target.closest?event.target.closest(
-    "#openLedgerSettings,#saveLedgerSettings,#cancelAllDayJobs,.day-job-actions button"
+    "#cancelAllDayJobs,.day-job-actions button"
   ):null;
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();

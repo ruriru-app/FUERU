@@ -88,9 +88,24 @@ button{cursor:pointer}
 .family-code-value{color:#2F746B;font-size:clamp(23px,7vw,32px);font-weight:900;letter-spacing:.12em;overflow-wrap:anywhere}
 .family-code-copy{flex:none;width:68px;border:0;border-radius:13px;padding:10px 8px;background:#4D9E93;color:#fff;font-weight:700}
 .family-code-note{margin:16px 0 0;padding:12px 13px;border-radius:14px;background:#EAF7F5;color:#486B66;font-size:12px;line-height:1.7}
+.device-list-card{margin-top:16px;padding:20px}
+.device-list-title{margin:0;color:#2F746B;font-size:18px;font-weight:800}
+.device-list-lead{margin:7px 0 16px;color:var(--muted);font-size:12px;line-height:1.7}
+.device-list{display:flex;flex-direction:column;gap:11px}
+.device-list-message{margin:0;padding:15px;border-radius:14px;background:#F5FAF9;color:var(--muted);font-size:12px;line-height:1.7;text-align:center}
+.device-row{padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.device-row-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.device-row-name{margin:0;color:var(--ink);font-size:15px;font-weight:800;overflow-wrap:anywhere}
+.device-row-child{display:block;margin-top:3px;color:#2F746B;font-size:12px;font-weight:700}
+.device-row-details{margin:9px 0 0;color:var(--muted);font-size:11px;line-height:1.7}
+.device-revoke{flex:none;border:1px solid #E7AAAA;border-radius:11px;background:#fff;color:#B95F5F;padding:8px 10px;font-size:12px;font-weight:800}
+.device-revoke:disabled{opacity:.55;cursor:wait}
+.device-list-note{margin:14px 0 0;color:var(--muted);font-size:11px;line-height:1.7}
 @media(max-width:390px){
   .family-code-row{align-items:flex-start;flex-direction:column}
   .family-code-copy{align-self:stretch}
+  .device-row-head{align-items:stretch;flex-direction:column}
+  .device-revoke{width:100%}
 }
 
 .manage-list{display:flex;flex-direction:column;gap:14px}
@@ -1167,6 +1182,14 @@ button{cursor:pointer}
       </div>
       <p class="family-code-note">子どもの端末を初めてつなぐときに使用します。家族コードだけでは接続できませんが、家庭以外の人には共有しないでください。</p>
     </section>
+    <section class="card device-list-card" aria-labelledby="childDeviceListTitle">
+      <h2 class="device-list-title" id="childDeviceListTitle">接続済みの子ども端末</h2>
+      <p class="device-list-lead">この家庭につながっている子ども用端末を確認できます。</p>
+      <div class="device-list" id="childDeviceConnectionList" aria-live="polite">
+        <p class="device-list-message">読み込み中…</p>
+      </div>
+      <p class="device-list-note">接続を解除しても、お仕事や通帳などのデータは消えません。解除した端末は、次回利用時にQRコードまたは家族コードでつなぎ直します。</p>
+    </section>
   </section>
 
 
@@ -1833,6 +1856,94 @@ function remoteOperationError(error){
 function renderDeviceSharingSettings(){
   document.getElementById("parentFamilyName").textContent=remoteFamilyInfo&&remoteFamilyInfo.name?remoteFamilyInfo.name:"家庭";
   document.getElementById("parentFamilyCode").textContent=remoteFamilyInfo&&remoteFamilyInfo.code?remoteFamilyInfo.code:"----------";
+}
+function formatDeviceTimestamp(value){
+  if(!value)return "記録なし";
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return "記録なし";
+  return new Intl.DateTimeFormat("ja-JP",{
+    year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"
+  }).format(date);
+}
+function setChildDeviceListMessage(message){
+  const list=document.getElementById("childDeviceConnectionList");
+  const paragraph=document.createElement("p");
+  paragraph.className="device-list-message";
+  paragraph.textContent=message;
+  list.replaceChildren(paragraph);
+}
+function renderChildDeviceConnections(rows){
+  const list=document.getElementById("childDeviceConnectionList");
+  list.replaceChildren();
+  if(!Array.isArray(rows)||rows.length===0){
+    setChildDeviceListMessage("現在、接続済みの子ども端末はありません。");
+    return;
+  }
+  rows.forEach(row=>{
+    const childName=String(row.child_name||"子ども");
+    const deviceLabel=String(row.device_label||`${childName}さんの端末`);
+    const article=document.createElement("article");
+    article.className="device-row";
+
+    const head=document.createElement("div");
+    head.className="device-row-head";
+    const identity=document.createElement("div");
+    const name=document.createElement("p");
+    name.className="device-row-name";
+    name.textContent=deviceLabel;
+    const child=document.createElement("span");
+    child.className="device-row-child";
+    child.textContent=`利用者：${childName}さん`;
+    identity.append(name,child);
+
+    const revoke=document.createElement("button");
+    revoke.type="button";
+    revoke.className="device-revoke";
+    revoke.textContent="接続解除";
+    revoke.addEventListener("click",()=>revokeChildDeviceConnection(row,revoke));
+    head.append(identity,revoke);
+
+    const details=document.createElement("p");
+    details.className="device-row-details";
+    const unlockLabel=row.requires_child_unlock===false?"なし":"あり";
+    details.textContent=`接続：${formatDeviceTimestamp(row.created_at)}　最終利用：${formatDeviceTimestamp(row.last_seen_at)}　起動時の本人確認：${unlockLabel}`;
+    article.append(head,details);
+    list.appendChild(article);
+  });
+}
+async function loadChildDeviceConnections(){
+  setChildDeviceListMessage("読み込み中…");
+  const result=await remoteClient.rpc("list_child_device_connections",{p_family_id:REMOTE_FAMILY_ID});
+  if(result.error){
+    console.error(result.error);
+    setChildDeviceListMessage("端末一覧を読み込めませんでした。通信状態を確認して、もう一度この画面を開いてください。");
+    return;
+  }
+  renderChildDeviceConnections(result.data||[]);
+}
+async function revokeChildDeviceConnection(row,button){
+  if(remoteBusy)return;
+  const childName=String(row.child_name||"子ども");
+  const deviceLabel=String(row.device_label||`${childName}さんの端末`);
+  const confirmed=window.confirm(
+    `${childName}さんの「${deviceLabel}」の接続を解除しますか？\n\nお仕事や通帳などのデータは消えません。解除した端末は、次回利用時につなぎ直しが必要です。`
+  );
+  if(!confirmed)return;
+  remoteBusy=true;
+  button.disabled=true;
+  button.textContent="解除中…";
+  try{
+    const result=await remoteClient.rpc("revoke_child_device_connection",{p_connection_id:row.connection_id});
+    if(result.error)throw result.error;
+    await loadChildDeviceConnections();
+    alert("子ども端末の接続を解除しました。家庭のデータはそのまま残っています。");
+  }catch(error){
+    remoteOperationError(error);
+    button.disabled=false;
+    button.textContent="接続解除";
+  }finally{
+    remoteBusy=false;
+  }
 }
 async function copyParentFamilyCode(){
   const code=remoteFamilyInfo&&remoteFamilyInfo.code?remoteFamilyInfo.code:"";
@@ -3731,7 +3842,11 @@ document.getElementById("openSettings").onclick=()=>showView("settingsView");
 document.getElementById("openChildManage").onclick=()=>{showView("childManageView");renderChildManage()};
 document.getElementById("openLedgerSettings").onclick=()=>{showView("ledgerSettingsView");renderLedgerSettingsList()};
 document.getElementById("openWithdrawSettings").onclick=()=>{showView("withdrawSettingsView");renderWithdrawSettings()};
-document.getElementById("openDeviceSharingSettings").onclick=()=>{renderDeviceSharingSettings();showView("deviceSharingSettingsView")};
+document.getElementById("openDeviceSharingSettings").onclick=()=>{
+  renderDeviceSharingSettings();
+  showView("deviceSharingSettingsView");
+  loadChildDeviceConnections();
+};
 document.getElementById("backFromDeviceSharingSettings").onclick=()=>showView("settingsView");
 document.getElementById("copyParentFamilyCode").onclick=copyParentFamilyCode;
 document.getElementById("backFromWithdrawSettings").onclick=()=>showView("settingsView");

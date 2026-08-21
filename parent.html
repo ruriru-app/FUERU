@@ -2958,17 +2958,31 @@ function renderWithdrawSettings(){
   });
 
   box.querySelectorAll(".withdraw-unit-select").forEach(select=>{
-    select.addEventListener("change",event=>{
+    select.addEventListener("change",async event=>{
+      if(remoteBusy)return;
       const child=state.children.find(item=>item.id===event.currentTarget.dataset.childId);
       if(!child)return;
-      child.withdrawalUnit=Number(event.currentTarget.value)||100;
-      save();
-      renderWithdrawSettings();
-      const notice=document.getElementById("withdrawSettingsNotice");
-      notice.textContent=child.name+"の出金単位を「"+withdrawalUnitLabel(child.withdrawalUnit)+"」に設定しました";
-      notice.classList.add("show");
-      clearTimeout(renderWithdrawSettings.noticeTimer);
-      renderWithdrawSettings.noticeTimer=setTimeout(()=>notice.classList.remove("show"),2200);
+      const nextUnit=Number(event.currentTarget.value)||100;
+      if(!WITHDRAWAL_UNITS.includes(nextUnit)){renderWithdrawSettings();return;}
+      remoteBusy=true;event.currentTarget.disabled=true;
+      try{
+        const result=await remoteClient.from("child_settings")
+          .update({withdrawal_unit:nextUnit})
+          .eq("family_id",REMOTE_FAMILY_ID)
+          .eq("child_id",child.id)
+          .select("child_id")
+          .maybeSingle();
+        if(result.error||!result.data)throw result.error||new Error("withdrawal setting not saved");
+        await refreshRemoteParentState();
+        renderWithdrawSettings();
+        const notice=document.getElementById("withdrawSettingsNotice");
+        notice.textContent=child.name+"の出金単位を「"+withdrawalUnitLabel(nextUnit)+"」に設定しました";
+        notice.classList.add("show");
+        clearTimeout(renderWithdrawSettings.noticeTimer);
+        renderWithdrawSettings.noticeTimer=setTimeout(()=>notice.classList.remove("show"),2200);
+      }catch(error){
+        await refreshRemoteParentState();renderWithdrawSettings();remoteOperationError(error);
+      }finally{remoteBusy=false;}
     });
   });
 }
@@ -3437,7 +3451,7 @@ for(let d=1;d<=31;d++){
 
 document.addEventListener("click",event=>{
   const target=event.target&&event.target.closest?event.target.closest(
-    "#openChildManage,#openLedgerSettings,#openWithdrawSettings,#hubEditProfile,#hubEditPayment,#grantSpecialReward,#saveAllowance,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,#cancelAllDayJobs,.day-job-actions button"
+    "#openChildManage,#openLedgerSettings,#hubEditProfile,#hubEditPayment,#grantSpecialReward,#saveAllowance,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,#cancelAllDayJobs,.day-job-actions button"
   ):null;
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();

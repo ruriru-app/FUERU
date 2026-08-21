@@ -81,6 +81,17 @@ button{cursor:pointer}
 .settings-link small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:500}
 .chevron{font-size:25px;color:#4D9E93}
 .muted-note{margin-top:16px;padding:14px;border-radius:16px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7;font-weight:500}
+.family-code-card{padding:20px}
+.family-code-label{margin:0;color:var(--muted);font-size:12px;font-weight:700}
+.family-code-name{margin:5px 0 0;color:#2F746B;font-size:18px;font-weight:700}
+.family-code-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.family-code-value{color:#2F746B;font-size:clamp(23px,7vw,32px);font-weight:900;letter-spacing:.12em;overflow-wrap:anywhere}
+.family-code-copy{flex:none;border:0;border-radius:13px;padding:10px 13px;background:#4D9E93;color:#fff;font-weight:700}
+.family-code-note{margin:16px 0 0;padding:12px 13px;border-radius:14px;background:#EAF7F5;color:#486B66;font-size:12px;line-height:1.7}
+@media(max-width:390px){
+  .family-code-row{align-items:flex-start;flex-direction:column}
+  .family-code-copy{align-self:stretch}
+}
 
 .manage-list{display:flex;flex-direction:column;gap:14px}
 .manage-card{
@@ -1109,7 +1120,7 @@ button{cursor:pointer}
       <button class="settings-link" type="button" id="openWithdrawSettings">
         <span>出金設定<small>子どもごとの出金単位</small></span><span class="chevron">›</span>
       </button>
-      <button class="settings-link" type="button">
+      <button class="settings-link" type="button" id="openDeviceSharingSettings">
         <span>端末・共有設定<small>保護者用・子ども用端末の管理</small></span><span class="chevron">›</span>
       </button>
       <button class="settings-link" type="button">
@@ -1123,6 +1134,23 @@ button{cursor:pointer}
       </button>
     </div>
     <div class="parent-settings-note">お小遣い・お仕事・履歴は、保護者ホームの各子どもタイルから開きます。</div>
+  </section>
+
+  <section id="deviceSharingSettingsView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromDeviceSharingSettings">戻る</button>
+      <h1>端末・共有設定</h1>
+      <div></div>
+    </header>
+    <section class="card family-code-card">
+      <p class="family-code-label">接続している家庭</p>
+      <p class="family-code-name" id="parentFamilyName">読み込み中…</p>
+      <div class="family-code-row">
+        <strong class="family-code-value" id="parentFamilyCode">----------</strong>
+        <button class="family-code-copy" type="button" id="copyParentFamilyCode">コピー</button>
+      </div>
+      <p class="family-code-note">子どもの端末を初めてつなぐときに使用します。家族コードだけでは接続できませんが、家庭以外の人には共有しないでください。</p>
+    </section>
   </section>
 
 
@@ -1665,6 +1693,7 @@ const REMOTE_FAMILY_ID=String(remoteParentDevice.familyId);
 const STORAGE_KEY="FUERU_PARENT_DATA_"+REMOTE_FAMILY_ID;
 const LEGACY_STORAGE_KEY=STORAGE_KEY;
 let remoteBusy=false;
+let remoteFamilyInfo=null;
 
 function remoteFrequencyLabel(value,weekdays){
   if(value==="daily")return "毎日";
@@ -1675,6 +1704,11 @@ function remoteFrequencyLabel(value,weekdays){
 async function loadRemoteParentState(){
   const membership=await remoteClient.from("family_guardians").select("family_id").eq("family_id",REMOTE_FAMILY_ID).eq("user_id",remoteSession.user.id).maybeSingle();
   if(membership.error||!membership.data)throw membership.error||new Error("guardian membership required");
+  if(!remoteFamilyInfo){
+    const familyResult=await remoteClient.from("families").select("name, family_code").eq("id",REMOTE_FAMILY_ID).maybeSingle();
+    if(familyResult.error||!familyResult.data)throw familyResult.error||new Error("family not found");
+    remoteFamilyInfo={name:String(familyResult.data.name||"家庭"),code:String(familyResult.data.family_code||"").toUpperCase()};
+  }
   const results=await Promise.all([
     remoteClient.from("children").select("*").eq("family_id",REMOTE_FAMILY_ID).is("archived_at",null).order("sort_order",{ascending:true}),
     remoteClient.from("child_settings").select("*").eq("family_id",REMOTE_FAMILY_ID),
@@ -1756,6 +1790,24 @@ async function refreshRemoteParentState(){
 function remoteOperationError(error){
   console.error(error);
   alert("保存できませんでした。通信状態を確認して、もう一度お試しください。");
+}
+function renderDeviceSharingSettings(){
+  document.getElementById("parentFamilyName").textContent=remoteFamilyInfo&&remoteFamilyInfo.name?remoteFamilyInfo.name:"家庭";
+  document.getElementById("parentFamilyCode").textContent=remoteFamilyInfo&&remoteFamilyInfo.code?remoteFamilyInfo.code:"----------";
+}
+async function copyParentFamilyCode(){
+  const code=remoteFamilyInfo&&remoteFamilyInfo.code?remoteFamilyInfo.code:"";
+  if(!code)return;
+  const button=document.getElementById("copyParentFamilyCode");
+  try{
+    await navigator.clipboard.writeText(code);
+  }catch(error){
+    const input=document.createElement("input");
+    input.value=code;input.setAttribute("readonly","");input.style.position="fixed";input.style.opacity="0";
+    document.body.appendChild(input);input.select();document.execCommand("copy");input.remove();
+  }
+  button.textContent="コピーしました";
+  setTimeout(()=>{button.textContent="コピー"},1600);
 }
 async function callParentWithdrawal(action,payload={}){
   const latestSessionResult=await remoteClient.auth.getSession();
@@ -3551,6 +3603,9 @@ document.getElementById("openSettings").onclick=()=>showView("settingsView");
 document.getElementById("openChildManage").onclick=()=>{showView("childManageView");renderChildManage()};
 document.getElementById("openLedgerSettings").onclick=()=>{showView("ledgerSettingsView");renderLedgerSettingsList()};
 document.getElementById("openWithdrawSettings").onclick=()=>{showView("withdrawSettingsView");renderWithdrawSettings()};
+document.getElementById("openDeviceSharingSettings").onclick=()=>{renderDeviceSharingSettings();showView("deviceSharingSettingsView")};
+document.getElementById("backFromDeviceSharingSettings").onclick=()=>showView("settingsView");
+document.getElementById("copyParentFamilyCode").onclick=copyParentFamilyCode;
 document.getElementById("backFromWithdrawSettings").onclick=()=>showView("settingsView");
 document.getElementById("backFromLedgerSettings").onclick=()=>showView("settingsView");
 document.getElementById("backFromLedgerEdit").onclick=()=>{closeIncomeReasonEditor();closeSpendingEditor();showView("ledgerSettingsView");renderLedgerSettingsList()};

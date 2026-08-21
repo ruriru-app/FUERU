@@ -778,7 +778,9 @@
 
       function friendlyError(error) {
         const message = String(error?.message || error || '処理を完了できませんでした。');
-        if (/rate limit/i.test(message)) return '少し時間をおいてから、もう一度お試しください。';
+        if (/rate limit|over_email_send_rate_limit|security purposes/i.test(message)) {
+          return '短時間に認証メールを複数送ったため、現在は送信できません。最後の送信から1時間ほど待って、1回だけお試しください。';
+        }
         if (/invalid.*email|email.*invalid/i.test(message)) return 'メールアドレスを確認してください。';
         if (/failed to fetch|network/i.test(message)) return '通信できませんでした。インターネット接続を確認してください。';
         return '処理を完了できませんでした。少し時間をおいて、もう一度お試しください。';

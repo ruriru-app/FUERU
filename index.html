@@ -705,21 +705,24 @@
       }
 
       async function invokeChildDevice(body) {
-        const { data, error } = await client.functions.invoke('child-device-connection', { body });
-        if (!error && data?.ok) return data;
-
-        let code = data?.code || '';
-        if (!code && error?.context) {
-          try {
-            const response = typeof error.context.clone === 'function' ? error.context.clone() : error.context;
-            const payload = await response.json();
-            code = payload?.code || '';
-          } catch {
-            code = '';
-          }
+        const response = await fetch(`${CONFIG.url}/functions/v1/child-device-connection`, {
+          method: 'POST',
+          headers: {
+            apikey: CONFIG.publishableKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
         }
-        const pairingError = new Error(error?.message || 'child device request failed');
-        pairingError.code = code;
+        if (response.ok && data?.ok) return data;
+
+        const pairingError = new Error('child device request failed');
+        pairingError.code = data?.code || '';
         throw pairingError;
       }
 

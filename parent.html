@@ -738,6 +738,10 @@ button{cursor:pointer}
 .history-passbook-card .special-message-line .transaction-line-title{
   color:var(--muted);
 }
+.history-ledger-summary{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:13px 15px;background:var(--child-sub,#EAF7F5);border-bottom:1px solid var(--line)}
+.history-ledger-summary span{color:var(--muted);font-size:12px;font-weight:700}
+.history-ledger-summary strong{color:var(--child-deep,#2F746B);font-size:16px;text-align:right}
+.history-ledger-note{color:var(--muted);font-size:11px;font-weight:600;line-height:1.5}
 
 
 
@@ -1573,6 +1577,16 @@ button{cursor:pointer}
       <div class="history-passbook-period" id="historyPassbookPeriod">2026年7月</div>
       <div class="transaction-list" id="historyTransactions"></div>
     </section>
+
+    <h2 class="history-passbook-heading" id="historyLedgerTitle">FUERUおこづかい帳</h2>
+    <section class="card history-passbook-card">
+      <div class="history-ledger-summary">
+        <span>現在の手持ち</span><strong id="historyLedgerBalance">0円</strong>
+        <span>記録件数</span><strong id="historyLedgerCount">0件</strong>
+        <div class="history-ledger-note">子ども本人が記録した、財布にあるお金のめやすです。</div><div></div>
+      </div>
+      <div class="transaction-list" id="historyLedgerEntries"></div>
+    </section>
   </section>
 
 </main>
@@ -1647,11 +1661,12 @@ async function loadRemoteParentState(){
     remoteClient.from("passbook_transactions").select("*").eq("family_id",REMOTE_FAMILY_ID).order("transaction_date",{ascending:false}),
     remoteClient.from("withdrawal_requests").select("*").eq("family_id",REMOTE_FAMILY_ID).order("requested_at",{ascending:false}),
     remoteClient.from("job_schedule_exceptions").select("*").eq("family_id",REMOTE_FAMILY_ID),
-    remoteClient.from("ledger_catalog_items").select("*").eq("family_id",REMOTE_FAMILY_ID).eq("enabled",true).order("sort_order",{ascending:true})
+    remoteClient.from("ledger_catalog_items").select("*").eq("family_id",REMOTE_FAMILY_ID).eq("enabled",true).order("sort_order",{ascending:true}),
+    remoteClient.from("ledger_entries").select("*").eq("family_id",REMOTE_FAMILY_ID).order("entry_date",{ascending:false}).order("created_at",{ascending:false})
   ]);
   const failed=results.find(result=>result.error);
   if(failed)throw failed.error;
-  const [childrenResult,settingsResult,jobsResult,reportsResult,pendingResult,transactionsResult,withdrawalsResult,exceptionsResult,catalogResult]=results;
+  const [childrenResult,settingsResult,jobsResult,reportsResult,pendingResult,transactionsResult,withdrawalsResult,exceptionsResult,catalogResult,ledgerEntriesResult]=results;
   const settingsByChild=new Map((settingsResult.data||[]).map(item=>[item.child_id,item]));
   const jobsByChild=new Map();
   const jobsById=new Map();
@@ -1687,6 +1702,7 @@ async function loadRemoteParentState(){
   const withdrawalsByChild=groupByChild(withdrawalsResult.data,row=>({id:row.id,amount:Number(row.amount)||0,withdrawalUnit:Number(row.withdrawal_unit)||100,status:row.status,requestedAt:row.requested_at||row.created_at||"",completedAt:row.completed_at||null,cancelledAt:row.cancelled_at||null}));
   const exceptionsByChild=groupByChild(exceptionsResult.data,row=>({date:row.exception_date,jobId:row.job_id||null}));
   const catalogByChild=groupByChild(catalogResult.data,row=>({id:row.id,icon:row.icon||"",name:row.name,category:row.category||"",kind:row.kind}));
+  const ledgerEntriesByChild=groupByChild(ledgerEntriesResult.data,row=>({id:row.id,kind:row.kind,date:row.entry_date,amount:Number(row.amount)||0,purposeId:row.purpose_id||"",purposeName:row.purpose_name||"記録",icon:row.icon||"",category:row.category||"",memo:row.memo||"",system:row.is_system===true,createdAt:row.created_at||""}));
   const children=(childrenResult.data||[]).filter(child=>child.setup_state==="active").map(child=>{
     const settings=settingsByChild.get(child.id)||{};
     const pending=pendingByChild.get(child.id)||[];
@@ -1702,7 +1718,7 @@ async function loadRemoteParentState(){
       jobs:jobsByChild.get(child.id)||[],reports:reportsByChild.get(child.id)||[],pendingRewards:pending,
       confirmed:pending.filter(item=>item.status==="pending").reduce((sum,item)=>sum+Number(item.amount||0),0),
       transactions:transactions,passbookBalance:transactions.reduce((sum,item)=>sum+Number(item.amount||0),0),lastAllowancePayoutDate:lastAllowancePayoutDate,
-      withdrawalRequests:withdrawalsByChild.get(child.id)||[],cancelledJobDates:exceptionsByChild.get(child.id)||[],
+      withdrawalRequests:withdrawalsByChild.get(child.id)||[],cancelledJobDates:exceptionsByChild.get(child.id)||[],ledgerEntries:ledgerEntriesByChild.get(child.id)||[],
       incomeReasonItems:catalog.filter(item=>item.kind==="income_reason"),spendingItems:catalog.filter(item=>item.kind==="expense_item")};
   });
   const next={children};
@@ -2502,6 +2518,7 @@ function openChildHistory(id){
   applyChildTheme(child);
   document.getElementById("childHistoryTitle").textContent=child.name+"の履歴";
   document.getElementById("historyPassbookTitle").textContent=child.name+"のFUERU通帳";
+  document.getElementById("historyLedgerTitle").textContent=child.name+"のFUERUおこづかい帳";
   historyCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);
   renderHistory();
   showView("childHistoryView");
@@ -2657,6 +2674,38 @@ function renderGroupedTransactions(child){
     txBox.appendChild(day);
   });
 }
+function renderParentLedgerEntries(child){
+  const box=document.getElementById("historyLedgerEntries");if(!box)return;
+  box.innerHTML="";
+  const entries=(child.ledgerEntries||[]).slice().sort((a,b)=>
+    String(b.date||"").localeCompare(String(a.date||""))||String(b.createdAt||"").localeCompare(String(a.createdAt||""))
+  );
+  const balance=entries.reduce((sum,entry)=>sum+(entry.kind==="expense"?-Number(entry.amount||0):Number(entry.amount||0)),0);
+  document.getElementById("historyLedgerBalance").textContent=balance.toLocaleString()+"円";
+  document.getElementById("historyLedgerCount").textContent=entries.length.toLocaleString()+"件";
+  if(!entries.length){box.innerHTML='<div class="empty">おこづかい帳の記録はまだありません</div>';return;}
+
+  entries.forEach(entry=>{
+    const income=entry.kind==="income";
+    const d=parseISODate(entry.date);
+    const row=document.createElement("section");row.className="transaction-day";
+    const date=document.createElement("div");date.className="transaction-day-date";
+    date.innerHTML='<span class="md">'+(d.getMonth()+1)+'/'+d.getDate()+'</span><span class="dow">('+["日","月","火","水","木","金","土"][d.getDay()]+')</span>';
+    const type=document.createElement("div");type.className="transaction-day-type";
+    type.textContent=(entry.icon?entry.icon+" ":"")+(entry.purposeName||"記録");
+    const amount=document.createElement("div");amount.className="transaction-day-total "+(income?"plus":"minus");
+    amount.textContent=(income?"＋":"－")+Number(entry.amount||0).toLocaleString()+"円";
+    row.append(date,type,amount);
+    if(entry.category||entry.memo){
+      const lines=document.createElement("div");lines.className="transaction-lines";
+      const line=document.createElement("div");line.className="transaction-line";
+      const detail=document.createElement("div");detail.className="transaction-line-title";
+      detail.textContent=[entry.category,entry.memo].filter(Boolean).join("／");
+      line.appendChild(detail);lines.appendChild(line);row.appendChild(lines);
+    }
+    box.appendChild(row);
+  });
+}
 let parentDayMenuDate=null;
 function openParentDayMenu(dateKey){
   const child=state.children.find(c=>c.id===childHistoryId);if(!child)return;
@@ -2715,6 +2764,7 @@ function renderHistory(){
   document.getElementById("historyConfirmed").textContent=(Number(child.allowance||0)+Number(child.confirmed||0)).toLocaleString()+"円";
   document.getElementById("historyBalance").textContent=Number(child.passbookBalance||0).toLocaleString()+"円";
   renderGroupedTransactions(child);
+  renderParentLedgerEntries(child);
 
   const box=document.getElementById("historyCalendar");box.innerHTML="";
   ["月","火","水","木","金","土","日"].forEach(w=>{const d=document.createElement("div");d.className="weekday";d.textContent=w;box.appendChild(d)});

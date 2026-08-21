@@ -1746,10 +1746,18 @@ body.fueru-child-booting .app{visibility:hidden}
 #fueruChildBootStatus .unlock-actions .secondary{background:#eaf7f5;color:#2f746b}
 #fueruChildBootStatus .unlock-error{color:#c45f55!important;font-weight:900}
 #fueruChildBootStatus .unlock-pattern{
+  position:relative;
   display:grid;grid-template-columns:repeat(3,64px);gap:16px;justify-content:center;
   margin:18px auto;touch-action:none;
 }
+#fueruChildBootStatus .unlock-pattern-lines{
+  position:absolute;inset:0;z-index:0;width:100%;height:100%;pointer-events:none;
+}
+#fueruChildBootStatus .unlock-pattern-lines line{
+  stroke:#9d7bc9;stroke-width:6;stroke-linecap:round;opacity:.82;
+}
 #fueruChildBootStatus .unlock-pattern button{
+  position:relative;z-index:1;
   width:64px;height:64px;border:0;border-radius:50%;background:#d8ebe7;
   box-shadow:inset 0 0 0 8px #f4fbf9;cursor:pointer;touch-action:none;
 }
@@ -2307,12 +2315,19 @@ function requestChildUnlock(keyType,isRetry){
 
     box.innerHTML='<div class="unlock-card"><h2>自分のパターンを入力</h2><p>登録した順番で、4点以上をなぞってください。</p>'+retryText+
       '<div class="unlock-pattern" id="fueruUnlockPattern" aria-label="9点パターン">'+
+      '<svg class="unlock-pattern-lines" id="fueruUnlockPatternLines" viewBox="0 0 224 224" aria-hidden="true"></svg>'+
       [0,1,2,3,4,5,6,7,8].map(function(point){return '<button type="button" data-unlock-point="'+point+'" aria-label="点 '+(point+1)+'"></button>';}).join("")+
       '</div><p id="fueruUnlockPatternCount">0点</p><div class="unlock-actions"><a class="secondary" href="./">戻る</a><button class="secondary" type="button" id="fueruUnlockReset">やり直す</button><button type="button" id="fueruUnlockSubmit">確認する</button></div></div>';
     var pattern=[];var drawing=false;var pad=document.getElementById("fueruUnlockPattern");
     var count=document.getElementById("fueruUnlockPatternCount");
+    var lines=document.getElementById("fueruUnlockPatternLines");
+    function pointCenter(point){return {x:32+(point%3)*80,y:32+Math.floor(point/3)*80};}
     function renderPattern(){
       Array.prototype.forEach.call(pad.querySelectorAll("[data-unlock-point]"),function(dot){dot.classList.toggle("selected",pattern.indexOf(Number(dot.dataset.unlockPoint))!==-1);});
+      lines.innerHTML=pattern.slice(1).map(function(point,index){
+        var from=pointCenter(pattern[index]);var to=pointCenter(point);
+        return '<line x1="'+from.x+'" y1="'+from.y+'" x2="'+to.x+'" y2="'+to.y+'"></line>';
+      }).join("");
       count.textContent=pattern.length+"点";
     }
     function addPoint(point){if(pattern.indexOf(point)!==-1)return;pattern.push(point);renderPattern();}

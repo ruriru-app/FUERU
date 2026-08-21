@@ -52,17 +52,14 @@
 
     .brand h1 {
       margin: 0;
-      color: var(--mint-700);
-      font-size: clamp(38px, 11vw, 52px);
-      letter-spacing: .1em;
-      line-height: 1;
+      line-height: 0;
     }
 
-    .brand p {
-      margin: 10px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 700;
+    .brand .fueru-logo-svg {
+      display: block;
+      width: min(100%, 255px);
+      height: auto;
+      margin: 0 auto;
     }
 
     .card {
@@ -453,8 +450,7 @@
 <body>
   <div class="shell">
     <header class="brand">
-      <h1>FUERU</h1>
-      <p>おこづかいと、できた！がふえていく</p>
+      <h1><img class="fueru-logo-svg" src="fueru-logo.svg" alt="FUERU" width="596" height="220"></h1>
     </header>
 
     <main>

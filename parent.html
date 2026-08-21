@@ -86,7 +86,7 @@ button{cursor:pointer}
 .family-code-name{margin:5px 0 0;color:#2F746B;font-size:18px;font-weight:700}
 .family-code-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 .family-code-value{color:#2F746B;font-size:clamp(23px,7vw,32px);font-weight:900;letter-spacing:.12em;overflow-wrap:anywhere}
-.family-code-copy{flex:none;border:0;border-radius:13px;padding:10px 13px;background:#4D9E93;color:#fff;font-weight:700}
+.family-code-copy{flex:none;width:68px;border:0;border-radius:13px;padding:10px 8px;background:#4D9E93;color:#fff;font-weight:700}
 .family-code-note{margin:16px 0 0;padding:12px 13px;border-radius:14px;background:#EAF7F5;color:#486B66;font-size:12px;line-height:1.7}
 @media(max-width:390px){
   .family-code-row{align-items:flex-start;flex-direction:column}
@@ -1147,7 +1147,7 @@ button{cursor:pointer}
       <p class="family-code-name" id="parentFamilyName">読み込み中…</p>
       <div class="family-code-row">
         <strong class="family-code-value" id="parentFamilyCode">----------</strong>
-        <button class="family-code-copy" type="button" id="copyParentFamilyCode">コピー</button>
+        <button class="family-code-copy" type="button" id="copyParentFamilyCode" aria-label="家族コードをコピー">コピー</button>
       </div>
       <p class="family-code-note">子どもの端末を初めてつなぐときに使用します。家族コードだけでは接続できませんが、家庭以外の人には共有しないでください。</p>
     </section>
@@ -1806,8 +1806,9 @@ async function copyParentFamilyCode(){
     input.value=code;input.setAttribute("readonly","");input.style.position="fixed";input.style.opacity="0";
     document.body.appendChild(input);input.select();document.execCommand("copy");input.remove();
   }
-  button.textContent="コピーしました";
-  setTimeout(()=>{button.textContent="コピー"},1600);
+  button.textContent="✓";
+  button.setAttribute("aria-label","コピーしました");
+  setTimeout(()=>{button.textContent="コピー";button.setAttribute("aria-label","家族コードをコピー")},1600);
 }
 async function callParentWithdrawal(action,payload={}){
   const latestSessionResult=await remoteClient.auth.getSession();

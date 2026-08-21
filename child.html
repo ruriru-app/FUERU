@@ -2251,6 +2251,8 @@ var SHARED_KEY="FUERU_CHILD_DATA_"+childScope;
 var PROFILE_KEY="FUERU_CHILD_PROFILE_"+childScope;
 var CHILD_ID=validChildConnection?String(childConnection.childId):"";
 var REMOTE_READ_ONLY=true;
+var REMOTE_CONNECTED=true;
+var CHILD_SESSION_TOKEN="";
 
 function showChildBootFailure(message,allowReconnect){
   var box=document.getElementById("fueruChildBootStatus");
@@ -2310,12 +2312,14 @@ function requestChildUnlock(keyType,isRetry){
     document.getElementById("fueruUnlockSubmit").addEventListener("click",function(){if(pattern.length>=4)resolve({key_type:"pattern",secret:pattern.join("-")});});
   });
 }
-async function invokeChildData(unlock){
+async function invokeChildData(action,payload,unlock){
   var requestBody={
-    action:"bootstrap",
+    action:action||"bootstrap",
     connection_id:childConnection.connectionId,
     device_token:childConnection.deviceToken
   };
+  if(CHILD_SESSION_TOKEN)requestBody.session_token=CHILD_SESSION_TOKEN;
+  if(payload&&typeof payload==="object")Object.keys(payload).forEach(function(key){requestBody[key]=payload[key];});
   if(unlock){requestBody.key_type=unlock.key_type;requestBody.secret=unlock.secret;}
   var response=await fetch(FUERU_CONFIG.url+"/functions/v1/child-data",{
     method:"POST",
@@ -2331,6 +2335,7 @@ async function invokeChildData(unlock){
     error.keyType=result.key_type||"";
     throw error;
   }
+  if(typeof result.session_token==="string"&&result.session_token)CHILD_SESSION_TOKEN=result.session_token;
   return result;
 }
 function mapRemoteChildData(result){
@@ -2416,6 +2421,58 @@ function mapRemoteChildData(result){
     main:"mint",sub:"lavender"
   }};
 }
+function persistRemoteChildData(result){
+  var mapped=mapRemoteChildData(result);
+  localStorage.setItem(SHARED_KEY,JSON.stringify(mapped.shared));
+  localStorage.setItem(JOBS_KEY,JSON.stringify(mapped.jobs));
+  localStorage.setItem(RECORDS_KEY,JSON.stringify(mapped.records));
+  localStorage.setItem(PROFILE_KEY,JSON.stringify(mapped.profile));
+  return mapped;
+}
+function applyRemoteChildData(result){
+  var mapped=persistRemoteChildData(result);
+  if(typeof jobs!=="undefined"&&typeof records!=="undefined"){
+    jobs=mapped.jobs;
+    records=mapped.records;
+    loadProfile();
+    renderHome();
+    renderSettings();
+    renderSharedPassbook();
+    renderWithdrawalState();
+    renderLedger();
+  }
+  return mapped;
+}
+function childWriteMessage(code){
+  var messages={
+    invalid_work_date:"この日は報告できません。",
+    job_not_available:"この日は報告できないおしごとです。",
+    report_already_reviewed:"確認済みのおしごとは変更できません。",
+    invalid_withdrawal_amount:"出金額をもう一度確認してください。",
+    insufficient_balance:"現在の残高を超えて出金することはできません。",
+    withdrawal_already_waiting:"すでに出金依頼中です。",
+    invalid_ledger_entry:"日付・内容・金額をもう一度確認してください。",
+    invalid_ledger_purpose:"選んだ内容をもう一度確認してください。",
+    invalid_ledger_details:"入力内容をもう一度確認してください。"
+  };
+  return messages[code]||"保存できませんでした。通信状態を確認して、もう一度お試しください。";
+}
+async function performChildMutation(action,payload){
+  try{
+    var result=await invokeChildData(action,payload||null,null);
+    applyRemoteChildData(result);
+    return result;
+  }catch(error){
+    if(error&&error.code==="session_expired"){
+      CHILD_SESSION_TOKEN="";
+      showToast("安全のため、もう一度本人確認をします");
+      setTimeout(function(){location.reload();},900);
+    }else{
+      showToast(childWriteMessage(error&&error.code));
+    }
+    return null;
+  }
+}
 async function initializeRemoteChild(){
   if(!validChildConnection){
     showChildBootFailure("この端末の子ども接続を確認できませんでした。");
@@ -2424,15 +2481,11 @@ async function initializeRemoteChild(){
   var unlock=null;var retry=false;
   while(true){
     try{
-      var result=await invokeChildData(unlock);
+      var result=await invokeChildData("bootstrap",null,unlock);
       if(result.mode!=="child"||result.child_id!==childConnection.childId||!result.child){
         throw new Error("invalid child data");
       }
-      var mapped=mapRemoteChildData(result);
-      localStorage.setItem(SHARED_KEY,JSON.stringify(mapped.shared));
-      localStorage.setItem(JOBS_KEY,JSON.stringify(mapped.jobs));
-      localStorage.setItem(RECORDS_KEY,JSON.stringify(mapped.records));
-      localStorage.setItem(PROFILE_KEY,JSON.stringify(mapped.profile));
+      persistRemoteChildData(result);
       unlock=null;
       return true;
     }catch(error){
@@ -2565,7 +2618,7 @@ function openWithdrawalView(){
   document.getElementById("withdrawPin").value=savedPin;
   updateWithdrawalAmountState(false);
 }
-function submitWithdrawalRequest(){
+async function submitWithdrawalRequest(){
   var data=loadSharedState(),child=sharedChild(data);if(!child)return;
   child.withdrawalRequests=Array.isArray(child.withdrawalRequests)?child.withdrawalRequests:[];
   var error=document.getElementById("withdrawError");
@@ -2580,26 +2633,26 @@ function submitWithdrawalRequest(){
   if(amount%unit!==0){fail(unit.toLocaleString("ja-JP")+"円単位で入力してください。");return;}
   var pin=digitsOnly(document.getElementById("withdrawPin").value);
   if(!/^\d{4}$/.test(pin)){fail("4桁の数字で出金確認PINを入力してください。");return;}
-  child.withdrawalPin=pin;
-  var now=new Date();
-  child.withdrawalRequests.push({
-    id:"wd_"+CHILD_ID+"_"+Date.now(),amount:amount,withdrawalUnit:unit,pin:pin,status:"waiting",
-    requestedAt:now.toISOString(),date:[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-")
-  });
-  saveSharedState(data);
+  var submit=document.getElementById("submitWithdrawal");
+  submit.disabled=true;
+  var result=await performChildMutation("request_withdrawal",{amount:amount});
+  submit.disabled=false;
+  if(!result)return;
   document.getElementById("withdrawalView").classList.remove("active");
   document.getElementById("passbookView").classList.add("active");
   renderSharedPassbook();renderWithdrawalState();
   showToast("保護者へ出金依頼を送りました");
 }
 
-function cancelWithdrawalRequest(){
+async function cancelWithdrawalRequest(){
   var data=loadSharedState(),child=sharedChild(data);if(!child)return;
   var pending=pendingWithdrawal(child);
   if(!pending){renderWithdrawalState();showToast("出金依頼はありません");return;}
-  pending.status="cancelled";
-  pending.cancelledAt=new Date().toISOString();
-  saveSharedState(data);
+  var cancel=document.getElementById("cancelWithdrawalRequest");
+  cancel.disabled=true;
+  var result=await performChildMutation("cancel_withdrawal",{request_id:pending.id});
+  cancel.disabled=false;
+  if(!result)return;
   renderSharedPassbook();
   renderWithdrawalState();
   showToast("出金依頼を取り消しました");
@@ -3421,6 +3474,7 @@ function ensureLedgerEntries(child){
   return child.ledgerEntries;
 }
 function syncWithdrawalsToLedger(child){
+  if(REMOTE_CONNECTED)return false;
   var entries=ensureLedgerEntries(child);
   var txs=Array.isArray(child.transactions)?child.transactions:[];
   var changed=false;
@@ -3520,7 +3574,7 @@ function resetLedgerForms(){
   ledgerSetError("ledgerExpenseError","");
   renderLedgerChoices();
 }
-function saveLedgerQuick(kind){
+async function saveLedgerQuick(kind){
   var data=loadSharedState(),child=sharedChild(data);
   var isIncome=kind==="income";
   var date=document.getElementById(isIncome?"ledgerIncomeDate":"ledgerExpenseDate").value;
@@ -3534,13 +3588,14 @@ function saveLedgerQuick(kind){
   if(date>ledgerTodayKey()){ledgerSetError(errorId,"未来の日付には記録できません。");return;}
   if(!item){ledgerSetError(errorId,isIncome?"入金理由を選んでください。":"使い道を選んでください。");return;}
   if(amount<=0){ledgerSetError(errorId,"金額を入力してください。");return;}
-  ensureLedgerEntries(child).push({
-    id:"ledger_"+CHILD_ID+"_"+Date.now(),
-    kind:kind,date:date,amount:amount,
-    purposeId:item.id,purposeName:item.name,purposeIcon:item.icon,
-    category:item.category||"",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
+  var saveButton=document.getElementById(isIncome?"saveLedgerIncome":"saveLedgerExpense");
+  saveButton.disabled=true;
+  var result=await performChildMutation("create_ledger_entry",{
+    kind:kind,entry_date:date,amount:amount,purpose_id:item.id,
+    purpose_name:item.name,icon:item.icon||"",category:item.category||"",memo:""
   });
-  saveSharedState(data);
+  saveButton.disabled=false;
+  if(!result)return;
   ledgerPeriodOffset=0;
   resetLedgerForms();
   document.getElementById(isIncome?"ledgerIncomeAccordion":"ledgerExpenseAccordion").classList.remove("open");
@@ -3638,7 +3693,7 @@ function closeLedgerEdit(){
   deleteButton.classList.remove("armed");
   document.getElementById("ledgerEditSheet").hidden=true;
 }
-function saveLedgerEdit(){
+async function saveLedgerEdit(){
   var data=loadSharedState(),child=sharedChild(data);
   var entry=ensureLedgerEntries(child).find(function(e){return e.id===ledgerEditingId;});
   if(!entry||entry.system){ledgerSetError("ledgerEditError","編集する記録が見つかりません。");return;}
@@ -3650,12 +3705,17 @@ function saveLedgerEdit(){
   if(!date||date>ledgerTodayKey()){ledgerSetError("ledgerEditError","正しい日付を選んでください。");return;}
   if(!item){ledgerSetError("ledgerEditError","内容を選んでください。");return;}
   if(amount<=0){ledgerSetError("ledgerEditError","金額を入力してください。");return;}
-  entry.date=date;entry.amount=amount;entry.purposeId=item.id;entry.purposeName=item.name;
-  entry.purposeIcon=item.icon;entry.category=item.category||"";entry.updatedAt=new Date().toISOString();
-  saveSharedState(data);
+  var saveButton=document.getElementById("saveLedgerEdit");
+  saveButton.disabled=true;
+  var result=await performChildMutation("update_ledger_entry",{
+    entry_id:entry.id,entry_date:date,amount:amount,purpose_id:item.id,
+    purpose_name:item.name,icon:item.icon||"",category:item.category||"",memo:entry.memo||""
+  });
+  saveButton.disabled=false;
+  if(!result)return;
   closeLedgerEdit();renderLedger();showToast("記録を変更しました");
 }
-function deleteLedgerEntry(){
+async function deleteLedgerEntry(){
   if(!ledgerEditingId)return;
   var button=document.getElementById("deleteLedgerEntry");
   if(!ledgerDeleteArmed){
@@ -3666,9 +3726,10 @@ function deleteLedgerEntry(){
     return;
   }
   var deletingId=ledgerEditingId;
-  var data=loadSharedState(),child=sharedChild(data);
-  child.ledgerEntries=ensureLedgerEntries(child).filter(function(e){return e.id!==deletingId;});
-  saveSharedState(data);
+  button.disabled=true;
+  var result=await performChildMutation("delete_ledger_entry",{entry_id:deletingId});
+  button.disabled=false;
+  if(!result)return;
   closeLedgerEdit();renderLedger();showToast("記録を削除しました");
 }
 
@@ -3940,15 +4001,20 @@ document.getElementById("confirmDelete").onclick=function(){
   var j=jobs.find(function(x){return x.id===deleteTarget});if(j){j.deleted=true;j.enabled=false;j.deletedAt=new Date().toISOString();saveAll();renderSettings();showToast("削除しました")}
   deleteModal.classList.remove("open");deleteTarget=null;
 };
-reportButton.onclick=function(){
-  var checked=jobsList.querySelectorAll(".job-check:checked"),k=key(selectedDate);records[k]=records[k]||{};
-  Array.prototype.forEach.call(checked,function(c){
-    var id=c.getAttribute("data-job-id"),j=jobs.find(function(x){return x.id===id});
-    var previous=records[k][id];
-    var snap=j?jobSnapshot(j):(previous&&previous.snapshot?clone(previous.snapshot):null);
-    if(snap){records[k][id]={status:"waiting",snapshot:snap,finalized:false};publishReportToShared(k,j||{id:id},snap);}
-  });
-  saveAll();renderHome();showToast("お仕事を報告しました");
+reportButton.onclick=async function(){
+  var checked=Array.prototype.slice.call(jobsList.querySelectorAll(".job-check:checked"));
+  var workDate=key(selectedDate);
+  var jobIds=checked.map(function(c){return c.getAttribute("data-job-id");}).filter(Boolean);
+  if(!jobIds.length)return;
+  reportButton.disabled=true;
+  var completed=0;
+  for(var index=0;index<jobIds.length;index++){
+    var result=await performChildMutation("report_job",{job_id:jobIds[index],work_date:workDate});
+    if(!result)break;
+    completed++;
+  }
+  renderHome();
+  if(completed===jobIds.length)showToast("お仕事を報告しました");
 };
 
 
@@ -3973,20 +4039,20 @@ renderLedgerHomeStatus();
 var remoteNote=document.createElement("div");
 remoteNote.className="fueru-remote-note";
 var remoteChildForNote=sharedChild(loadSharedState());
-remoteNote.textContent=(remoteChildForNote?remoteChildForNote.name:"本人")+"さん本人のSupabaseデータを表示しています。現在は安全な読み込み確認版です。報告・出金・編集は次の更新で接続します。";
+remoteNote.textContent=(remoteChildForNote?remoteChildForNote.name:"本人")+"さん本人のデータを表示しています。報告・出金・おこづかい帳は家庭のデータへ保存されます。";
 homeView.insertBefore(remoteNote,homeView.children[1]||null);
 document.addEventListener("click",function(event){
   var target=event.target&&event.target.closest?event.target.closest(
-    "#reportButton,#submitWithdrawal,#cancelWithdrawalRequest,#saveProfile,#saveJob,#confirmDelete,#saveLedgerIncome,#saveLedgerExpense,#saveLedgerEdit,#deleteLedgerEntry,.job-setting-actions button,.ledger-history-row.editable"
+    "#saveProfile,#saveJob,#confirmDelete,.job-setting-actions button"
   ):null;
   if(!REMOTE_READ_ONLY||!target)return;
   event.preventDefault();event.stopImmediatePropagation();
-  showToast("この操作は次の更新で安全につなぎます");
+  showToast("この設定は保護者画面から変更してください");
 },true);
 jobForm.addEventListener("submit",function(event){
   if(!REMOTE_READ_ONLY)return;
   event.preventDefault();event.stopImmediatePropagation();
-  showToast("この操作は次の更新で安全につなぎます");
+  showToast("この設定は保護者画面から変更してください");
 },true);
 document.body.classList.remove("fueru-child-booting");
 document.getElementById("fueruChildBootStatus").hidden=true;

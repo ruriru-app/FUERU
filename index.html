@@ -161,11 +161,6 @@
     .button:focus-visible { outline: 3px solid rgba(60, 145, 135, .3); outline-offset: 3px; }
     .button:disabled { cursor: wait; opacity: .58; }
 
-    .button.secondary {
-      background: var(--lavender-500);
-      box-shadow: 0 8px 18px rgba(157, 123, 201, .2);
-    }
-
     .button.ghost {
       border: 2px solid var(--line);
       background: #fff;
@@ -320,21 +315,6 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    details {
-      margin-top: 18px;
-      border-top: 1px solid var(--line);
-      padding-top: 14px;
-    }
-
-    summary {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .dev-links { display: grid; gap: 8px; margin-top: 12px; }
-    .dev-links a { color: var(--mint-700); font-size: 13px; font-weight: 800; }
     footer { margin: 18px 0 0; color: var(--muted); text-align: center; font-size: 11px; }
 
     @media (min-width: 640px) {
@@ -375,13 +355,6 @@
         <p id="loginMessage" class="message hidden" role="status" aria-live="polite"></p>
         <p class="mail-note">パスワードは必要ありません。届いたメールのリンクをタップすると、この端末にログイン状態が保存されます。</p>
 
-        <details>
-          <summary>現在の保護者版・子ども版を見る（開発確認）</summary>
-          <div class="dev-links">
-            <a href="parent.html">保護者版 v0.9.23 Step2</a>
-            <a href="child.html">子ども版 v0.5.15 Step3</a>
-          </div>
-        </details>
       </section>
 
       <section id="setupView" class="card hidden">
@@ -461,7 +434,6 @@
           <p id="childMessage" class="message hidden" role="status" aria-live="polite"></p>
         </section>
 
-        <a class="button secondary" href="parent.html">現在の保護者画面を開く</a>
         <button class="button ghost logout-button" type="button">ログアウト</button>
       </section>
 

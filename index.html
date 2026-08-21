@@ -474,7 +474,7 @@
           </button>
           <button id="chooseChildEntryButton" class="mode-button" type="button">
             <img class="mode-illustration" src="fueru-mode-child.svg" alt="" width="48" height="48">
-            <span class="mode-copy"><strong>子どもとして使う</strong><small>家族コードと自分の鍵で家庭につなぎます</small></span>
+            <span class="mode-copy"><strong>子どもとして使う</strong><small>保護者のQRコード、または家族コードで家庭につなぎます</small></span>
           </button>
           <button id="chooseSharedEntryButton" class="mode-button" type="button">
             <img class="mode-illustration" src="fueru-mode-family.svg" alt="" width="48" height="48">
@@ -758,6 +758,9 @@
       let currentDevice = null;
       let pairingProfiles = [];
       let pairingFamilyCode = '';
+      let pairingToken = '';
+      const initialPairingToken = pairingTokenFromUrl();
+      let qrEntryMode = Boolean(initialPairingToken);
       let pairingPattern = [];
       let pairingPatternDraft = [];
       let drawingPairingPattern = false;
@@ -793,6 +796,7 @@
         if (code === 'invalid_credentials') return '自分の鍵が一致しません。もう一度確認してください。';
         if (code === 'temporarily_locked') return '入力が続けて一致しなかったため、10分ほど待ってからもう一度お試しください。';
         if (code === 'invalid_secret') return '自分の鍵を正しく入力してください。';
+        if (code === 'pairing_not_available' || code === 'invalid_pairing') return 'このQRコードは使用済みか、有効時間が終了しています。保護者の画面で新しいQRコードを表示してください。';
         return friendlyError(error);
       }
 
@@ -830,6 +834,17 @@
       function normalizeFamilyCode(value) {
         const normalized = String(value || '').trim().replaceAll('-', '').toUpperCase();
         return /^[A-Z0-9]{10}$/.test(normalized) ? normalized : '';
+      }
+
+      function normalizePairingToken(value) {
+        const token = String(value || '').trim();
+        return /^fqp1_[A-Za-z0-9_-]{43}$/.test(token) ? token : '';
+      }
+
+      function pairingTokenFromUrl() {
+        if (!window.location.hash.startsWith('#pair=')) return '';
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        return normalizePairingToken(params.get('pair'));
       }
 
       function readChildDeviceConnection() {
@@ -1450,9 +1465,12 @@
       function resetChildPairingFlow(clearCode = false) {
         pairingProfiles = [];
         pairingFamilyCode = '';
+        pairingToken = '';
         byId('pairingChild').replaceChildren();
+        byId('pairingChild').disabled = false;
         byId('childPairingStep').classList.add('hidden');
         byId('childLookupForm').classList.remove('hidden');
+        byId('changeFamilyCodeButton').textContent = '家族コードを入力し直す';
         if (clearCode) byId('pairingFamilyCode').value = '';
         byId('pairingPin').value = '';
         resetPairingPattern();
@@ -1463,6 +1481,38 @@
       function showChildConnectView() {
         resetChildPairingFlow(false);
         showView('childConnectView');
+      }
+
+      async function showQrChildConnectView(token) {
+        resetChildPairingFlow(true);
+        pairingToken = token;
+        showView('childConnectView');
+        byId('childLookupForm').classList.add('hidden');
+        byId('childPairingStep').classList.remove('hidden');
+        byId('pairingChild').disabled = true;
+        byId('changeFamilyCodeButton').textContent = '家族コードでつなぐ';
+        byId('pairingFamilySummary').textContent = 'QRコードを確認しています…';
+        try {
+          const result = await invokeChildDevice({ action: 'lookup_qr', pairing_token: token });
+          const child = result?.child;
+          if (!child || !isUuid(child.id) || typeof child.display_name !== 'string'
+              || (child.key_type !== 'pin' && child.key_type !== 'pattern')) {
+            throw new Error('invalid QR pairing response');
+          }
+          pairingProfiles = [child];
+          const option = document.createElement('option');
+          option.value = child.id;
+          option.textContent = child.display_name;
+          byId('pairingChild').replaceChildren(option);
+          byId('pairingFamilySummary').textContent = `${result.family_name || '家庭'}の${child.display_name}さんの端末をつなぎます`;
+          updatePairingKeyFields();
+        } catch (error) {
+          pairingToken = '';
+          qrEntryMode = false;
+          byId('childPairingStep').classList.add('hidden');
+          byId('childLookupForm').classList.remove('hidden');
+          setMessage('childLookupMessage', pairingErrorMessage(error), true);
+        }
       }
 
       function toggleKeyFields() {
@@ -1643,6 +1693,7 @@
         }
       });
       byId('backToEntryFromChildButton').addEventListener('click', () => {
+        qrEntryMode = false;
         resetChildPairingFlow(true);
         showView('entryChoiceView');
       });
@@ -1702,6 +1753,7 @@
 
       byId('pairingChild').addEventListener('change', updatePairingKeyFields);
       byId('changeFamilyCodeButton').addEventListener('click', () => {
+        qrEntryMode = false;
         resetChildPairingFlow(true);
         byId('pairingFamilyCode').focus();
       });
@@ -1736,7 +1788,7 @@
         const child = selectedPairingProfile();
         setMessage('childConnectMessage', '');
 
-        if (!pairingFamilyCode || !child) {
+        if ((!pairingFamilyCode && !pairingToken) || !child) {
           setMessage('childConnectMessage', '家族コードと子どもをもう一度確認してください。', true);
           return;
         }
@@ -1759,15 +1811,25 @@
         button.disabled = true;
         button.textContent = '安全につないでいます…';
         try {
-          const result = await invokeChildDevice({
-            action: 'connect',
-            family_code: pairingFamilyCode,
-            child_id: child.id,
-            key_type: child.key_type,
-            secret,
-            device_label: '子どもの端末',
-            requires_child_unlock: byId('requiresChildUnlock').checked
-          });
+          const request = pairingToken
+            ? {
+                action: 'connect_qr',
+                pairing_token: pairingToken,
+                key_type: child.key_type,
+                secret,
+                device_label: '子どもの端末',
+                requires_child_unlock: byId('requiresChildUnlock').checked
+              }
+            : {
+                action: 'connect',
+                family_code: pairingFamilyCode,
+                child_id: child.id,
+                key_type: child.key_type,
+                secret,
+                device_label: '子どもの端末',
+                requires_child_unlock: byId('requiresChildUnlock').checked
+              };
+          const result = await invokeChildDevice(request);
 
           if (result.mode !== 'child' || result.child_id !== child.id
               || !isUuid(result.family_id) || !isUuid(result.connection_id)
@@ -1791,9 +1853,11 @@
           };
           localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(record));
           pairingFamilyCode = '';
+          pairingToken = '';
           byId('pairingPin').value = '';
           resetPairingPattern();
           currentDevice = record;
+          qrEntryMode = false;
           await client.auth.signOut({ scope: 'local' });
           renderChildReady(record);
         } catch (error) {
@@ -2201,6 +2265,10 @@
         try {
           if (!window.supabase?.createClient) throw new Error('Supabase library unavailable');
 
+          if (initialPairingToken) {
+            window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+          }
+
           client = window.supabase.createClient(CONFIG.url, CONFIG.publishableKey, {
             auth: {
               persistSession: true,
@@ -2210,6 +2278,7 @@
           });
 
           client.auth.onAuthStateChange((event, session) => {
+            if (qrEntryMode) return;
             if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
               window.setTimeout(() => renderForSession(session), 0);
             }
@@ -2217,6 +2286,11 @@
 
           const { data, error } = await client.auth.getSession();
           if (error) throw error;
+
+          if (initialPairingToken) {
+            await showQrChildConnectView(initialPairingToken);
+            return;
+          }
 
           if (data.session && (window.location.hash || window.location.search)) {
             window.history.replaceState(null, '', window.location.pathname);

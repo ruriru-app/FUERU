@@ -102,6 +102,7 @@ button{cursor:pointer}
 .manage-icon svg{width:62px;height:62px;display:block}
 .manage-name{font-size:20px;font-weight:700;margin-bottom:5px}
 .manage-sub{font-size:12px;color:var(--muted);font-weight:500}
+.manage-qr-btn{margin-top:9px;border:0;border-radius:11px;padding:8px 11px;background:#EAF7F5;color:#2F746B;font-size:12px;font-weight:800}
 .manage-actions{display:flex;flex-direction:column;gap:7px}
 .mini-btn{
   border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 10px;
@@ -111,6 +112,21 @@ button{cursor:pointer}
   width:100%;margin-top:14px;border:2px dashed #9CCFC7;background:#F8FCFB;color:#2F746B;
   border-radius:18px;padding:15px;font-weight:700
 }
+.child-qr-card{padding:20px;text-align:center}
+.child-qr-profile{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px}
+.child-qr-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.child-qr-icon svg{width:53px;height:53px;display:block}
+.child-qr-name{font-size:21px;font-weight:800}
+.child-qr-lead{margin:0 auto 15px;max-width:340px;color:var(--muted);font-size:13px;line-height:1.7}
+.child-qr-code{width:min(100%,300px);aspect-ratio:1;margin:0 auto;padding:12px;border:2px solid #D6E9E5;border-radius:22px;background:#fff;display:grid;place-items:center}
+.child-qr-code svg{display:block;width:100%;height:100%}
+.child-qr-loading{color:var(--muted);font-size:13px;font-weight:700}
+.child-qr-status{min-height:24px;margin:12px 0 0;color:#2F746B;font-size:13px;font-weight:800}
+.child-qr-status.error{color:#B95F5F}
+.child-qr-expiry{margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
+.child-qr-renew{width:100%;margin-top:14px;border:0;border-radius:15px;background:#4D9E93;color:#fff;padding:13px;font-size:15px;font-weight:800}
+.child-qr-renew:disabled{background:#AEBFBC;cursor:wait}
+.child-qr-security{margin:14px 0 0;padding:12px;border-radius:14px;background:#F1EBF8;color:#68508F;font-size:11px;line-height:1.7;text-align:left}
 .editor-card{padding:18px}
 .editor-preview{display:flex;flex-direction:column;align-items:center;margin-bottom:16px}
 .editor-icon{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
@@ -1296,6 +1312,28 @@ button{cursor:pointer}
     <button class="add-child" id="addChild">＋ 子どもを追加</button>
   </section>
 
+  <section id="childQrView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromChildQr">戻る</button>
+      <h1>子ども端末をつなぐ</h1>
+      <div></div>
+    </header>
+    <section class="card child-qr-card">
+      <div class="child-qr-profile">
+        <div class="child-qr-icon" id="childQrIcon"></div>
+        <div class="child-qr-name" id="childQrName"></div>
+      </div>
+      <p class="child-qr-lead">子どもの端末でカメラを開き、このQRコードを読み取ってください。</p>
+      <div class="child-qr-code" id="childQrCode" aria-label="子ども端末接続用QRコード">
+        <span class="child-qr-loading">QRコードを準備しています…</span>
+      </div>
+      <p class="child-qr-status" id="childQrStatus" role="status" aria-live="polite"></p>
+      <p class="child-qr-expiry" id="childQrExpiry"></p>
+      <button class="child-qr-renew" id="renewChildQr" type="button">新しいQRコードを発行</button>
+      <p class="child-qr-security">このQRコードは10分間・1回だけ使えます。家族コードやPIN／パターンは含まれていません。読み取った端末で、本人の鍵を入力すると接続が完了します。</p>
+    </section>
+  </section>
+
   <section id="childEditView" class="view">
     <header class="topbar">
       <button class="soft-btn" id="backFromChildEdit">戻る</button>
@@ -1653,6 +1691,7 @@ button{cursor:pointer}
     </div>
   </div>
 
+<script src="vendor-qrcode-generator-2.0.4.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async function(){
@@ -1810,6 +1849,89 @@ async function copyParentFamilyCode(){
   button.setAttribute("aria-label","コピーしました");
   setTimeout(()=>{button.textContent="コピー";button.setAttribute("aria-label","家族コードをコピー")},1600);
 }
+async function callChildDeviceConnection(body){
+  const latestSessionResult=await remoteClient.auth.getSession();
+  const latestSession=latestSessionResult&&latestSessionResult.data?latestSessionResult.data.session:null;
+  if(!latestSession)throw new Error("parent_auth_required");
+  const result=await remoteClient.functions.invoke("child-device-connection",{body});
+  if(result.error||!result.data?.ok){
+    const error=new Error(result.data?.code||result.error?.message||"child_device_request_failed");
+    error.code=result.data?.code||"";
+    throw error;
+  }
+  return result.data;
+}
+function stopChildQrCountdown(){
+  if(childQrTimer){clearInterval(childQrTimer);childQrTimer=null;}
+}
+function renderChildQrCountdown(){
+  const expiry=document.getElementById("childQrExpiry");
+  const status=document.getElementById("childQrStatus");
+  const box=document.getElementById("childQrCode");
+  const remaining=Math.max(0,Math.ceil((childQrExpiresAt-Date.now())/1000));
+  if(remaining<=0){
+    stopChildQrCountdown();
+    expiry.textContent="このQRコードの有効時間は終了しました。";
+    status.textContent="新しいQRコードを発行してください。";
+    status.classList.add("error");
+    box.innerHTML='<span class="child-qr-loading">有効時間が終了しました</span>';
+    return;
+  }
+  const minutes=Math.floor(remaining/60);
+  const seconds=String(remaining%60).padStart(2,"0");
+  expiry.textContent=`有効時間：あと ${minutes}:${seconds}`;
+}
+function drawChildPairingQr(pairingToken){
+  if(typeof window.qrcode!=="function")throw new Error("qrcode_library_unavailable");
+  const entryUrl=new URL("./",window.location.href);
+  entryUrl.search="";
+  entryUrl.hash=`pair=${pairingToken}`;
+  const qr=window.qrcode(0,"M");
+  qr.addData(entryUrl.toString());
+  qr.make();
+  const box=document.getElementById("childQrCode");
+  box.innerHTML=qr.createSvgTag({cellSize:7,margin:4,scalable:true});
+  const svg=box.querySelector("svg");
+  if(svg){svg.setAttribute("aria-hidden","true");svg.setAttribute("focusable","false");}
+}
+async function issueChildPairingQr(){
+  const child=state.children.find(item=>item.id===childQrTargetId);
+  if(!child)return;
+  const button=document.getElementById("renewChildQr");
+  const status=document.getElementById("childQrStatus");
+  const expiry=document.getElementById("childQrExpiry");
+  const box=document.getElementById("childQrCode");
+  stopChildQrCountdown();
+  button.disabled=true;button.textContent="QRコードを発行しています…";
+  status.textContent="";status.classList.remove("error");expiry.textContent="";
+  box.innerHTML='<span class="child-qr-loading">QRコードを準備しています…</span>';
+  try{
+    const result=await callChildDeviceConnection({action:"create_qr",family_id:REMOTE_FAMILY_ID,child_id:child.id});
+    if(result.child_id!==child.id||typeof result.pairing_token!=="string"||!/^fqp1_[A-Za-z0-9_-]{43}$/.test(result.pairing_token))throw new Error("invalid_pairing_response");
+    const expiresAt=new Date(result.expires_at).getTime();
+    if(!Number.isFinite(expiresAt)||expiresAt<=Date.now())throw new Error("invalid_pairing_expiry");
+    drawChildPairingQr(result.pairing_token);
+    childQrExpiresAt=expiresAt;
+    status.textContent="子どもの端末で読み取れます";
+    renderChildQrCountdown();
+    childQrTimer=setInterval(renderChildQrCountdown,1000);
+  }catch(error){
+    console.error(error);
+    status.textContent="QRコードを発行できませんでした。通信状態を確認して、もう一度お試しください。";
+    status.classList.add("error");
+    box.innerHTML='<span class="child-qr-loading">発行できませんでした</span>';
+  }finally{
+    button.disabled=false;button.textContent="新しいQRコードを発行";
+  }
+}
+function openChildPairingQr(childId){
+  const child=state.children.find(item=>item.id===childId);if(!child)return;
+  childQrTargetId=child.id;
+  document.getElementById("childQrName").textContent=`${child.name}さんの端末`;
+  const icon=document.getElementById("childQrIcon");icon.style.background=child.sub;icon.innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
+  showView("childQrView");
+  issueChildPairingQr();
+}
 async function callParentWithdrawal(action,payload={}){
   const latestSessionResult=await remoteClient.auth.getSession();
   const latestSession=latestSessionResult&&latestSessionResult.data?latestSessionResult.data.session:null;
@@ -1873,6 +1995,9 @@ let childEditorPatternFirst=[];
 let childEditorPatternConfirmed=[];
 let childEditorPatternDraft=[];
 let drawingChildEditorPattern=false;
+let childQrTargetId=null;
+let childQrExpiresAt=0;
+let childQrTimer=null;
 let allowanceEditingId=null;
 let allowanceEditorFromHub=false;
 let jobEditingChildId=null;
@@ -3051,12 +3176,14 @@ function renderChildManage(){
       <div>
         <div class="manage-name" style="color:${child.deep}">${escapeHtml(child.name)}</div>
         <div class="manage-sub">確認待ち ${waitingReports(child).length}件／確定報酬 ${child.confirmed}円</div>
+        <button class="manage-qr-btn" type="button" data-action="qr">子ども端末用QR</button>
       </div>
       <div class="manage-actions">
         <button class="mini-btn" data-action="edit">編集</button>
         <button class="mini-btn" data-action="up" ${index===0?"disabled":""}>↑</button>
         <button class="mini-btn" data-action="down" ${index===state.children.length-1?"disabled":""}>↓</button>
       </div>`;
+    card.querySelector('[data-action="qr"]').onclick=()=>openChildPairingQr(child.id);
     card.querySelector('[data-action="edit"]').onclick=()=>openChildEditor(child.id);
     card.querySelector('[data-action="up"]').onclick=()=>moveChild(index,-1);
     card.querySelector('[data-action="down"]').onclick=()=>moveChild(index,1);
@@ -3625,6 +3752,8 @@ document.getElementById("applySpendingEdit").onclick=applySpendingEdit;
 document.getElementById("saveLedgerSettings").onclick=saveLedgerSettings;
 document.getElementById("backFromSettings").onclick=()=>showView("homeView");
 document.getElementById("backFromChildManage").onclick=()=>showView("settingsView");
+document.getElementById("backFromChildQr").onclick=()=>{stopChildQrCountdown();showView("childManageView");renderChildManage()};
+document.getElementById("renewChildQr").onclick=issueChildPairingQr;
 document.getElementById("backFromAllowance").onclick=()=>showView("settingsView");
 document.getElementById("backFromJobSettings").onclick=()=>showView("settingsView");
 document.getElementById("backFromJobEdit").onclick=()=>{if(childHubId){openChildHub(childHubId)}else{showView("jobSettingsView");renderJobSettings()}};

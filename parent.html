@@ -995,7 +995,7 @@ button{cursor:pointer}
       <button class="soft-btn right" id="openSettings">設定</button>
     </header>
 
-    <div class="remote-parent-status">家庭のデータと接続しています。おしごとの登録と報告確認が保存されます。</div>
+    <div class="remote-parent-status">家庭のデータと接続しています。おしごと・支給設定・出金は家庭のデータへ保存されます。</div>
 
     <section class="card summary-card">
       <div class="label">確認待ち</div>
@@ -1307,7 +1307,7 @@ button{cursor:pointer}
         </button>
         <div class="setting-edit-body">
           <label class="field-label" for="allowanceAmount">毎月の定額お小遣い</label>
-          <input class="text-input" id="allowanceAmount" type="number" min="0" step="10" inputmode="numeric">
+          <input class="text-input" id="allowanceAmount" type="number" min="0" max="10000000" step="10" inputmode="numeric">
 
           <div class="field-label">支給日</div>
           <div class="radio-stack">
@@ -3382,26 +3382,56 @@ document.querySelectorAll('input[name="payType"]').forEach(r=>r.onchange=updateP
 document.getElementById("rewardTiming").onchange=updateRewardPaydayVisibility;
 document.getElementById("rewardPaySchedule").onchange=updateRewardPaydayVisibility;
 document.querySelectorAll('input[name="closeType"]').forEach(r=>r.onchange=updateCloseDayVisibility);
-document.getElementById("saveAllowance").onclick=()=>{
+document.getElementById("saveAllowance").onclick=async()=>{
+  if(remoteBusy)return;
   const child=state.children.find(c=>c.id===allowanceEditingId);
   if(!child)return;
-  child.allowance=Math.max(0,Number(document.getElementById("allowanceAmount").value)||0);
+  const allowanceValue=Number(document.getElementById("allowanceAmount").value);
+  if(!Number.isInteger(allowanceValue)||allowanceValue<0||allowanceValue>10000000){
+    alert("毎月のお小遣いは、0円から1,000万円までの整数で入力してください。");return;
+  }
   const payType=document.querySelector('input[name="payType"]:checked');
-  child.payType=payType?payType.value:"day";
-  child.payDay=Number(document.getElementById("payDay").value)||25;
+  const payTypeValue=payType&&payType.value==="monthEnd"?"monthEnd":"day";
+  const payDayValue=Number(document.getElementById("payDay").value)||25;
   const payoutMode=document.querySelector('input[name="payoutMode"]:checked');
-  child.payoutMode=payoutMode?payoutMode.value:"manual";
-  child.rewardTiming=document.getElementById("rewardTiming").value;
-  child.rewardPaySchedule=document.getElementById("rewardPaySchedule").value;
-  child.rewardPayDay=Number(document.getElementById("rewardPayDay").value)||25;
+  const payoutModeValue=payoutMode&&payoutMode.value==="auto"?"auto":"manual";
+  const rewardTimingValue=document.getElementById("rewardTiming").value==="payday"?"payday":"immediate";
+  const rewardScheduleInput=document.getElementById("rewardPaySchedule").value;
+  const rewardPayScheduleValue=["allowance","day","monthEnd"].includes(rewardScheduleInput)?rewardScheduleInput:"allowance";
+  const rewardPayDayValue=Number(document.getElementById("rewardPayDay").value)||25;
   const closeType=document.querySelector('input[name="closeType"]:checked');
-  child.closeType=closeType?closeType.value:"monthEnd";
-  child.closeDay=Number(document.getElementById("closeDay").value)||31;
+  const closeTypeValue=closeType&&closeType.value==="day"?"day":"monthEnd";
+  const closeDayValue=Number(document.getElementById("closeDay").value)||31;
   const periodMode=document.querySelector('input[name="periodMode"]:checked');
-  child.periodMode=periodMode?periodMode.value:"cycle";
-  save();processDueRewards();renderHome();
-  if(allowanceEditorFromHub&&childHubId){openChildHub(childHubId)}
-  else{showView("allowanceView");renderAllowanceList();showAllowanceNotice("支給設定を保存しました")};
+  const periodModeValue=periodMode&&periodMode.value==="month"?"month":"cycle";
+  if(![payDayValue,rewardPayDayValue,closeDayValue].every(value=>Number.isInteger(value)&&value>=1&&value<=31)){
+    alert("支給日と締め日は、1日から31日の間で選んでください。");return;
+  }
+  const button=document.getElementById("saveAllowance");
+  remoteBusy=true;button.disabled=true;button.textContent="保存しています…";
+  try{
+    const result=await remoteClient.from("child_settings").update({
+      allowance:allowanceValue,
+      pay_type:payTypeValue,
+      pay_day:payDayValue,
+      reward_timing:rewardTimingValue,
+      reward_pay_schedule:rewardPayScheduleValue,
+      reward_pay_day:rewardPayDayValue,
+      payout_mode:payoutModeValue,
+      close_type:closeTypeValue,
+      close_day:closeDayValue,
+      period_mode:periodModeValue
+    }).eq("family_id",REMOTE_FAMILY_ID).eq("child_id",child.id).select("child_id").maybeSingle();
+    if(result.error||!result.data)throw result.error||new Error("allowance settings not saved");
+    await refreshRemoteParentState();
+    renderHome();
+    if(allowanceEditorFromHub&&childHubId){openChildHub(childHubId);alert("支給設定を保存しました。");}
+    else{showView("allowanceView");renderAllowanceList();showAllowanceNotice("支給設定を保存しました")}
+  }catch(error){
+    await refreshRemoteParentState();remoteOperationError(error);
+  }finally{
+    remoteBusy=false;button.disabled=false;button.textContent="保存";
+  }
 };
 document.getElementById("deleteChild").onclick=()=>{
   if(!editingChildId)return;
@@ -3451,7 +3481,7 @@ for(let d=1;d<=31;d++){
 
 document.addEventListener("click",event=>{
   const target=event.target&&event.target.closest?event.target.closest(
-    "#openChildManage,#openLedgerSettings,#hubEditProfile,#hubEditPayment,#grantSpecialReward,#saveAllowance,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,#cancelAllDayJobs,.day-job-actions button"
+    "#openChildManage,#openLedgerSettings,#hubEditProfile,#grantSpecialReward,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,.special-btn,.payout-due-btn,#cancelAllDayJobs,.day-job-actions button"
   ):null;
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();

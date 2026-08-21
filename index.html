@@ -379,6 +379,40 @@
     .check-row input { width: 20px; min-height: 20px; margin: 1px 0 0; accent-color: var(--mint-600); }
     .ready-mark { margin: 4px 0 12px; text-align: center; font-size: 54px; }
     .ready-name { color: var(--mint-700); text-align: center; font-size: 22px; font-weight: 900; }
+    .shared-family-name {
+      margin: 4px 0 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .shared-profile-list { display: grid; gap: 11px; margin-top: 18px; }
+    .shared-profile-button {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) 24px;
+      gap: 12px;
+      width: 100%;
+      min-height: 72px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 2px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+    .shared-profile-button:hover, .shared-profile-button:focus-visible {
+      border-color: var(--mint-600);
+      background: var(--mint-050);
+      outline: none;
+    }
+    .shared-profile-icon { font-size: 32px; text-align: center; }
+    .shared-profile-name { font-size: 17px; font-weight: 900; }
+    .shared-profile-note { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .shared-profile-arrow { color: var(--mint-700); font-size: 25px; font-weight: 900; }
+    .shared-parent-button { border-color: var(--lavender-500); background: #fbf8ff; }
+    .shared-unlock-name { margin: 8px 0 18px; color: var(--mint-700); text-align: center; font-size: 21px; font-weight: 900; }
 
     .signed-in-as {
       margin: 0 0 18px;
@@ -441,13 +475,17 @@
             <span class="mode-emoji" aria-hidden="true">🌱</span>
             <span class="mode-copy"><strong>子どもとして使う</strong><small>家族コードと自分の鍵で家庭につなぎます</small></span>
           </button>
+          <button id="chooseSharedEntryButton" class="mode-button" type="button">
+            <span class="mode-emoji" aria-hidden="true">🏠</span>
+            <span class="mode-copy"><strong>家族みんなで使う</strong><small>使う人を選び、本人確認してから画面を開きます</small></span>
+          </button>
         </div>
-        <p class="device-coming">家族みんなで使う端末は、親子の切り替えを安全に整えた後で追加します。</p>
+        <p class="device-coming">子どもは自分のPINまたは9点パターン、保護者はメール認証で画面を開きます。</p>
       </section>
 
       <section id="loginView" class="card hidden">
-        <h2>保護者の方から<br>はじめます</h2>
-        <p class="muted compact">初めての方も、すでにFUERUを使っている方も、同じ入口です。</p>
+        <h2 id="loginTitle">保護者の方から<br>はじめます</h2>
+        <p id="loginLead" class="muted compact">初めての方も、すでにFUERUを使っている方も、同じ入口です。</p>
 
         <ol class="steps" aria-label="ログインの手順">
           <li><strong>1</strong>メール入力</li>
@@ -549,8 +587,9 @@
         </div>
 
         <button id="registerParentDeviceButton" class="button" type="button">このスマホを保護者用にする</button>
+        <button id="registerSharedDeviceButton" class="button ghost" type="button">この端末を家族みんなで使う</button>
         <p id="deviceMessage" class="message hidden" role="status" aria-live="polite"></p>
-        <p class="device-coming">「子どもとして使う」「家族みんなで使う」は、安全な端末接続を整えてから追加します。</p>
+        <p class="device-coming">家族共用にすると、毎回「だれが使いますか？」から始まり、保護者画面はメール認証後に開きます。</p>
         <button class="button ghost logout-button" type="button">ログアウト</button>
       </section>
 
@@ -562,7 +601,7 @@
           <button id="showDeviceSettingsButton" type="button">確認</button>
         </div>
         <div id="familyList" class="family-list"></div>
-        <a class="button primary" href="parent.html?v=ledger-entry-history-20260821">保護者画面を開く</a>
+        <a class="button primary" href="parent.html?v=shared-device-20260821">保護者画面を開く</a>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
 
         <section class="child-setup" aria-labelledby="childSetupTitle">
@@ -631,8 +670,47 @@
         <p id="childReadyName" class="ready-name"></p>
         <p id="childReadyUnlock" class="muted compact"></p>
         <p class="message">この端末専用の安全な接続情報を保存しました。家族コードやPINそのものを、データを見るための鍵には使用しません。</p>
-        <a class="button primary" href="child.html?v=ledger-settings-20260821">子ども画面を開く</a>
+        <a class="button primary" href="child.html?v=shared-device-20260821">子ども画面を開く</a>
         <p class="device-coming">子ども画面は、接続した本人のデータだけを読み込みます。報告・出金・おこづかい帳の記録は家庭のデータへ保存されます。</p>
+      </section>
+
+      <section id="sharedChooserView" class="card hidden">
+        <div class="ready-mark" aria-hidden="true">🏠</div>
+        <h2>だれが使いますか？</h2>
+        <p id="sharedFamilyName" class="shared-family-name"></p>
+        <div id="sharedProfileList" class="shared-profile-list"></div>
+        <p id="sharedChooserMessage" class="message hidden" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="sharedChildUnlockView" class="card hidden">
+        <button id="backToSharedChooserButton" class="mini-button" type="button">戻る</button>
+        <h2>自分の鍵を入力</h2>
+        <p id="sharedUnlockName" class="shared-unlock-name"></p>
+        <form id="sharedChildUnlockForm">
+          <div id="sharedUnlockPinField" class="field">
+            <label for="sharedUnlockPin">4桁PIN</label>
+            <input id="sharedUnlockPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="●●●●">
+          </div>
+          <div id="sharedUnlockPatternField" class="pattern-wrap hidden">
+            <p class="muted compact">登録した9点パターンをなぞってください。</p>
+            <div id="sharedUnlockPatternPad" class="pattern-pad" aria-label="家族共用端末の9点パターン入力">
+              <svg id="sharedUnlockPatternLines" class="pattern-lines" viewBox="0 0 300 300" aria-hidden="true"></svg>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="0" aria-label="左上"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="1" aria-label="上"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="2" aria-label="右上"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="3" aria-label="左"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="4" aria-label="中央"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="5" aria-label="右"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="6" aria-label="左下"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="7" aria-label="下"></button>
+              <button class="pattern-dot" type="button" data-shared-pattern-point="8" aria-label="右下"></button>
+            </div>
+            <p id="sharedUnlockPatternNote" class="pattern-note" role="status" aria-live="polite">パターンをなぞってください</p>
+            <button id="resetSharedUnlockPatternButton" class="mini-button" type="button">パターンをやり直す</button>
+          </div>
+          <button id="openSharedChildButton" class="button" type="submit">子ども画面を開く</button>
+        </form>
+        <p id="sharedUnlockMessage" class="message hidden" role="status" aria-live="polite"></p>
       </section>
 
       <section id="fatalView" class="card hidden">
@@ -655,10 +733,15 @@
         publishableKey: 'sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV'
       });
       const DEVICE_STORAGE_KEY = 'FUERU_DEVICE_CONNECTION_V1';
+      const SHARED_CHILD_SESSION_KEY = 'FUERU_SHARED_CHILD_SESSION_V1';
+      const SHARED_PARENT_PENDING_KEY = 'FUERU_SHARED_PARENT_PENDING_V1';
+      const SHARED_PARENT_SESSION_KEY = 'FUERU_SHARED_PARENT_SESSION_V1';
+      const SETUP_MODE_KEY = 'FUERU_PENDING_DEVICE_MODE_V1';
 
       const views = [
         'loadingView', 'entryChoiceView', 'loginView', 'childConnectView',
-        'setupView', 'deviceView', 'homeView', 'childReadyView', 'fatalView'
+        'setupView', 'deviceView', 'homeView', 'childReadyView',
+        'sharedChooserView', 'sharedChildUnlockView', 'fatalView'
       ];
       const byId = (id) => document.getElementById(id);
       let client = null;
@@ -677,6 +760,10 @@
       let pairingPattern = [];
       let pairingPatternDraft = [];
       let drawingPairingPattern = false;
+      let activeSharedChildId = '';
+      let sharedUnlockPattern = [];
+      let sharedUnlockPatternDraft = [];
+      let drawingSharedUnlockPattern = false;
 
       function showView(id) {
         views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
@@ -757,6 +844,165 @@
         }
       }
 
+      function readSharedDeviceConnection() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY) || 'null');
+          if (!saved || saved.version !== 1 || saved.mode !== 'shared') return null;
+          if (!isUuid(saved.userId) || !isUuid(saved.familyId) || !isUuid(saved.connectionId)) return null;
+          if (typeof saved.familyName !== 'string' || !saved.familyName.trim()) return null;
+          if (!normalizeFamilyCode(saved.familyCode)) return null;
+          if (typeof saved.deviceToken !== 'string'
+              || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(saved.deviceToken)) return null;
+          if (!Array.isArray(saved.profiles)) return null;
+          const profiles = saved.profiles.filter((profile) => (
+            isUuid(profile?.id)
+            && typeof profile?.displayName === 'string'
+            && profile.displayName.trim()
+            && (profile.keyType === 'pin' || profile.keyType === 'pattern')
+          ));
+          const childConnections = saved.childConnections && typeof saved.childConnections === 'object'
+            ? saved.childConnections
+            : {};
+          return {
+            ...saved,
+            familyCode: normalizeFamilyCode(saved.familyCode),
+            profiles,
+            childConnections
+          };
+        } catch {
+          return null;
+        }
+      }
+
+      function saveSharedDeviceConnection(device) {
+        localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(device));
+        currentDevice = device;
+      }
+
+      function configureLogin(mode = 'parent') {
+        const sharedParent = mode === 'shared-parent';
+        byId('loginTitle').innerHTML = sharedParent
+          ? '保護者の方を<br>確認します'
+          : '保護者の方から<br>はじめます';
+        byId('loginLead').textContent = sharedParent
+          ? '子どもが保護者画面へ入れないよう、登録したメールで確認します。'
+          : '初めての方も、すでにFUERUを使っている方も、同じ入口です。';
+        setMessage('loginMessage', '');
+      }
+
+      function sharedProfileEmoji(profile) {
+        const icons = { bird: '🐦', star: '⭐', flower: '🌸', moon: '🌙' };
+        return icons[profile.icon] || '🌱';
+      }
+
+      function clearSharedChildSession() {
+        sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
+        activeSharedChildId = '';
+        sharedUnlockPattern = [];
+        sharedUnlockPatternDraft = [];
+      }
+
+      function renderSharedChooser(device, message = '') {
+        clearSharedChildSession();
+        sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
+        currentDevice = device;
+        byId('sharedFamilyName').textContent = `${device.familyName}の共用端末`;
+        const list = byId('sharedProfileList');
+        list.replaceChildren();
+
+        device.profiles.forEach((profile) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'shared-profile-button';
+          button.dataset.sharedChildId = profile.id;
+          button.innerHTML = `<span class="shared-profile-icon" aria-hidden="true">${sharedProfileEmoji(profile)}</span>`
+            + `<span><span class="shared-profile-name"></span><span class="shared-profile-note">自分の鍵で開きます</span></span>`
+            + '<span class="shared-profile-arrow" aria-hidden="true">›</span>';
+          button.querySelector('.shared-profile-name').textContent = profile.displayName;
+          button.addEventListener('click', () => openSharedChildUnlock(profile.id));
+          list.append(button);
+        });
+
+        const parentButton = document.createElement('button');
+        parentButton.type = 'button';
+        parentButton.className = 'shared-profile-button shared-parent-button';
+        parentButton.innerHTML = '<span class="shared-profile-icon" aria-hidden="true">👤</span>'
+          + '<span><span class="shared-profile-name">保護者</span><span class="shared-profile-note">メールで本人確認します</span></span>'
+          + '<span class="shared-profile-arrow" aria-hidden="true">›</span>';
+        parentButton.addEventListener('click', () => {
+          localStorage.setItem(SHARED_PARENT_PENDING_KEY, '1');
+          configureLogin('shared-parent');
+          showView('loginView');
+        });
+        list.append(parentButton);
+        setMessage('sharedChooserMessage', message);
+        showView('sharedChooserView');
+      }
+
+      async function refreshSharedProfiles(device) {
+        try {
+          const result = await invokeChildDevice({ action: 'lookup', family_code: device.familyCode });
+          if (!Array.isArray(result.children)) return device;
+          const profiles = result.children.filter((child) => (
+            isUuid(child?.id)
+            && typeof child?.display_name === 'string'
+            && (child.key_type === 'pin' || child.key_type === 'pattern')
+          )).map((child) => ({
+            id: child.id,
+            displayName: child.display_name,
+            icon: child.icon || 'bird',
+            keyType: child.key_type
+          }));
+          const activeIds = new Set(profiles.map((profile) => profile.id));
+          const childConnections = {};
+          Object.entries(device.childConnections || {}).forEach(([childId, connection]) => {
+            if (activeIds.has(childId)) childConnections[childId] = connection;
+          });
+          const next = {
+            ...device,
+            familyName: typeof result.family_name === 'string' && result.family_name.trim()
+              ? result.family_name.trim()
+              : device.familyName,
+            profiles,
+            childConnections,
+            refreshedAt: new Date().toISOString()
+          };
+          saveSharedDeviceConnection(next);
+          return next;
+        } catch {
+          return device;
+        }
+      }
+
+      async function invokeSharedChildBootstrap(connection, profile, secret) {
+        const response = await fetch(`${CONFIG.url}/functions/v1/child-data`, {
+          method: 'POST',
+          headers: {
+            apikey: CONFIG.publishableKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'bootstrap',
+            connection_id: connection.connectionId,
+            device_token: connection.deviceToken,
+            key_type: profile.keyType,
+            secret
+          }),
+          cache: 'no-store'
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
+        if (response.ok && data?.ok && typeof data.session_token === 'string') return data;
+        const error = new Error('shared child unlock failed');
+        error.code = data?.code || '';
+        error.keyType = data?.key_type || '';
+        throw error;
+      }
+
       function renderChildReady(device) {
         byId('childReadyName').textContent = `${device.childName}さんの端末`;
         byId('childReadyUnlock').textContent = device.requiresChildUnlock
@@ -795,6 +1041,7 @@
       }
 
       function prepareDeviceView(session, inspecting = false) {
+        const requestedMode = localStorage.getItem(SETUP_MODE_KEY);
         populateDeviceFamilies(currentFamilies, currentDevice?.familyId || currentFamilies[0]?.id || '');
         byId('deviceEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
         byId('deviceFamily').disabled = Boolean(currentDevice);
@@ -804,7 +1051,9 @@
           : 'このスマホを保護者用にする';
         byId('deviceLead').textContent = currentDevice
           ? 'この端末は保護者用として登録済みです。'
-          : 'この設定は最初の1回だけです。次回から保護者用としてFUERUを開きます。';
+          : requestedMode === 'shared'
+            ? '家族みんなで使う端末として登録します。子どもは自分の鍵、保護者はメールで確認します。'
+            : 'この設定は最初の1回だけです。次回から保護者用としてFUERUを開きます。';
         setMessage('deviceMessage', inspecting && currentDevice ? '端末設定は正常です。' : '');
         showView('deviceView');
       }
@@ -1041,6 +1290,145 @@
         byId('pairingPatternNote').textContent = 'パターンを入力しました';
       }
 
+      function drawSharedUnlockPattern(points) {
+        const svg = byId('sharedUnlockPatternLines');
+        svg.replaceChildren();
+        for (let index = 1; index < points.length; index += 1) {
+          const from = patternCoordinates(points[index - 1]);
+          const to = patternCoordinates(points[index]);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(from.x));
+          line.setAttribute('y1', String(from.y));
+          line.setAttribute('x2', String(to.x));
+          line.setAttribute('y2', String(to.y));
+          svg.append(line);
+        }
+        document.querySelectorAll('[data-shared-pattern-point]').forEach((dot) => {
+          dot.classList.toggle('selected', points.includes(Number(dot.dataset.sharedPatternPoint)));
+        });
+      }
+
+      function resetSharedUnlockPattern(text = 'パターンをなぞってください') {
+        sharedUnlockPattern = [];
+        sharedUnlockPatternDraft = [];
+        drawingSharedUnlockPattern = false;
+        byId('sharedUnlockPatternNote').textContent = text;
+        drawSharedUnlockPattern([]);
+      }
+
+      function addSharedUnlockPatternPoint(point) {
+        if (!drawingSharedUnlockPattern || sharedUnlockPatternDraft.includes(point)) return;
+        sharedUnlockPatternDraft.push(point);
+        drawSharedUnlockPattern(sharedUnlockPatternDraft);
+      }
+
+      function finishSharedUnlockPattern() {
+        if (!drawingSharedUnlockPattern) return;
+        drawingSharedUnlockPattern = false;
+        if (sharedUnlockPatternDraft.length < 4) {
+          resetSharedUnlockPattern('4点以上をなぞってください');
+          return;
+        }
+        sharedUnlockPattern = [...sharedUnlockPatternDraft];
+        sharedUnlockPatternDraft = [];
+        drawSharedUnlockPattern(sharedUnlockPattern);
+        byId('sharedUnlockPatternNote').textContent = 'パターンを入力しました';
+      }
+
+      function activeSharedProfile() {
+        const device = readSharedDeviceConnection();
+        return device?.profiles.find((profile) => profile.id === activeSharedChildId) || null;
+      }
+
+      function openSharedChildUnlock(childId) {
+        const device = readSharedDeviceConnection();
+        const profile = device?.profiles.find((item) => item.id === childId);
+        if (!device || !profile) {
+          if (device) renderSharedChooser(device, '子どもの情報を更新して、もう一度お試しください。');
+          return;
+        }
+        activeSharedChildId = profile.id;
+        byId('sharedUnlockName').textContent = `${profile.displayName}さん`;
+        const usesPattern = profile.keyType === 'pattern';
+        byId('sharedUnlockPinField').classList.toggle('hidden', usesPattern);
+        byId('sharedUnlockPatternField').classList.toggle('hidden', !usesPattern);
+        byId('sharedUnlockPin').value = '';
+        resetSharedUnlockPattern();
+        setMessage('sharedUnlockMessage', '');
+        showView('sharedChildUnlockView');
+        if (!usesPattern) window.setTimeout(() => byId('sharedUnlockPin').focus(), 0);
+      }
+
+      async function establishSharedChildSession(device, profile, secret) {
+        let connection = device.childConnections?.[profile.id] || null;
+        let bootstrap = null;
+        const validConnection = connection
+          && isUuid(connection.connectionId)
+          && typeof connection.deviceToken === 'string'
+          && /^fdv1_[A-Za-z0-9_-]{43}$/.test(connection.deviceToken);
+
+        if (!validConnection) connection = null;
+
+        if (validConnection) {
+          try {
+            bootstrap = await invokeSharedChildBootstrap(connection, profile, secret);
+          } catch (error) {
+            if (error.code !== 'invalid_device') throw error;
+            connection = null;
+          }
+        }
+
+        if (!connection) {
+          const result = await invokeChildDevice({
+            action: 'connect',
+            family_code: device.familyCode,
+            child_id: profile.id,
+            key_type: profile.keyType,
+            secret,
+            device_label: '家族共用端末',
+            requires_child_unlock: true
+          });
+          if (result.mode !== 'child' || result.child_id !== profile.id
+              || !isUuid(result.connection_id)
+              || typeof result.device_token !== 'string'
+              || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(result.device_token)) {
+            throw new Error('invalid shared device response');
+          }
+          connection = {
+            childId: profile.id,
+            childName: result.child_name || profile.displayName,
+            connectionId: result.connection_id,
+            deviceToken: result.device_token,
+            registeredAt: new Date().toISOString()
+          };
+          const next = {
+            ...device,
+            childConnections: { ...(device.childConnections || {}), [profile.id]: connection }
+          };
+          saveSharedDeviceConnection(next);
+          device = next;
+          bootstrap = await invokeSharedChildBootstrap(connection, profile, secret);
+        }
+
+        if (!bootstrap || bootstrap.child_id !== profile.id || typeof bootstrap.session_token !== 'string') {
+          throw new Error('invalid shared child session');
+        }
+        const session = {
+          version: 1,
+          mode: 'shared-child',
+          familyId: device.familyId,
+          childId: profile.id,
+          childName: profile.displayName,
+          connectionId: connection.connectionId,
+          deviceToken: connection.deviceToken,
+          requiresChildUnlock: true,
+          sessionToken: bootstrap.session_token,
+          startedAt: new Date().toISOString()
+        };
+        sessionStorage.setItem(SHARED_CHILD_SESSION_KEY, JSON.stringify(session));
+        return session;
+      }
+
       function selectedPairingProfile() {
         const childId = byId('pairingChild').value;
         return pairingProfiles.find((child) => child.id === childId) || null;
@@ -1145,6 +1533,42 @@
             return;
           }
 
+          const sharedDevice = readSharedDeviceConnection();
+          if (sharedDevice) {
+            showView('loadingView');
+            if (!session?.user) {
+              const refreshed = await refreshSharedProfiles(sharedDevice);
+              renderSharedChooser(refreshed);
+              return;
+            }
+
+            const sharedFamilies = await loadFamilies(session.user);
+            const sharedFamily = sharedFamilies.find((family) => family.id === sharedDevice.familyId);
+            if (!sharedFamily || session.user.id !== sharedDevice.userId) {
+              localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+              await client.auth.signOut({ scope: 'local' });
+              renderSharedChooser(sharedDevice, 'この家庭に登録した保護者のメールで確認してください。');
+              return;
+            }
+
+            if (localStorage.getItem(SHARED_PARENT_PENDING_KEY) === '1') {
+              localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+              sessionStorage.setItem(SHARED_PARENT_SESSION_KEY, JSON.stringify({
+                version: 1,
+                userId: session.user.id,
+                familyId: sharedDevice.familyId,
+                startedAt: Date.now()
+              }));
+              window.location.replace('parent.html?v=shared-device-20260821');
+              return;
+            }
+
+            const refreshed = await refreshSharedProfiles(sharedDevice);
+            await client.auth.signOut({ scope: 'local' });
+            renderSharedChooser(refreshed);
+            return;
+          }
+
           if (!session?.user) {
             currentDevice = null;
             showView('entryChoiceView');
@@ -1192,12 +1616,29 @@
       }
 
       byId('chooseParentEntryButton').addEventListener('click', () => {
-        setMessage('loginMessage', '');
+        localStorage.setItem(SETUP_MODE_KEY, 'parent');
+        configureLogin('parent');
         showView('loginView');
       });
 
-      byId('chooseChildEntryButton').addEventListener('click', showChildConnectView);
-      byId('backToEntryFromLoginButton').addEventListener('click', () => showView('entryChoiceView'));
+      byId('chooseChildEntryButton').addEventListener('click', () => {
+        localStorage.removeItem(SETUP_MODE_KEY);
+        showChildConnectView();
+      });
+      byId('chooseSharedEntryButton').addEventListener('click', () => {
+        localStorage.setItem(SETUP_MODE_KEY, 'shared');
+        configureLogin('parent');
+        showView('loginView');
+      });
+      byId('backToEntryFromLoginButton').addEventListener('click', () => {
+        localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+        const shared = readSharedDeviceConnection();
+        if (shared) renderSharedChooser(shared);
+        else {
+          localStorage.removeItem(SETUP_MODE_KEY);
+          showView('entryChoiceView');
+        }
+      });
       byId('backToEntryFromChildButton').addEventListener('click', () => {
         resetChildPairingFlow(true);
         showView('entryChoiceView');
@@ -1359,6 +1800,78 @@
         } finally {
           button.disabled = false;
           button.textContent = 'この端末をつなぐ';
+        }
+      });
+
+      byId('backToSharedChooserButton').addEventListener('click', () => {
+        const device = readSharedDeviceConnection();
+        if (device) renderSharedChooser(device);
+        else showView('entryChoiceView');
+      });
+
+      document.querySelectorAll('[data-shared-pattern-point]').forEach((dot) => {
+        dot.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          event.preventDefault();
+          drawingSharedUnlockPattern = true;
+          sharedUnlockPattern = [];
+          sharedUnlockPatternDraft = [];
+          addSharedUnlockPatternPoint(Number(dot.dataset.sharedPatternPoint));
+        });
+      });
+
+      window.addEventListener('pointermove', (event) => {
+        if (!drawingSharedUnlockPattern) return;
+        event.preventDefault();
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-shared-pattern-point]');
+        if (target && byId('sharedUnlockPatternPad').contains(target)) {
+          addSharedUnlockPatternPoint(Number(target.dataset.sharedPatternPoint));
+        }
+      }, { passive: false });
+      window.addEventListener('pointerup', finishSharedUnlockPattern);
+      window.addEventListener('pointercancel', finishSharedUnlockPattern);
+      byId('resetSharedUnlockPatternButton').addEventListener('click', () => resetSharedUnlockPattern());
+
+      byId('sharedChildUnlockForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = byId('openSharedChildButton');
+        const device = readSharedDeviceConnection();
+        const profile = activeSharedProfile();
+        setMessage('sharedUnlockMessage', '');
+        if (!device || !profile) {
+          setMessage('sharedUnlockMessage', '利用する人をもう一度選んでください。', true);
+          return;
+        }
+
+        let secret = '';
+        if (profile.keyType === 'pin') {
+          secret = String(byId('sharedUnlockPin').value || '').replace(/\D/g, '').slice(0, 4);
+          if (!/^\d{4}$/.test(secret)) {
+            setMessage('sharedUnlockMessage', '自分の4桁PINを入力してください。', true);
+            return;
+          }
+        } else {
+          if (sharedUnlockPattern.length < 4) {
+            setMessage('sharedUnlockMessage', '登録した9点パターンをなぞってください。', true);
+            return;
+          }
+          secret = sharedUnlockPattern.join('-');
+        }
+
+        button.disabled = true;
+        button.textContent = '本人を確認しています…';
+        try {
+          await establishSharedChildSession(device, profile, secret);
+          byId('sharedUnlockPin').value = '';
+          resetSharedUnlockPattern();
+          window.location.href = 'child.html?v=shared-device-20260821';
+        } catch (error) {
+          byId('sharedUnlockPin').value = '';
+          resetSharedUnlockPattern();
+          setMessage('sharedUnlockMessage', pairingErrorMessage(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = '子ども画面を開く';
         }
       });
 
@@ -1559,6 +2072,7 @@
             registeredAt: new Date().toISOString()
           };
           localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(record));
+          localStorage.removeItem(SETUP_MODE_KEY);
           currentDevice = record;
           await renderForSession(sessionData.session);
         } catch (error) {
@@ -1567,6 +2081,94 @@
           button.disabled = false;
           button.textContent = currentDevice ? '保護者画面へ戻る' : 'このスマホを保護者用にする';
           button.dataset.action = currentDevice ? 'return' : 'register';
+        }
+      });
+
+      byId('registerSharedDeviceButton').addEventListener('click', async () => {
+        const button = byId('registerSharedDeviceButton');
+        const familyId = byId('deviceFamily').value;
+        const family = currentFamilies.find((item) => item.id === familyId);
+        if (!family) {
+          setMessage('deviceMessage', '接続する家庭を確認してください。', true);
+          return;
+        }
+
+        setMessage('deviceMessage', '');
+        button.disabled = true;
+        button.textContent = '家族共用端末を準備しています…';
+        try {
+          const { data: sessionData, error: sessionError } = await client.auth.getSession();
+          if (sessionError || !sessionData.session?.user) throw sessionError || new Error('session required');
+
+          let parentConnection = currentDevice?.mode === 'parent'
+            && currentDevice.familyId === familyId
+            ? currentDevice
+            : null;
+          if (!parentConnection) {
+            const { data: result, error } = await client.functions.invoke('device-connection', {
+              body: {
+                action: 'register_parent',
+                family_id: familyId,
+                device_label: '家族共用端末'
+              }
+            });
+            if (error || !result?.ok || result.mode !== 'parent'
+                || result.family_id !== familyId || !isUuid(result.connection_id)
+                || typeof result.device_token !== 'string'
+                || !/^fdv1_[A-Za-z0-9_-]{43}$/.test(result.device_token)) {
+              throw error || new Error('shared device registration failed');
+            }
+            parentConnection = {
+              connectionId: result.connection_id,
+              deviceToken: result.device_token
+            };
+          }
+
+          const lookup = await invokeChildDevice({ action: 'lookup', family_code: family.family_code });
+          const profiles = Array.isArray(lookup.children)
+            ? lookup.children.filter((child) => (
+              isUuid(child?.id)
+              && typeof child?.display_name === 'string'
+              && (child.key_type === 'pin' || child.key_type === 'pattern')
+            )).map((child) => ({
+              id: child.id,
+              displayName: child.display_name,
+              icon: child.icon || 'bird',
+              keyType: child.key_type
+            }))
+            : [];
+          if (!profiles.length) {
+            const noChildren = new Error('no active children');
+            noChildren.code = 'family_not_found';
+            throw noChildren;
+          }
+
+          const record = {
+            version: 1,
+            mode: 'shared',
+            userId: sessionData.session.user.id,
+            familyId,
+            familyName: lookup.family_name || family.name,
+            familyCode: normalizeFamilyCode(family.family_code),
+            connectionId: parentConnection.connectionId,
+            deviceToken: parentConnection.deviceToken,
+            profiles,
+            childConnections: {},
+            registeredAt: new Date().toISOString()
+          };
+          saveSharedDeviceConnection(record);
+          localStorage.removeItem(SETUP_MODE_KEY);
+          localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+          await client.auth.signOut({ scope: 'local' });
+          renderSharedChooser(record, '家族共用端末として準備できました。');
+        } catch (error) {
+          const message = error?.code === 'family_not_found'
+            ? '先に保護者画面で、鍵を設定した子どもを登録してください。'
+            : friendlyError(error);
+          setMessage('deviceMessage', message, true);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'この端末を家族みんなで使う';
         }
       });
 

@@ -12,6 +12,7 @@
   --danger:#D87474;--danger-soft:#FDECEC;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro","BIZ UDPGothic","Yu Gothic",sans-serif;
@@ -1112,6 +1113,9 @@ button{cursor:pointer}
       <button class="settings-link" type="button">
         <span>アプリ全体の設定<small>表示・バックアップ・その他</small></span><span class="chevron">›</span>
       </button>
+      <button class="settings-link" type="button" id="returnToSharedChooser" hidden>
+        <span>使う人を選び直す<small>家族共用端末の「だれが使いますか？」へ戻る</small></span><span class="chevron">›</span>
+      </button>
     </div>
     <div class="parent-settings-note">お小遣い・お仕事・履歴は、保護者ホームの各子どもタイルから開きます。</div>
   </section>
@@ -1626,14 +1630,28 @@ const FUERU_REMOTE_CONFIG={
   publishableKey:"sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV"
 };
 const DEVICE_STORAGE_KEY="FUERU_DEVICE_CONNECTION_V1";
+const SHARED_PARENT_PENDING_KEY="FUERU_SHARED_PARENT_PENDING_V1";
+const SHARED_PARENT_SESSION_KEY="FUERU_SHARED_PARENT_SESSION_V1";
 const remoteClient=window.supabase&&window.supabase.createClient
   ?window.supabase.createClient(FUERU_REMOTE_CONFIG.url,FUERU_REMOTE_CONFIG.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})
   :null;
 let remoteParentDevice=null;
+let sharedParentGrant=null;
 try{remoteParentDevice=JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY)||"null");}catch(e){}
+try{sharedParentGrant=JSON.parse(sessionStorage.getItem(SHARED_PARENT_SESSION_KEY)||"null");}catch(e){}
 const sessionResult=remoteClient?await remoteClient.auth.getSession():{data:{session:null}};
 const remoteSession=sessionResult&&sessionResult.data?sessionResult.data.session:null;
-const validParentDevice=remoteParentDevice&&remoteParentDevice.version===1&&remoteParentDevice.mode==="parent"&&
+const sharedParentMode=Boolean(remoteParentDevice&&remoteParentDevice.mode==="shared");
+const validSharedParentGrant=!sharedParentMode||(
+  sharedParentGrant&&sharedParentGrant.version===1&&
+  sharedParentGrant.userId===remoteParentDevice.userId&&
+  sharedParentGrant.familyId===remoteParentDevice.familyId&&
+  Number.isFinite(sharedParentGrant.startedAt)&&
+  sharedParentGrant.startedAt<=Date.now()&&Date.now()-sharedParentGrant.startedAt<2*60*60*1000
+);
+const validParentDevice=remoteParentDevice&&remoteParentDevice.version===1&&
+  (remoteParentDevice.mode==="parent"||remoteParentDevice.mode==="shared")&&
+  validSharedParentGrant&&
   remoteSession&&remoteSession.user&&remoteParentDevice.userId===remoteSession.user.id&&
   /^[0-9a-f-]{36}$/i.test(String(remoteParentDevice.familyId||""));
 if(!validParentDevice){location.replace("./");return;}
@@ -3478,6 +3496,28 @@ document.getElementById("returnSelected").onclick=async()=>{
   finally{remoteBusy=false;}
 };
 document.getElementById("backHome").onclick=()=>{showView("homeView");renderHome()};
+const returnToSharedChooser=document.getElementById("returnToSharedChooser");
+if(returnToSharedChooser&&sharedParentMode){
+  returnToSharedChooser.hidden=false;
+  returnToSharedChooser.onclick=async()=>{
+    returnToSharedChooser.disabled=true;
+    localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+    sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
+    await remoteClient.auth.signOut({scope:"local"});
+    location.replace("./?v=shared-device-20260821");
+  };
+  window.addEventListener("pageshow",async event=>{
+    if(!event.persisted)return;
+    const latest=await remoteClient.auth.getSession();
+    let grant=null;
+    try{grant=JSON.parse(sessionStorage.getItem(SHARED_PARENT_SESSION_KEY)||"null");}catch(error){}
+    const grantStillValid=grant&&grant.version===1&&grant.userId===remoteParentDevice.userId&&
+      grant.familyId===remoteParentDevice.familyId&&Number.isFinite(grant.startedAt)&&
+      grant.startedAt<=Date.now()&&Date.now()-grant.startedAt<2*60*60*1000;
+    if(!latest.data.session||!grantStillValid)location.replace("./?v=shared-device-20260821");
+  });
+}
+
 document.getElementById("openSettings").onclick=()=>showView("settingsView");
 document.getElementById("openChildManage").onclick=()=>{showView("childManageView");renderChildManage()};
 document.getElementById("openLedgerSettings").onclick=()=>{showView("ledgerSettingsView");renderLedgerSettingsList()};

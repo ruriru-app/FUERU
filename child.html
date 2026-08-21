@@ -1887,6 +1887,10 @@ body.fueru-child-booting .app{visibility:hidden}
       <span>プロフィール<small>名前・アイコン・テーマカラー</small></span>
       <span class="chevron">›</span>
     </button>
+    <button class="settings-link" type="button" id="returnToSharedChooser" hidden>
+      <span>使う人を選び直す<small>家族共用端末の「だれが使いますか？」へ戻る</small></span>
+      <span class="chevron">›</span>
+    </button>
   </div>
 </section>
 
@@ -2235,8 +2239,27 @@ var FUERU_CONFIG={
   publishableKey:"sb_publishable_4Xv2dzW_SfOMliDmqCSupQ_GcCi4qtV"
 };
 var DEVICE_STORAGE_KEY="FUERU_DEVICE_CONNECTION_V1";
-var childConnection=null;
-try{childConnection=JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY)||"null");}catch(e){}
+var SHARED_CHILD_SESSION_KEY="FUERU_SHARED_CHILD_SESSION_V1";
+var storedDeviceConnection=null;
+var sharedChildSession=null;
+try{storedDeviceConnection=JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY)||"null");}catch(e){}
+try{sharedChildSession=JSON.parse(sessionStorage.getItem(SHARED_CHILD_SESSION_KEY)||"null");}catch(e){}
+var sharedDeviceMode=storedDeviceConnection&&storedDeviceConnection.mode==="shared"&&
+  sharedChildSession&&sharedChildSession.version===1&&sharedChildSession.mode==="shared-child"&&
+  sharedChildSession.familyId===storedDeviceConnection.familyId&&
+  /^[0-9a-f-]{36}$/i.test(String(sharedChildSession.childId||""))&&
+  /^[0-9a-f-]{36}$/i.test(String(sharedChildSession.connectionId||""))&&
+  /^fdv1_[A-Za-z0-9_-]{43}$/.test(String(sharedChildSession.deviceToken||""))&&
+  /^fcs1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(String(sharedChildSession.sessionToken||""));
+var childConnection=sharedDeviceMode?{
+  mode:"child",
+  familyId:sharedChildSession.familyId,
+  childId:sharedChildSession.childId,
+  childName:sharedChildSession.childName,
+  connectionId:sharedChildSession.connectionId,
+  deviceToken:sharedChildSession.deviceToken,
+  requiresChildUnlock:true
+}:storedDeviceConnection;
 var validChildConnection=childConnection&&childConnection.mode==="child"&&
   /^[0-9a-f-]{36}$/i.test(String(childConnection.childId||""))&&
   /^[0-9a-f-]{36}$/i.test(String(childConnection.connectionId||""))&&
@@ -2249,7 +2272,7 @@ var PROFILE_KEY="FUERU_CHILD_PROFILE_"+childScope;
 var CHILD_ID=validChildConnection?String(childConnection.childId):"";
 var REMOTE_READ_ONLY=true;
 var REMOTE_CONNECTED=true;
-var CHILD_SESSION_TOKEN="";
+var CHILD_SESSION_TOKEN=sharedDeviceMode?String(sharedChildSession.sessionToken):"";
 
 function showChildBootFailure(message,allowReconnect){
   var box=document.getElementById("fueruChildBootStatus");
@@ -2259,7 +2282,8 @@ function showChildBootFailure(message,allowReconnect){
     '</div></div>';
   if(allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
-      localStorage.removeItem(DEVICE_STORAGE_KEY);
+      if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
+      else localStorage.removeItem(DEVICE_STORAGE_KEY);
       location.href="./";
     });
   }
@@ -2332,7 +2356,13 @@ async function invokeChildData(action,payload,unlock){
     error.keyType=result.key_type||"";
     throw error;
   }
-  if(typeof result.session_token==="string"&&result.session_token)CHILD_SESSION_TOKEN=result.session_token;
+  if(typeof result.session_token==="string"&&result.session_token){
+    CHILD_SESSION_TOKEN=result.session_token;
+    if(sharedDeviceMode&&sharedChildSession){
+      sharedChildSession.sessionToken=result.session_token;
+      sessionStorage.setItem(SHARED_CHILD_SESSION_KEY,JSON.stringify(sharedChildSession));
+    }
+  }
   return result;
 }
 function mapRemoteChildData(result){
@@ -3297,6 +3327,15 @@ function resetForm(){
 }
 function openDelete(id){deleteTarget=id;var j=jobs.find(function(x){return x.id===id});document.getElementById("deleteJobName").textContent=j?"「"+j.name+"」":"";deleteModal.classList.add("open")}
 function showToast(msg){toast.textContent=msg;toast.classList.add("show");setTimeout(function(){toast.classList.remove("show")},1500)}
+
+var returnToSharedChooser=document.getElementById("returnToSharedChooser");
+if(returnToSharedChooser&&sharedDeviceMode){
+  returnToSharedChooser.hidden=false;
+  returnToSharedChooser.onclick=function(){
+    sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
+    location.replace("./?v=shared-device-20260821");
+  };
+}
 
 document.getElementById("openSettings").onclick=function(){
   homeView.classList.remove("active");rewardDetailView.classList.remove("active");passbookView.classList.remove("active");document.getElementById("withdrawalView").classList.remove("active");settingsView.classList.remove("active");

@@ -1051,7 +1051,7 @@ button{cursor:pointer}
       </div>
       <p class="withdraw-instruction" id="withdrawInstruction">現金を渡したあと、<br><strong>お子さん本人</strong>に自分の鍵を入力してもらってください。</p>
       <div class="withdraw-key-field" id="withdrawPinField">
-        <input class="withdraw-pin-input" id="withdrawConfirmPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" aria-label="出金確認用PIN">
+        <input class="withdraw-pin-input" id="withdrawConfirmPin" name="withdrawal-verification-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" aria-label="出金確認用PIN">
         <div class="withdraw-pin-note">PINは保護者には表示されません。入力が一致した場合だけ出金を確定します。</div>
       </div>
       <div class="withdraw-key-field hidden" id="withdrawPatternField">

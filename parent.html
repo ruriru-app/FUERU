@@ -767,6 +767,16 @@ button{cursor:pointer}
 .withdraw-pattern-dot.selected{border-color:#D9C8EF;transform:scale(1.08)}
 .withdraw-pattern-note{min-height:24px;margin:10px 0 0;text-align:center;color:var(--muted);font-size:12px;font-weight:700}
 .withdraw-pattern-reset{display:block;margin:8px auto 0;border:0;background:transparent;color:var(--child-deep,#2F746B);font-size:12px;font-weight:700;text-decoration:underline}
+.child-key-reset-open{width:100%;margin:20px 0 0;padding:13px;border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--child-deep,#2F746B);font-weight:800}
+.child-key-section{margin-top:20px;padding:18px;border:2px solid var(--line);border-radius:18px;background:#FCFBFE}
+.child-key-section.hidden,.child-key-fields.hidden{display:none}
+.child-key-title{margin:0 0 7px;font-size:16px}
+.child-key-guidance{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.65}
+.child-key-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.child-key-choice label{display:flex;align-items:center;gap:7px;padding:12px;border:2px solid var(--line);border-radius:13px;background:#fff;font-size:13px;font-weight:800}
+.child-key-pin-grid{display:grid;gap:10px}
+.child-key-pin-grid input{text-align:center;letter-spacing:.35em;font-size:20px}
+.child-key-pattern-pad{--child-main:#8CCBC2;--child-sub:#EAF7F5}
 .withdraw-confirm-btn{width:100%;margin-top:15px;border:0;border-radius:15px;background:var(--child-main,#8CCBC2);color:#fff;padding:14px;font-size:16px;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .withdraw-confirm-btn:disabled{background:#BCCAC8;box-shadow:none;cursor:wait}
 .withdraw-error{display:none;margin-top:12px;padding:11px;border-radius:13px;background:var(--danger-soft);color:#B95F5F;font-size:12px;font-weight:700;text-align:center}
@@ -995,7 +1005,7 @@ button{cursor:pointer}
       <button class="soft-btn right" id="openSettings">設定</button>
     </header>
 
-    <div class="remote-parent-status">家庭のデータと接続しています。おしごと・支給設定・出金は家庭のデータへ保存されます。</div>
+    <div class="remote-parent-status">家庭のデータと接続しています。子ども管理・おしごと・支給設定・出金は家庭のデータへ保存されます。</div>
 
     <section class="card summary-card">
       <div class="label">確認待ち</div>
@@ -1270,6 +1280,36 @@ button{cursor:pointer}
       <div class="field-label">サブカラー</div>
       <div class="option-grid" id="subColorGrid"></div>
 
+      <button class="child-key-reset-open" type="button" id="showChildKeyEditor">本人の鍵を設定し直す</button>
+      <section class="child-key-section hidden" id="childKeyEditor">
+        <h2 class="child-key-title" id="childKeyEditorTitle">本人の鍵</h2>
+        <p class="child-key-guidance">子ども本人と一緒に、4桁PINまたは9点パターンを設定してください。鍵の内容そのものは保存しません。</p>
+        <div class="child-key-choice">
+          <label><input type="radio" name="childEditorKeyType" value="pin" checked>4桁PIN</label>
+          <label><input type="radio" name="childEditorKeyType" value="pattern">9点パターン</label>
+        </div>
+        <div class="child-key-fields child-key-pin-grid" id="childEditorPinFields">
+          <input class="text-input" id="childEditorPin" name="new-child-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="4桁PIN">
+          <input class="text-input" id="childEditorPinConfirm" name="new-child-pin-confirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="同じPINをもう一度">
+        </div>
+        <div class="child-key-fields hidden" id="childEditorPatternFields">
+          <div class="withdraw-pattern-pad child-key-pattern-pad" id="childEditorPatternPad" aria-label="子どもの9点パターン登録">
+            <svg class="withdraw-pattern-lines" id="childEditorPatternLines" viewBox="0 0 300 300" aria-hidden="true"></svg>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="0" aria-label="左上"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="1" aria-label="上"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="2" aria-label="右上"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="3" aria-label="左"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="4" aria-label="中央"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="5" aria-label="右"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="6" aria-label="左下"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="7" aria-label="下"></button>
+            <button class="withdraw-pattern-dot" type="button" data-child-key-pattern-point="8" aria-label="右下"></button>
+          </div>
+          <div class="withdraw-pattern-note" id="childEditorPatternNote">4点以上をなぞってください</div>
+          <button class="withdraw-pattern-reset" id="resetChildEditorPattern" type="button">やり直す</button>
+        </div>
+      </section>
+
       <div class="editor-actions">
         <button class="delete-btn" id="deleteChild">削除</button>
         <button class="save-btn" id="saveChild">保存</button>
@@ -1540,7 +1580,7 @@ button{cursor:pointer}
   <div class="delete-modal" id="deleteChildModal" aria-hidden="true">
     <div class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteChildModalTitle">
       <h2 id="deleteChildModalTitle">子どもを削除しますか？</h2>
-      <p><span class="delete-target" id="deleteChildTargetName">この子ども</span>のプロフィール、お仕事設定、履歴、確認待ちデータを削除します。</p>
+      <p><span class="delete-target" id="deleteChildTargetName">この子ども</span>の利用を停止し、専用の子ども端末を無効にします。お仕事や通帳の記録は、復旧できる形で安全に保持します。</p>
       <p class="delete-warning">この操作は元に戻せません。</p>
       <div class="delete-dialog-actions">
         <button type="button" class="cancel-delete-btn" id="cancelDeleteChild">操作取消</button>
@@ -1733,6 +1773,14 @@ let currentChildId=null;
 
 let editingChildId=null;
 let childDraft=null;
+let pendingChildProfileId=null;
+let childKeyChangeRequested=false;
+let childEditorKeyType="pin";
+let childEditorPatternStage=1;
+let childEditorPatternFirst=[];
+let childEditorPatternConfirmed=[];
+let childEditorPatternDraft=[];
+let drawingChildEditorPattern=false;
 let allowanceEditingId=null;
 let allowanceEditorFromHub=false;
 let jobEditingChildId=null;
@@ -2789,6 +2837,83 @@ function showAllowanceNotice(text){
   setTimeout(()=>n.classList.remove("show"),1200);
 }
 
+function childEditorPatternCoordinates(point){
+  const values=[50,150,250];
+  return {x:values[point%3],y:values[Math.floor(point/3)]};
+}
+function drawChildEditorPattern(points){
+  const svg=document.getElementById("childEditorPatternLines");if(!svg)return;
+  svg.replaceChildren();
+  for(let index=1;index<points.length;index++){
+    const from=childEditorPatternCoordinates(points[index-1]);
+    const to=childEditorPatternCoordinates(points[index]);
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",String(from.x));line.setAttribute("y1",String(from.y));
+    line.setAttribute("x2",String(to.x));line.setAttribute("y2",String(to.y));
+    svg.append(line);
+  }
+  document.querySelectorAll("[data-child-key-pattern-point]").forEach(dot=>{
+    dot.classList.toggle("selected",points.includes(Number(dot.dataset.childKeyPatternPoint)));
+  });
+}
+function resetChildEditorPattern(message="4点以上をなぞってください"){
+  childEditorPatternStage=1;childEditorPatternFirst=[];childEditorPatternConfirmed=[];childEditorPatternDraft=[];drawingChildEditorPattern=false;
+  drawChildEditorPattern([]);
+  const note=document.getElementById("childEditorPatternNote");if(note)note.textContent=message;
+}
+function addChildEditorPatternPoint(point){
+  if(!drawingChildEditorPattern||childEditorPatternDraft.includes(point))return;
+  childEditorPatternDraft.push(point);drawChildEditorPattern(childEditorPatternDraft);
+}
+function finishChildEditorPattern(){
+  if(!drawingChildEditorPattern)return;
+  drawingChildEditorPattern=false;
+  if(childEditorPatternDraft.length<4){
+    childEditorPatternDraft=[];drawChildEditorPattern([]);
+    document.getElementById("childEditorPatternNote").textContent="4点以上をなぞってください";
+    return;
+  }
+  if(childEditorPatternStage===1){
+    childEditorPatternFirst=[...childEditorPatternDraft];childEditorPatternDraft=[];childEditorPatternStage=2;
+    drawChildEditorPattern([]);
+    document.getElementById("childEditorPatternNote").textContent="確認のため、同じパターンをもう一度なぞってください";
+    return;
+  }
+  const matches=childEditorPatternFirst.length===childEditorPatternDraft.length&&childEditorPatternFirst.every((point,index)=>point===childEditorPatternDraft[index]);
+  if(!matches){resetChildEditorPattern("パターンが一致しません。最初からやり直してください");return;}
+  childEditorPatternConfirmed=[...childEditorPatternDraft];childEditorPatternDraft=[];childEditorPatternStage=3;
+  drawChildEditorPattern(childEditorPatternConfirmed);
+  document.getElementById("childEditorPatternNote").textContent="パターンを確認できました";
+}
+function resetChildEditorKeyFields(){
+  childEditorKeyType="pin";
+  document.querySelectorAll('input[name="childEditorKeyType"]').forEach(input=>input.checked=input.value==="pin");
+  document.getElementById("childEditorPin").value="";
+  document.getElementById("childEditorPinConfirm").value="";
+  document.getElementById("childEditorPinFields").classList.remove("hidden");
+  document.getElementById("childEditorPatternFields").classList.add("hidden");
+  resetChildEditorPattern();
+}
+function showChildEditorKeySection(){
+  childKeyChangeRequested=true;
+  document.getElementById("childKeyEditor").classList.remove("hidden");
+  document.getElementById("showChildKeyEditor").style.display="none";
+  document.getElementById("childKeyEditorTitle").textContent=editingChildId?"本人の鍵を設定し直す":"本人の鍵を設定する";
+  resetChildEditorKeyFields();
+}
+function collectChildEditorKey(){
+  if(!childKeyChangeRequested)return null;
+  if(childEditorKeyType==="pin"){
+    const pin=document.getElementById("childEditorPin").value;
+    const confirmation=document.getElementById("childEditorPinConfirm").value;
+    if(!/^\d{4}$/.test(pin))throw new Error("4桁のPINを入力してください");
+    if(pin!==confirmation)throw new Error("2回入力したPINが一致しません");
+    return {keyType:"pin",secret:pin};
+  }
+  if(childEditorPatternStage!==3||childEditorPatternConfirmed.length<4)throw new Error("9点パターンを2回入力してください");
+  return {keyType:"pattern",secret:childEditorPatternConfirmed.join("-")};
+}
+
 function renderChildManage(){
   const box=document.getElementById("childManageList");
   box.innerHTML="";
@@ -2798,7 +2923,7 @@ function renderChildManage(){
     card.innerHTML=`
       <div class="manage-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</div>
       <div>
-        <div class="manage-name" style="color:${child.deep}">${child.name}</div>
+        <div class="manage-name" style="color:${child.deep}">${escapeHtml(child.name)}</div>
         <div class="manage-sub">確認待ち ${waitingReports(child).length}件／確定報酬 ${child.confirmed}円</div>
       </div>
       <div class="manage-actions">
@@ -2812,12 +2937,18 @@ function renderChildManage(){
     box.appendChild(card);
   });
 }
-function moveChild(index,delta){
+async function moveChild(index,delta){
   const target=index+delta;
-  if(target<0||target>=state.children.length)return;
-  [state.children[index],state.children[target]]=[state.children[target],state.children[index]];
-  save();renderChildManage();renderHome();
-  showManageNotice("表示順を変更しました");
+  if(target<0||target>=state.children.length||remoteBusy)return;
+  const ordered=[...state.children];
+  [ordered[index],ordered[target]]=[ordered[target],ordered[index]];
+  remoteBusy=true;
+  try{
+    const result=await remoteClient.rpc("reorder_child_profiles",{p_family_id:REMOTE_FAMILY_ID,p_child_ids:ordered.map(child=>child.id)});
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();renderChildManage();renderHome();showManageNotice("表示順を変更しました");
+  }catch(error){await refreshRemoteParentState();renderChildManage();remoteOperationError(error);}
+  finally{remoteBusy=false;}
 }
 function showManageNotice(text){
   const n=document.getElementById("childManageNotice");
@@ -2826,6 +2957,7 @@ function showManageNotice(text){
 }
 function openChildEditor(id){
   editingChildId=id||null;
+  if(id)pendingChildProfileId=null;
   const existing=id?state.children.find(c=>c.id===id):null;
   childDraft=existing?JSON.parse(JSON.stringify(existing)):{
     id:"child_"+Date.now(),name:"",icon:"bird",
@@ -2834,6 +2966,11 @@ function openChildEditor(id){
   document.getElementById("childEditTitle").textContent=existing?"プロフィール編集":"子どもを追加";
   const deleteButton=document.getElementById("deleteChild");
   deleteButton.style.display=existing?"block":"none";
+  childKeyChangeRequested=!existing;
+  document.getElementById("showChildKeyEditor").style.display=existing?"block":"none";
+  document.getElementById("childKeyEditor").classList.toggle("hidden",Boolean(existing));
+  document.getElementById("childKeyEditorTitle").textContent=existing?"本人の鍵を設定し直す":"本人の鍵を設定する";
+  resetChildEditorKeyFields();
   closeDeleteChildModal();
   showView("childEditView");
   renderChildEditor();
@@ -3298,16 +3435,99 @@ document.getElementById("backFromAllowanceEdit").onclick=()=>{
 };
 document.getElementById("backFromChildEdit").onclick=()=>{showView("childManageView");renderChildManage()};
 document.getElementById("addChild").onclick=()=>openChildEditor(null);
+document.getElementById("showChildKeyEditor").onclick=showChildEditorKeySection;
+document.querySelectorAll('input[name="childEditorKeyType"]').forEach(input=>{
+  input.addEventListener("change",()=>{
+    childEditorKeyType=input.value==="pattern"?"pattern":"pin";
+    document.getElementById("childEditorPinFields").classList.toggle("hidden",childEditorKeyType!=="pin");
+    document.getElementById("childEditorPatternFields").classList.toggle("hidden",childEditorKeyType!=="pattern");
+    if(childEditorKeyType==="pattern")resetChildEditorPattern();
+  });
+});
+["childEditorPin","childEditorPinConfirm"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",function(){this.value=String(this.value||"").replace(/\D/g,"").slice(0,4)});
+});
+document.querySelectorAll("[data-child-key-pattern-point]").forEach(dot=>{
+  dot.addEventListener("pointerdown",event=>{
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    event.preventDefault();
+    if(childEditorPatternStage===3)resetChildEditorPattern();
+    drawingChildEditorPattern=true;childEditorPatternDraft=[];
+    addChildEditorPatternPoint(Number(dot.dataset.childKeyPatternPoint));
+  });
+});
+window.addEventListener("pointermove",event=>{
+  if(!drawingChildEditorPattern)return;
+  event.preventDefault();
+  const target=document.elementFromPoint(event.clientX,event.clientY)?.closest("[data-child-key-pattern-point]");
+  if(target&&document.getElementById("childEditorPatternPad").contains(target))addChildEditorPatternPoint(Number(target.dataset.childKeyPatternPoint));
+},{passive:false});
+window.addEventListener("pointerup",finishChildEditorPattern);
+window.addEventListener("pointercancel",finishChildEditorPattern);
+document.getElementById("resetChildEditorPattern").onclick=()=>resetChildEditorPattern();
 document.getElementById("childNameInput").oninput=function(){
   childDraft.name=this.value.trimStart();
   document.getElementById("editorPreviewName").textContent=childDraft.name||"名前";
 };
-document.getElementById("saveChild").onclick=()=>{
-  childDraft.name=(document.getElementById("childNameInput").value.trim()||"なまえ");
-  const index=state.children.findIndex(c=>c.id===editingChildId);
-  if(index>=0)state.children[index]=childDraft;
-  else state.children.push(childDraft);
-  save();renderHome();showView("childManageView");renderChildManage();showManageNotice("保存しました");
+document.getElementById("saveChild").onclick=async()=>{
+  if(remoteBusy)return;
+  const name=document.getElementById("childNameInput").value.trim();
+  if(!name||name.length>40){alert("子どもの名前を入力してください");return;}
+  let keyPayload;
+  try{keyPayload=collectChildEditorKey();}
+  catch(error){alert(error.message);return;}
+
+  const button=document.getElementById("saveChild");
+  const wasNew=!editingChildId;
+  let childId=editingChildId||pendingChildProfileId;
+  let profileSaved=false;
+  remoteBusy=true;button.disabled=true;button.textContent="安全に保存しています…";
+  try{
+    if(!childId){
+      const createResult=await remoteClient.rpc("create_child_profile",{p_family_id:REMOTE_FAMILY_ID,p_display_name:name,p_icon:childDraft.icon||"bird"});
+      if(createResult.error||!createResult.data)throw createResult.error||new Error("child profile not created");
+      childId=createResult.data;pendingChildProfileId=childId;
+    }
+
+    const profileResult=await remoteClient.rpc("update_child_profile",{
+      p_child_id:childId,p_display_name:name,p_icon:childDraft.icon||"bird",
+      p_theme_main:childDraft.main,p_theme_sub:childDraft.sub,p_theme_deep:childDraft.deep
+    });
+    if(profileResult.error)throw profileResult.error;
+    profileSaved=true;
+
+    if(keyPayload){
+      const keyResult=await remoteClient.functions.invoke("child-key",{body:{
+        action:"set",child_id:childId,key_type:keyPayload.keyType,secret:keyPayload.secret
+      }});
+      if(keyResult.error||!keyResult.data?.ok)throw keyResult.error||new Error("child key not saved");
+    }
+
+    if(wasNew){
+      const orderedIds=state.children.map(child=>child.id).filter(id=>id!==childId).concat(childId);
+      const orderResult=await remoteClient.rpc("reorder_child_profiles",{p_family_id:REMOTE_FAMILY_ID,p_child_ids:orderedIds});
+      if(orderResult.error)console.warn("child order could not be updated",orderResult.error);
+    }
+
+    await refreshRemoteParentState();
+    const savedName=state.children.find(child=>child.id===childId)?.name||name;
+    editingChildId=null;pendingChildProfileId=null;childKeyChangeRequested=false;
+    resetChildEditorKeyFields();
+    renderHome();showView("childManageView");renderChildManage();showManageNotice(savedName+"さんを保存しました");
+  }catch(error){
+    await refreshRemoteParentState();
+    if(!editingChildId&&childId){
+      pendingChildProfileId=childId;
+      alert(profileSaved
+        ?"プロフィールは保存できましたが、本人の鍵を保存できませんでした。PINまたはパターンを入力し直して、もう一度保存してください。"
+        :"登録を完了できませんでした。入力内容を確認して、もう一度保存してください。");
+    }else if(profileSaved&&keyPayload){
+      alert("プロフィールは保存できましたが、本人の鍵を変更できませんでした。もう一度お試しください。");
+    }else remoteOperationError(error);
+  }finally{
+    document.getElementById("childEditorPin").value="";document.getElementById("childEditorPinConfirm").value="";
+    remoteBusy=false;button.disabled=false;button.textContent="保存";
+  }
 };
 
 
@@ -3481,15 +3701,22 @@ document.getElementById("cancelDeleteChild").onclick=closeDeleteChildModal;
 document.getElementById("deleteChildModal").onclick=(event)=>{
   if(event.target.id==="deleteChildModal")closeDeleteChildModal();
 };
-document.getElementById("confirmDeleteChild").onclick=()=>{
-  if(!editingChildId)return;
+document.getElementById("confirmDeleteChild").onclick=async()=>{
+  if(!editingChildId||remoteBusy)return;
   const deletedChild=state.children.find(c=>c.id===editingChildId);
-  state.children=state.children.filter(c=>c.id!==editingChildId);
-  if(childHubId===editingChildId)childHubId=null;
-  editingChildId=null;
-  closeDeleteChildModal();
-  save();renderHome();showView("childManageView");renderChildManage();
-  showManageNotice((deletedChild?deletedChild.name:"子ども")+"を削除しました");
+  const childId=editingChildId;
+  const button=document.getElementById("confirmDeleteChild");
+  remoteBusy=true;button.disabled=true;button.textContent="停止しています…";
+  try{
+    const result=await remoteClient.rpc("archive_child_profile",{p_child_id:childId});
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();
+    if(childHubId===childId)childHubId=null;
+    editingChildId=null;closeDeleteChildModal();
+    renderHome();showView("childManageView");renderChildManage();
+    showManageNotice((deletedChild?deletedChild.name:"子ども")+"さんの利用を停止しました");
+  }catch(error){remoteOperationError(error);}
+  finally{remoteBusy=false;button.disabled=false;button.textContent="削除する";}
 };
 
 const payDaySelect=document.getElementById("payDay");
@@ -3509,7 +3736,7 @@ for(let d=1;d<=31;d++){
 
 document.addEventListener("click",event=>{
   const target=event.target&&event.target.closest?event.target.closest(
-    "#openChildManage,#openLedgerSettings,#hubEditProfile,#saveChild,#deleteChild,#confirmDeleteChild,#saveLedgerSettings,#addChild,#cancelAllDayJobs,.day-job-actions button"
+    "#openLedgerSettings,#saveLedgerSettings,#cancelAllDayJobs,.day-job-actions button"
   ):null;
   if(!target)return;
   event.preventDefault();event.stopImmediatePropagation();

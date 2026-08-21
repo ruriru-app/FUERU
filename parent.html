@@ -1715,7 +1715,7 @@ button{cursor:pointer}
   </div>
 
 <script src="vendor-qrcode-generator-2.0.4.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="vendor-supabase-js-2.112.3.js"></script>
 <script>
 (async function(){
 "use strict";
@@ -1762,6 +1762,23 @@ function remoteFrequencyLabel(value,weekdays){
   if(value==="weekdays")return "平日";
   const labels=["日","月","火","水","木","金","土"];
   return (weekdays||[]).map(day=>labels[Number(day)]).filter(Boolean).join("・")||"曜日指定";
+}
+function safeRemoteChildAppearance(icon,main,sub,deep){
+  const themes=[
+    ["#8CCBC2","#EAF7F5","#2F746B"],
+    ["#8BBFE5","#EAF5FC","#376E98"],
+    ["#B59AD9","#F1EBF8","#68508F"],
+    ["#EF9A8B","#FDEDEA","#995044"],
+    ["#EFA6C5","#FCEEF4","#965572"],
+    ["#F3B26F","#FFF1E2","#98602E"],
+    ["#F2D16F","#FFF8D9","#8D7428"],
+    ["#8FA9D8","#ECF1FA","#495F8E"]
+  ];
+  const theme=themes.find(values=>values[0]===main&&values[1]===sub&&values[2]===deep)||themes[0];
+  return {
+    icon:["bird","star","flower","moon"].includes(icon)?icon:"bird",
+    main:theme[0],sub:theme[1],deep:theme[2]
+  };
 }
 async function loadRemoteParentState(){
   const membership=await remoteClient.from("family_guardians").select("family_id").eq("family_id",REMOTE_FAMILY_ID).eq("user_id",remoteSession.user.id).maybeSingle();
@@ -1827,9 +1844,10 @@ async function loadRemoteParentState(){
     const pending=pendingByChild.get(child.id)||[];
     const transactions=transactionsByChild.get(child.id)||[];
     const catalog=catalogByChild.get(child.id)||[];
+    const appearance=safeRemoteChildAppearance(child.icon,child.theme_main,child.theme_sub,child.theme_deep);
     const allowanceTransactions=transactions.filter(item=>item.type==="allowance"&&item.sourceType==="allowance_due");
     const lastAllowancePayoutDate=allowanceTransactions.map(item=>item.date||"").sort().pop()||"";
-    return {id:child.id,name:child.display_name,icon:child.icon||"bird",main:child.theme_main||"#8CCBC2",sub:child.theme_sub||"#EAF7F5",deep:child.theme_deep||"#2F746B",
+    return {id:child.id,name:child.display_name,icon:appearance.icon,main:appearance.main,sub:appearance.sub,deep:appearance.deep,
       allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",payDay:Number(settings.pay_day)||25,
       rewardTiming:settings.reward_timing||"immediate",rewardPaySchedule:settings.reward_pay_schedule||"allowance",rewardPayDay:Number(settings.reward_pay_day)||25,
       closeType:settings.close_type||"monthEnd",closeDay:Number(settings.close_day)||31,periodMode:settings.period_mode||"cycle",payoutMode:settings.payout_mode||"manual",
@@ -2550,9 +2568,9 @@ function renderChild(){
         const row=document.createElement("label");
         row.className="report-row";
         row.innerHTML=`
-          <input class="report-check" type="checkbox" value="${report.id}">
-          <span><span class="report-name">${report.name}</span><span class="report-sub">${report.frequency}</span></span>
-          <span class="report-money">${report.reward}円</span>`;
+          <input class="report-check" type="checkbox" value="${escapeHtml(report.id)}">
+          <span><span class="report-name">${escapeHtml(report.name)}</span><span class="report-sub">${escapeHtml(report.frequency)}</span></span>
+          <span class="report-money">${Number(report.reward||0).toLocaleString()}円</span>`;
         group.appendChild(row);
       });
       box.appendChild(group);
@@ -2682,12 +2700,12 @@ function renderJobSettings(){
   const box=document.getElementById("jobSettingsList");box.innerHTML="";
   state.children.forEach(child=>{
     const card=document.createElement("section");card.className="job-child-card";
-    card.innerHTML=`<div class="job-child-head"><div class="job-child-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</div><div class="job-child-name" style="color:${child.deep}">${child.name}</div></div><div class="job-list"></div><button class="add-job-btn">＋ お仕事を追加</button>`;
+    card.innerHTML=`<div class="job-child-head"><div class="job-child-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</div><div class="job-child-name" style="color:${child.deep}">${escapeHtml(child.name)}</div></div><div class="job-list"></div><button class="add-job-btn">＋ お仕事を追加</button>`;
     const list=card.querySelector(".job-list");
     if(!child.jobs.length)list.innerHTML='<div class="empty">登録されているお仕事はありません</div>';
     child.jobs.forEach(job=>{
       const item=document.createElement("div");item.className="job-item"+(job.enabled?"":" off");
-      item.innerHTML=`<div><div class="job-item-name">${job.name}</div><div class="job-item-meta">${frequencyLabel(job)}／${job.reward}円</div></div><div class="job-item-actions"><span class="job-status ${job.enabled?"":"off"}">${job.enabled?"ON":"OFF"}</span><button class="mini-btn">編集</button></div>`;
+      item.innerHTML=`<div><div class="job-item-name">${escapeHtml(job.name)}</div><div class="job-item-meta">${escapeHtml(frequencyLabel(job))}／${Number(job.reward||0).toLocaleString()}円</div></div><div class="job-item-actions"><span class="job-status ${job.enabled?"":"off"}">${job.enabled?"ON":"OFF"}</span><button class="mini-btn">編集</button></div>`;
       item.querySelector("button").onclick=()=>openJobEditor(child.id,job.id);list.appendChild(item);
     });
     card.querySelector(".add-job-btn").onclick=()=>openJobEditor(child.id,null);box.appendChild(card);
@@ -2750,7 +2768,7 @@ function renderHubJobs(){
   if(!child.jobs.length)box.innerHTML='<div class="empty">登録されているお仕事はありません</div>';
   child.jobs.forEach(job=>{
     const row=document.createElement("div");row.className="child-job-row";
-    row.innerHTML=`<div><div class="child-job-name">${job.name}</div><div class="child-job-meta">${frequencyLabel(job)}／${job.reward}円</div></div>
+    row.innerHTML=`<div><div class="child-job-name">${escapeHtml(job.name)}</div><div class="child-job-meta">${escapeHtml(frequencyLabel(job))}／${Number(job.reward||0).toLocaleString()}円</div></div>
       <label class="compact-switch"><input type="checkbox" ${job.enabled!==false?"checked":""}><span></span></label>
       <button class="mini-btn">編集</button>`;
     row.querySelector("input").onchange=async e=>{
@@ -3127,7 +3145,7 @@ function renderAllowanceList(){
     card.innerHTML=`
       <span class="allowance-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</span>
       <span class="allowance-main">
-        <span class="allowance-name" style="color:${child.deep}">${child.name}</span>
+        <span class="allowance-name" style="color:${child.deep}">${escapeHtml(child.name)}</span>
         <span class="allowance-summary">定額 ${Number(child.allowance||0).toLocaleString()}円／${payLabel}<br>お仕事報酬：${child.rewardTiming==="payday"?"支給日にまとめて":"承認ごとに入金"}</span>
       </span>
       <span class="chevron" style="color:${child.deep}">›</span>`;

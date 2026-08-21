@@ -2382,6 +2382,20 @@ async function invokeChildData(action,payload,unlock){
 }
 function mapRemoteChildData(result){
   var profile=result.child||{},settings=result.settings||{};
+  var themes=[
+    ["#8CCBC2","#EAF7F5","#2F746B"],
+    ["#8BBFE5","#EAF5FC","#376E98"],
+    ["#B59AD9","#F1EBF8","#68508F"],
+    ["#EF9A8B","#FDEDEA","#995044"],
+    ["#EFA6C5","#FCEEF4","#965572"],
+    ["#F3B26F","#FFF1E2","#98602E"],
+    ["#F2D16F","#FFF8D9","#8D7428"],
+    ["#8FA9D8","#ECF1FA","#495F8E"]
+  ];
+  var theme=themes.find(function(values){
+    return values[0]===profile.theme_main&&values[1]===profile.theme_sub&&values[2]===profile.theme_deep;
+  })||themes[0];
+  var safeIcon=/^(bird|star|flower|moon)$/.test(String(profile.icon||""))?profile.icon:"bird";
   var remoteJobs=(result.jobs||[]).map(function(job){
     return {
       id:job.id,name:job.name,reward:Number(job.reward_amount)||0,
@@ -2444,8 +2458,7 @@ function mapRemoteChildData(result){
   var passbookBalance=transactions.reduce(function(total,tx){return total+(Number(tx.amount)||0);},0);
   var sharedChildState={
     id:profile.id,name:profile.display_name||childConnection.childName||"なまえ",
-    icon:profile.icon||"bird",main:profile.theme_main||"#8CCBC2",
-    sub:profile.theme_sub||"#F1EBF8",deep:profile.theme_deep||"#2F746B",
+    icon:safeIcon,main:theme[0],sub:theme[1],deep:theme[2],
     allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",
     payDay:Number(settings.pay_day)||25,rewardTiming:settings.reward_timing||"immediate",
     rewardPaySchedule:settings.reward_pay_schedule||"allowance",

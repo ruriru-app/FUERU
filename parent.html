@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.26.Step2</title>
+<title>FUERU 保護者版 v0.9.27.Step2</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -488,7 +488,8 @@ button{cursor:pointer}
 .day-job-meta{font-size:11px;color:var(--muted);margin-top:3px}
 .day-job-actions{display:flex;gap:8px;margin-top:9px}
 .day-job-actions button{flex:1;min-width:0;white-space:nowrap;border-radius:12px;padding:9px 6px;font-size:13px;font-weight:700;border:2px solid var(--line);background:#fff;color:var(--child-deep,#2F746B)}
-.day-job-actions .missed{flex:.85;border-color:#E7C1C1;color:#9A5B5B;background:#FFF7F7}
+.day-job-actions .missed,.day-job-actions .missed-toggle{flex:.85}
+.day-job-actions .missed{border-color:#E7C1C1;color:#9A5B5B;background:#FFF7F7}
 .day-job-actions .cancel-job{flex:1.35}
 .day-job-actions .restore{border-color:var(--child-main,#8CCBC2);background:var(--child-sub,#EAF7F5)}
 .day-job-row.cancelled{background:#FAFAFA;opacity:.82}
@@ -3145,7 +3146,7 @@ function openParentDayMenu(dateKey){
         actions.appendChild(restore);
       }else{
         if(status!=="done"){
-          const missed=document.createElement("button");missed.type="button";missed.className=status==="missed"?"restore":"missed";
+          const missed=document.createElement("button");missed.type="button";missed.className=(status==="missed"?"restore ":"missed ")+"missed-toggle";
           missed.textContent=status==="missed"?"未達成を解除":"未達成にする";
           missed.disabled=status!=="missed"&&dateKey>isoDate(new Date());
           missed.onclick=()=>applyParentDayMutation("set_job_report_missed",{

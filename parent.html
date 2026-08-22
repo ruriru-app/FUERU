@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.24.Step2</title>
+<title>FUERU 保護者版 v0.9.25.Step2</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -490,6 +490,8 @@ button{cursor:pointer}
 .day-job-actions button{flex:1;border-radius:12px;padding:9px 8px;font-weight:700;border:2px solid var(--line);background:#fff;color:var(--child-deep,#2F746B)}
 .day-job-actions .missed{border-color:#E7C1C1;color:#9A5B5B;background:#FFF7F7}
 .day-job-actions .restore{border-color:var(--child-main,#8CCBC2);background:var(--child-sub,#EAF7F5)}
+.day-job-row.cancelled{background:#FAFAFA;opacity:.82}
+.day-job-row.cancelled .day-job-name{text-decoration:line-through}
 .cancel-day-btn{width:100%;margin-top:12px;border:2px dashed #D5A9A9;background:#FFF7F7;color:#925454;border-radius:15px;padding:12px;font-weight:700}
 .day-menu-note{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}
 
@@ -2889,32 +2891,43 @@ function isoDate(d){
   const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${day}`;
 }
-function isJobScheduledForParent(child,job,d){
+function isJobBaseScheduledForParent(job,d){
   if(!job||job.deleted||job.enabled===false)return false;
   const dk=isoDate(d);
   if(job.startDate&&dk<job.startDate)return false;
   if(job.endDate&&dk>job.endDate)return false;
-  if((child.cancelledJobDates||[]).some(x=>x.date===dk&&(!x.jobId||x.jobId===job.id)))return false;
   if(job.frequency==="daily")return true;
   return (job.days||[]).includes(d.getDay());
+}
+function isJobCancelledForParent(child,job,d){
+  const dk=isoDate(d);
+  return (child.cancelledJobDates||[]).some(x=>x.date===dk&&(!x.jobId||x.jobId===job.id));
+}
+function isJobScheduledForParent(child,job,d){
+  return isJobBaseScheduledForParent(job,d)&&!isJobCancelledForParent(child,job,d);
 }
 function parentDayJobs(child,d){
   const dk=isoDate(d);
   const reports=(child.reports||[]).map(normalizeReport);
   const rows=[];
   (child.jobs||[]).forEach(job=>{
-    if(isJobScheduledForParent(child,job,d)){
-      rows.push({job,report:reports.find(r=>r.date===dk&&r.jobId===job.id)||null});
+    if(isJobBaseScheduledForParent(job,d)){
+      rows.push({
+        job,
+        report:reports.find(r=>r.date===dk&&r.jobId===job.id)||null,
+        cancelled:isJobCancelledForParent(child,job,d)
+      });
     }
   });
   reports.filter(r=>r.date===dk&&r.jobId&&!rows.some(x=>x.job.id===r.jobId)).forEach(r=>{
     const snap=r.snapshot||{};
-    rows.push({job:{id:r.jobId,name:r.name||snap.name||"お仕事",reward:Number(r.reward||snap.reward||0),frequency:snap.frequency||"daily",days:snap.days||[]},report:r});
+    const job={id:r.jobId,name:r.name||snap.name||"お仕事",reward:Number(r.reward||snap.reward||0),frequency:snap.frequency||"daily",days:snap.days||[]};
+    rows.push({job,report:r,cancelled:isJobCancelledForParent(child,job,d)});
   });
   return rows;
 }
 function parentDayState(child,d){
-  const list=parentDayJobs(child,d);
+  const list=parentDayJobs(child,d).filter(item=>!item.cancelled);
   if(!list.length)return "nojob";
   const states=list.map(x=>x.report?x.report.status:"unreported");
   if(states.some(s=>s==="missed"))return "partial";
@@ -2943,7 +2956,7 @@ function renderGroupedTransactions(child){
 
   const period=document.getElementById("historyPassbookPeriod");
   if(period){
-    const d=txs.length&&txs[0].date?parseISODate(txs[0].date):historyMonth;
+    const d=txs.length&&txs[0].date?parseISODate(txs[0].date):historyCursor;
     period.textContent=d.getFullYear()+"年"+(d.getMonth()+1)+"月";
   }
 
@@ -3065,6 +3078,45 @@ function renderParentLedgerEntries(child){
   });
 }
 let parentDayMenuDate=null;
+async function applyParentDayMutation(rpcName,params,dateKey){
+  if(remoteBusy)return;
+  remoteBusy=true;
+  try{
+    const result=await remoteClient.rpc(rpcName,params);
+    if(result.error)throw result.error;
+    await refreshRemoteParentState();
+    renderHistory();
+    openParentDayMenu(dateKey);
+  }catch(error){
+    await refreshRemoteParentState();
+    renderHistory();
+    openParentDayMenu(dateKey);
+    remoteOperationError(error);
+  }finally{remoteBusy=false;}
+}
+async function applyParentDayCancellations(childId,items,dateKey,cancelled){
+  if(remoteBusy||!items.length)return;
+  remoteBusy=true;
+  try{
+    for(const item of items){
+      const result=await remoteClient.rpc("set_job_schedule_cancelled",{
+        p_child_id:childId,
+        p_job_id:item.job.id,
+        p_exception_date:dateKey,
+        p_cancelled:cancelled
+      });
+      if(result.error)throw result.error;
+    }
+    await refreshRemoteParentState();
+    renderHistory();
+    openParentDayMenu(dateKey);
+  }catch(error){
+    await refreshRemoteParentState();
+    renderHistory();
+    openParentDayMenu(dateKey);
+    remoteOperationError(error);
+  }finally{remoteBusy=false;}
+}
 function openParentDayMenu(dateKey){
   const child=state.children.find(c=>c.id===childHistoryId);if(!child)return;
   parentDayMenuDate=dateKey;
@@ -3078,35 +3130,46 @@ function openParentDayMenu(dateKey){
     list.forEach(item=>{
       const row=document.createElement("div");row.className="day-job-row";
       const status=item.report?.status||"unreported";
-      row.innerHTML=`<div class="day-job-name"></div><div class="day-job-meta">${status==="done"?"完了":status==="waiting"?"確認待ち":status==="missed"?"未達成":"未報告"}／${Number(item.job.reward||0).toLocaleString()}円</div><div class="day-job-actions"></div>`;
+      row.classList.toggle("cancelled",item.cancelled);
+      const statusLabel=item.cancelled?"取り消し済み":status==="done"?"完了":status==="waiting"?"確認待ち":status==="missed"?"未達成":"未報告";
+      row.innerHTML=`<div class="day-job-name"></div><div class="day-job-meta">${statusLabel}／${Number(item.job.reward||0).toLocaleString()}円</div><div class="day-job-actions"></div>`;
       row.querySelector(".day-job-name").textContent=item.job.name||"お仕事";
       const actions=row.querySelector(".day-job-actions");
-      const missed=document.createElement("button");missed.type="button";missed.className=status==="missed"?"restore":"missed";
-      missed.textContent=status==="missed"?"未達成を解除":"未達成にする";
-      missed.onclick=()=>{
-        child.reports=child.reports||[];
-        const id=`rep_${child.id}_${dateKey}_${item.job.id}`;
-        let report=child.reports.find(r=>r.id===id)||child.reports.find(r=>r.date===dateKey&&r.jobId===item.job.id);
-        if(status==="missed"){
-          if(report)child.reports=child.reports.filter(r=>r!==report);
-        }else{
-          const payload={id,date:dateKey,name:item.job.name,reward:Number(item.job.reward)||0,status:"missed",jobId:item.job.id,
-            snapshot:{jobId:item.job.id,name:item.job.name,reward:Number(item.job.reward)||0,frequency:item.job.frequency,days:(item.job.days||[]).slice()}};
-          if(report)Object.assign(report,payload);else child.reports.push(payload);
+      if(item.cancelled){
+        const restore=document.createElement("button");restore.type="button";restore.className="restore";
+        restore.textContent="取り消しを解除";
+        restore.onclick=()=>applyParentDayMutation("set_job_schedule_cancelled",{
+          p_child_id:child.id,p_job_id:item.job.id,p_exception_date:dateKey,p_cancelled:false
+        },dateKey);
+        actions.appendChild(restore);
+      }else{
+        if(status!=="done"){
+          const missed=document.createElement("button");missed.type="button";missed.className=status==="missed"?"restore":"missed";
+          missed.textContent=status==="missed"?"未達成を解除":"未達成にする";
+          missed.disabled=status!=="missed"&&dateKey>isoDate(new Date());
+          missed.onclick=()=>applyParentDayMutation("set_job_report_missed",{
+            p_child_id:child.id,p_job_id:item.job.id,p_work_date:dateKey,p_missed:status!=="missed"
+          },dateKey);
+          actions.appendChild(missed);
         }
-        save();renderHistory();openParentDayMenu(dateKey);
-      };
-      const cancel=document.createElement("button");cancel.type="button";cancel.textContent="この仕事を取り消す";
-      cancel.onclick=()=>{
-        child.cancelledJobDates=child.cancelledJobDates||[];
-        if(!child.cancelledJobDates.some(x=>x.date===dateKey&&x.jobId===item.job.id))child.cancelledJobDates.push({date:dateKey,jobId:item.job.id});
-        child.reports=(child.reports||[]).filter(r=>!(r.date===dateKey&&r.jobId===item.job.id&&r.status!=="done"));
-        save();renderHistory();openParentDayMenu(dateKey);
-      };
-      actions.append(missed,cancel);box.appendChild(row);
+        if(status!=="done"){
+          const cancel=document.createElement("button");cancel.type="button";cancel.textContent="この仕事を取り消す";
+          cancel.onclick=()=>applyParentDayMutation("set_job_schedule_cancelled",{
+            p_child_id:child.id,p_job_id:item.job.id,p_exception_date:dateKey,p_cancelled:true
+          },dateKey);
+          actions.appendChild(cancel);
+        }
+      }
+      box.appendChild(row);
     });
   }
-  document.getElementById("cancelAllDayJobs").disabled=!list.length;
+  const cancellable=list.filter(item=>!item.cancelled&&(item.report?.status||"unreported")!=="done");
+  const cancelled=list.filter(item=>item.cancelled);
+  const allButton=document.getElementById("cancelAllDayJobs");
+  allButton.disabled=!cancellable.length&&!cancelled.length;
+  allButton.textContent=cancellable.length
+    ?(cancellable.length===list.length?"この日の仕事をすべて取り消す":"残りの仕事をすべて取り消す")
+    :cancelled.length?"この日の取り消しをすべて解除":"変更できる仕事はありません";
   const modal=document.getElementById("parentDayMenu");modal.classList.add("show");modal.setAttribute("aria-hidden","false");
 }
 function closeParentDayMenu(){
@@ -3141,15 +3204,13 @@ function renderHistory(){
 }
 document.getElementById("closeParentDayMenu").onclick=closeParentDayMenu;
 document.getElementById("parentDayMenu").onclick=e=>{if(e.target.id==="parentDayMenu")closeParentDayMenu()};
-document.getElementById("cancelAllDayJobs").onclick=()=>{
+document.getElementById("cancelAllDayJobs").onclick=async()=>{
   const child=state.children.find(c=>c.id===childHistoryId);if(!child||!parentDayMenuDate)return;
   const d=parseISODate(parentDayMenuDate),list=parentDayJobs(child,d);
-  child.cancelledJobDates=child.cancelledJobDates||[];
-  list.forEach(item=>{
-    if(!child.cancelledJobDates.some(x=>x.date===parentDayMenuDate&&x.jobId===item.job.id))child.cancelledJobDates.push({date:parentDayMenuDate,jobId:item.job.id});
-  });
-  child.reports=(child.reports||[]).filter(r=>!(r.date===parentDayMenuDate&&r.status!=="done"));
-  save();closeParentDayMenu();renderHistory();
+  const cancellable=list.filter(item=>!item.cancelled&&(item.report?.status||"unreported")!=="done");
+  if(cancellable.length){await applyParentDayCancellations(child.id,cancellable,parentDayMenuDate,true);return;}
+  const cancelled=list.filter(item=>item.cancelled);
+  if(cancelled.length)await applyParentDayCancellations(child.id,cancelled,parentDayMenuDate,false);
 };
 
 document.querySelectorAll(".accordion-toggle").forEach(btn=>{
@@ -4238,15 +4299,6 @@ for(let d=1;d<=31;d++){
     const option=document.createElement("option");option.value=String(d);option.textContent=d+"日";closeDaySelect.appendChild(option);
   }
 }
-
-document.addEventListener("click",event=>{
-  const target=event.target&&event.target.closest?event.target.closest(
-    "#cancelAllDayJobs,.day-job-actions button"
-  ):null;
-  if(!target)return;
-  event.preventDefault();event.stopImmediatePropagation();
-  alert("この操作は、家庭のデータへ安全につなぐ次の更新で使用できるようにします。");
-},true);
 
 renderHome();
 })();

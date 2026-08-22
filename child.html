@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FUERU Child v0.5.16 Step3 Detail Row Preview Fix</title>
+<title>FUERU Child v0.5.17 Step3 Detail Row Fine Tuning</title>
 <style>
 :root{
   --theme-main:#8CCBC2;--theme-main-dark:#4D9E93;--theme-main-deep:#2F746B;--theme-main-light:#EAF7F5;
@@ -1727,6 +1727,10 @@ body.ledger-previewing .lp-row{
 }
 body.ledger-previewing .lp-details10-overlay .lp-row{height:8.448%}
 body.ledger-previewing .lp-details20-overlay .lp-row{height:4.588%}
+
+/* v0.5.17 明細行プレビュー：縦位置と内容欄の左右余白を微調整 */
+body.ledger-previewing .lp-row{transform:translateY(1.5px)}
+body.ledger-previewing .lp-row .content{padding-left:clamp(4px,.7vw,6px);padding-right:clamp(4px,.7vw,6px)}
 
 body.fueru-child-booting .app{visibility:hidden}
 #fueruChildBootStatus{

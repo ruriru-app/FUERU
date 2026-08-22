@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FUERU Child v0.5.15 Step3 Record Count Position Fix</title>
+<title>FUERU Child v0.5.16 Step3 Detail Row Preview Fix</title>
 <style>
 :root{
   --theme-main:#8CCBC2;--theme-main-dark:#4D9E93;--theme-main-deep:#2F746B;--theme-main-light:#EAF7F5;
@@ -1720,6 +1720,13 @@ body.ledger-previewing .lp-details10-overlay .lp-detail-meta{
   align-items:center!important;
   justify-content:center!important;
 }
+
+/* v0.5.16 明細行プレビュー：行内座標と可読性を修正 */
+body.ledger-previewing .lp-row{
+  font-size:clamp(8.5px,1.65vw,13px);
+}
+body.ledger-previewing .lp-details10-overlay .lp-row{height:8.448%}
+body.ledger-previewing .lp-details20-overlay .lp-row{height:4.588%}
 
 body.fueru-child-booting .app{visibility:hidden}
 #fueruChildBootStatus{
@@ -3965,15 +3972,23 @@ function buildFueruLedgerPrint(){
   var root=document.getElementById("ledgerPrintRoot");
   root.innerHTML=html;
 
-  // iPhone screen preview: convert A4 mm positions to page-relative percentages.
+  // iPhone screen preview: page elements use the A4 height, while detail rows
+  // use the height of their own detail panel as the percentage reference.
   Array.prototype.forEach.call(root.querySelectorAll("[style*='top:']"),function(el){
     var topMatch=el.getAttribute("style").match(/top:([\d.]+)mm/);
     if(!topMatch)return;
     var mm=Number(topMatch[1]);
     el.dataset.printTopMm=String(mm);
-    el.style.top=(mm/297*100)+"%";
+    el.style.top=ledgerPreviewTopPercent(el,mm)+"%";
   });
   return true;
+}
+function ledgerPreviewTopPercent(el,mm){
+  if(el.classList.contains("lp-row")){
+    var panelHeight=el.closest(".lp-details20-overlay")?221.667:121.333;
+    return mm/panelHeight*100;
+  }
+  return mm/297*100;
 }
 function closeFueruLedgerPrintPreview(){
   document.body.classList.remove("ledger-previewing");
@@ -4002,7 +4017,7 @@ if(ledgerPreviewPrint)ledgerPreviewPrint.addEventListener("click",function(){
   window.print();
   document.body.classList.remove("printing-ledger");
   Array.prototype.forEach.call(root.querySelectorAll("[data-print-top-mm]"),function(el){
-    el.style.top=(Number(el.dataset.printTopMm)/297*100)+"%";
+    el.style.top=ledgerPreviewTopPercent(el,Number(el.dataset.printTopMm))+"%";
   });
 });
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.23.Step2</title>
+<title>FUERU 保護者版 v0.9.24.Step2</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -273,6 +273,12 @@ button{cursor:pointer}
 .job-status{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#EAF7F5;color:#2F746B}
 .job-status.off{background:#EEF0EF;color:#7B8886}
 .add-job-btn{width:100%;margin-top:10px;border:2px dashed #9CCFC7;background:#F8FCFB;color:#2F746B;border-radius:15px;padding:11px;font-weight:700}
+.hub-device-lead{margin:0;color:var(--muted);font-size:12px;line-height:1.7}
+.hub-device-actions{display:grid;gap:10px;margin-top:13px}
+.hub-device-action{width:100%;border-radius:15px;padding:12px 14px;font-weight:800}
+.hub-device-action.primary{border:0;background:#4D9E93;color:#fff}
+.hub-device-action.secondary{border:2px solid #9CCFC7;background:#F8FCFB;color:#2F746B}
+.hub-device-note{margin:13px 0 0;padding:12px 13px;border-radius:14px;background:#F5FAF9;color:var(--muted);font-size:11px;line-height:1.7}
 .weekday-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .weekday-btn{border:2px solid var(--line);background:#fff;border-radius:11px;padding:8px 2px;color:var(--muted);font-size:11px;font-weight:700}
 .weekday-btn.selected{border-color:#8CCBC2;background:#EAF7F5;color:#2F746B}
@@ -1606,7 +1612,12 @@ button{cursor:pointer}
       <section class="accordion-item">
         <button class="accordion-toggle" type="button"><span>端末・共有</span><span class="arrow">›</span></button>
         <div class="accordion-body">
-          <div class="muted-note">端末・共有設定は、今後のバージョンで実装します。</div>
+          <p class="hub-device-lead" id="hubDeviceLead">この子が使う端末を追加したり、接続済み端末を確認したりできます。</p>
+          <div class="hub-device-actions">
+            <button class="hub-device-action primary" type="button" id="hubOpenChildQr">子ども端末用QRを表示</button>
+            <button class="hub-device-action secondary" type="button" id="hubOpenDeviceSettings">接続済み端末を確認・解除</button>
+          </div>
+          <p class="hub-device-note">接続を解除しても、お仕事・通帳・おこづかい帳のデータは消えません。解除した端末だけが、次回につなぎ直しを求められます。</p>
         </div>
       </section>
     </div>
@@ -1874,6 +1885,11 @@ function remoteOperationError(error){
 function renderDeviceSharingSettings(){
   document.getElementById("parentFamilyName").textContent=remoteFamilyInfo&&remoteFamilyInfo.name?remoteFamilyInfo.name:"家庭";
   document.getElementById("parentFamilyCode").textContent=remoteFamilyInfo&&remoteFamilyInfo.code?remoteFamilyInfo.code:"----------";
+  const child=deviceSettingsChildId?state.children.find(item=>item.id===deviceSettingsChildId):null;
+  document.getElementById("childDeviceListTitle").textContent=child?`${child.name}さんの接続済み端末`:"接続済みの子ども端末";
+  document.querySelector(".device-list-lead").textContent=child
+    ?`${child.name}さんとしてつながっている子ども用端末を確認できます。`
+    :"この家庭につながっている子ども用端末を確認できます。";
 }
 function formatDeviceTimestamp(value){
   if(!value)return "記録なし";
@@ -1937,7 +1953,14 @@ async function loadChildDeviceConnections(){
     setChildDeviceListMessage("端末一覧を読み込めませんでした。通信状態を確認して、もう一度この画面を開いてください。");
     return;
   }
-  renderChildDeviceConnections(result.data||[]);
+  let rows=result.data||[];
+  if(deviceSettingsChildId){
+    const child=state.children.find(item=>item.id===deviceSettingsChildId);
+    rows=rows.filter(row=>row.child_id
+      ?String(row.child_id)===String(deviceSettingsChildId)
+      :child&&String(row.child_name||"")===String(child.name));
+  }
+  renderChildDeviceConnections(rows);
 }
 async function revokeChildDeviceConnection(row,button){
   if(remoteBusy)return;
@@ -2053,9 +2076,10 @@ async function issueChildPairingQr(){
     button.disabled=false;button.textContent="新しいQRコードを発行";
   }
 }
-function openChildPairingQr(childId){
+function openChildPairingQr(childId,returnView="childManageView"){
   const child=state.children.find(item=>item.id===childId);if(!child)return;
   childQrTargetId=child.id;
+  childQrReturnView=returnView;
   document.getElementById("childQrName").textContent=`${child.name}さんの端末`;
   const icon=document.getElementById("childQrIcon");icon.style.background=child.sub;icon.innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
   showView("childQrView");
@@ -2125,6 +2149,7 @@ let childEditorPatternConfirmed=[];
 let childEditorPatternDraft=[];
 let drawingChildEditorPattern=false;
 let childQrTargetId=null;
+let childQrReturnView="childManageView";
 let childQrExpiresAt=0;
 let childQrTimer=null;
 let allowanceEditingId=null;
@@ -2133,6 +2158,8 @@ let jobEditingChildId=null;
 let jobEditingId=null;
 let jobDraft=null;
 let childHubId=null;
+let deviceSettingsReturnView="settingsView";
+let deviceSettingsChildId=null;
 let childHistoryId=null;
 let specialRewardChildId=null;
 let historyCursor=new Date(2026,6,1);
@@ -2757,6 +2784,7 @@ function openChildHub(id){
   document.getElementById("hubRewardPayDay").textContent=rewardScheduleLabel(child);
   document.getElementById("hubCloseDay").textContent=child.closeType==="day"?`毎月${child.closeDay||1}日`:"月末";
   document.getElementById("hubPeriodMode").textContent=child.periodMode==="month"?"月ごと":"支給サイクルごと";
+  document.getElementById("hubDeviceLead").textContent=`${child.name}さんが使う端末を追加したり、接続済み端末を確認したりできます。`;
   document.getElementById("hubRewardBlock").classList.toggle("no-day",child.rewardTiming!=="payday");
   document.querySelectorAll("#childHubView .accordion-item").forEach(item=>item.classList.remove("open"));
   renderHubJobs();
@@ -3861,11 +3889,13 @@ document.getElementById("openChildManage").onclick=()=>{showView("childManageVie
 document.getElementById("openLedgerSettings").onclick=()=>{showView("ledgerSettingsView");renderLedgerSettingsList()};
 document.getElementById("openWithdrawSettings").onclick=()=>{showView("withdrawSettingsView");renderWithdrawSettings()};
 document.getElementById("openDeviceSharingSettings").onclick=()=>{
+  deviceSettingsReturnView="settingsView";
+  deviceSettingsChildId=null;
   renderDeviceSharingSettings();
   showView("deviceSharingSettingsView");
   loadChildDeviceConnections();
 };
-document.getElementById("backFromDeviceSharingSettings").onclick=()=>showView("settingsView");
+document.getElementById("backFromDeviceSharingSettings").onclick=()=>showView(deviceSettingsReturnView);
 document.getElementById("copyParentFamilyCode").onclick=copyParentFamilyCode;
 document.getElementById("backFromWithdrawSettings").onclick=()=>showView("settingsView");
 document.getElementById("backFromLedgerSettings").onclick=()=>showView("settingsView");
@@ -3885,7 +3915,11 @@ document.getElementById("applySpendingEdit").onclick=applySpendingEdit;
 document.getElementById("saveLedgerSettings").onclick=saveLedgerSettings;
 document.getElementById("backFromSettings").onclick=()=>showView("homeView");
 document.getElementById("backFromChildManage").onclick=()=>showView("settingsView");
-document.getElementById("backFromChildQr").onclick=()=>{stopChildQrCountdown();showView("childManageView");renderChildManage()};
+document.getElementById("backFromChildQr").onclick=()=>{
+  stopChildQrCountdown();
+  if(childQrReturnView==="childHubView"&&childHubId){showView("childHubView");return;}
+  showView("childManageView");renderChildManage();
+};
 document.getElementById("renewChildQr").onclick=issueChildPairingQr;
 document.getElementById("backFromAllowance").onclick=()=>showView("settingsView");
 document.getElementById("backFromJobSettings").onclick=()=>showView("settingsView");
@@ -4043,6 +4077,16 @@ document.getElementById("grantSpecialReward").onclick=grantSpecialReward;
 document.getElementById("hubEditProfile").onclick=()=>openChildEditor(childHubId);
 document.getElementById("hubEditPayment").onclick=()=>openAllowanceEditor(childHubId,"hub");
 document.getElementById("hubAddJob").onclick=()=>openJobEditor(childHubId,null);
+document.getElementById("hubOpenChildQr").onclick=()=>{
+  if(childHubId)openChildPairingQr(childHubId,"childHubView");
+};
+document.getElementById("hubOpenDeviceSettings").onclick=()=>{
+  deviceSettingsReturnView="childHubView";
+  deviceSettingsChildId=childHubId;
+  renderDeviceSharingSettings();
+  showView("deviceSharingSettingsView");
+  loadChildDeviceConnections();
+};
 document.getElementById("historyPrevMonth").onclick=()=>{historyCursor=new Date(historyCursor.getFullYear(),historyCursor.getMonth()-1,1);renderHistory()};
 document.getElementById("historyNextMonth").onclick=()=>{historyCursor=new Date(historyCursor.getFullYear(),historyCursor.getMonth()+1,1);renderHistory()};
 

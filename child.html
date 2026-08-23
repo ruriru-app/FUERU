@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FUERU Child v0.5.24 Step3 Device Mode Settings</title>
+<title>FUERU Child v0.5.25 Step3 Theme Sync</title>
 <style>
 :root{
   --theme-main:#8CCBC2;--theme-main-dark:#4D9E93;--theme-main-deep:#2F746B;--theme-main-light:#EAF7F5;
@@ -2013,7 +2013,7 @@ body.fueru-child-booting .app{visibility:hidden}
   <div class="settings-complete" id="settingsComplete" role="status">プロフィール設定を保存しました</div>
   <div class="settings-menu">
     <button class="settings-link" type="button" id="openProfileSettings">
-      <span>プロフィール<small>名前・アイコン・テーマカラー</small></span>
+      <span>プロフィール<small>アイコン・テーマカラー</small></span>
       <span class="chevron">›</span>
     </button>
     <button class="settings-link" type="button" id="changeChildDeviceMode">
@@ -2039,8 +2039,8 @@ body.fueru-child-booting .app{visibility:hidden}
       <div class="profile-name-preview" id="profileNamePreview">KAREN</div>
     </div>
 
-    <label class="field-label" for="profileName">名前</label>
-    <input class="profile-input" id="profileName" maxlength="16" value="KAREN">
+    <label class="field-label" for="profileName">名前（保護者が設定）</label>
+    <input class="profile-input" id="profileName" maxlength="16" value="KAREN" readonly aria-readonly="true">
 
     <div class="field-label">アイコン</div>
     <div class="option-grid" id="iconOptions"></div>
@@ -2058,7 +2058,7 @@ body.fueru-child-booting .app{visibility:hidden}
       <span id="previewSubLight"></span>
       <span id="previewSub"></span>
     </div>
-    <p class="profile-note">羽はメインカラー、アイコンの背景はサブカラーの淡色になります。顔・ほっぺ・お腹・くちばし・足は固定色のままです。</p>
+    <p class="profile-note">羽はメインカラー、アイコンの背景はサブカラーの淡色になります。ここで選んだアイコンと色は保護者画面にも共有されます。</p>
 
     <div class="profile-actions">
       <button class="primary-btn" type="button" id="saveProfile">保存</button>
@@ -2508,18 +2508,19 @@ async function invokeChildData(action,payload,unlock){
 function mapRemoteChildData(result){
   var profile=result.child||{},settings=result.settings||{};
   var themes=[
-    ["#8CCBC2","#EAF7F5","#2F746B"],
-    ["#8BBFE5","#EAF5FC","#376E98"],
-    ["#B59AD9","#F1EBF8","#68508F"],
-    ["#EF9A8B","#FDEDEA","#995044"],
-    ["#EFA6C5","#FCEEF4","#965572"],
-    ["#F3B26F","#FFF1E2","#98602E"],
-    ["#F2D16F","#FFF8D9","#8D7428"],
-    ["#8FA9D8","#ECF1FA","#495F8E"]
+    {id:"mint",main:"#8CCBC2",sub:"#EAF7F5",deep:"#2F746B"},
+    {id:"sky",main:"#8BBFE5",sub:"#EAF5FC",deep:"#376E98"},
+    {id:"lavender",main:"#B59AD9",sub:"#F1EBF8",deep:"#68508F"},
+    {id:"coral",main:"#EF9A8B",sub:"#FDEDEA",deep:"#995044"},
+    {id:"pink",main:"#EFA6C5",sub:"#FCEEF4",deep:"#965572"},
+    {id:"orange",main:"#F3B26F",sub:"#FFF1E2",deep:"#98602E"},
+    {id:"lemon",main:"#F2D16F",sub:"#FFF8D9",deep:"#8D7428"},
+    {id:"blue",main:"#8FA9D8",sub:"#ECF1FA",deep:"#495F8E"}
   ];
-  var theme=themes.find(function(values){
-    return values[0]===profile.theme_main&&values[1]===profile.theme_sub&&values[2]===profile.theme_deep;
+  var mainTheme=themes.find(function(theme){
+    return theme.main===profile.theme_main&&theme.deep===profile.theme_deep;
   })||themes[0];
+  var subTheme=themes.find(function(theme){return theme.sub===profile.theme_sub;})||themes[2];
   var safeIcon=/^(bird|star|flower|moon)$/.test(String(profile.icon||""))?profile.icon:"bird";
   var remoteJobs=(result.jobs||[]).map(function(job){
     return {
@@ -2583,7 +2584,7 @@ function mapRemoteChildData(result){
   var passbookBalance=transactions.reduce(function(total,tx){return total+(Number(tx.amount)||0);},0);
   var sharedChildState={
     id:profile.id,name:profile.display_name||childConnection.childName||"なまえ",
-    icon:safeIcon,main:theme[0],sub:theme[1],deep:theme[2],
+    icon:safeIcon,main:mainTheme.main,sub:subTheme.sub,deep:mainTheme.deep,
     allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",
     payDay:Number(settings.pay_day)||25,rewardTiming:settings.reward_timing||"immediate",
     rewardPaySchedule:settings.reward_pay_schedule||"allowance",
@@ -2598,7 +2599,7 @@ function mapRemoteChildData(result){
   };
   return {shared:{children:[sharedChildState]},jobs:remoteJobs,records:records,profile:{
     name:sharedChildState.name,icon:/^(bird|star|flower|moon)$/.test(sharedChildState.icon)?sharedChildState.icon:"bird",
-    main:"mint",sub:"lavender"
+    main:mainTheme.id,sub:subTheme.id
   }};
 }
 function persistRemoteChildData(result){
@@ -2633,7 +2634,8 @@ function childWriteMessage(code){
     withdrawal_already_waiting:"すでに出金依頼中です。",
     invalid_ledger_entry:"日付・内容・金額をもう一度確認してください。",
     invalid_ledger_purpose:"選んだ内容をもう一度確認してください。",
-    invalid_ledger_details:"入力内容をもう一度確認してください。"
+    invalid_ledger_details:"入力内容をもう一度確認してください。",
+    invalid_child_appearance:"アイコンとテーマカラーをもう一度選んでください。"
   };
   return messages[code]||"保存できませんでした。通信状態を確認して、もう一度お試しください。";
 }
@@ -4237,14 +4239,24 @@ document.getElementById("profileName").oninput=function(){
   profileDraft.name=this.value.trimStart();
   document.getElementById("profileNamePreview").textContent=profileDraft.name||"なまえ";
 };
-document.getElementById("saveProfile").onclick=function(){
-  profileDraft.name=(document.getElementById("profileName").value.trim()||"なまえ");
-  localStorage.setItem(PROFILE_KEY,JSON.stringify(profileDraft));
-  var shared=loadSharedState(),sc=sharedChild(shared);if(sc){sc.name=profileDraft.name;saveSharedState(shared);}
+document.getElementById("saveProfile").onclick=async function(){
+  var button=this;
+  var main=colorPalettes[profileDraft.main],sub=colorPalettes[profileDraft.sub];
+  if(!main||!sub)return;
+  button.disabled=true;button.textContent="保存しています…";
+  var result=await performChildMutation("update_appearance",{
+    profile_icon:profileDraft.icon,
+    theme_main:main.main,
+    theme_sub:sub.light,
+    theme_deep:main.deep
+  });
+  button.disabled=false;button.textContent="保存";
+  if(!result)return;
+  profileDraft=cloneObj(JSON.parse(localStorage.getItem(PROFILE_KEY)||JSON.stringify(profileDraft)));
   applyProfile(profileDraft);
   profileView.classList.remove("active");
   appSettingsView.classList.add("active");
-  settingsComplete.textContent="プロフィール設定を保存しました";
+  settingsComplete.textContent="アイコンとテーマカラーを保存しました";
   settingsComplete.classList.add("show");
 };
 loadProfile();
@@ -4258,7 +4270,7 @@ remoteNote.textContent=(remoteChildForNote?remoteChildForNote.name:"本人")+"�
 homeView.insertBefore(remoteNote,homeView.children[1]||null);
 document.addEventListener("click",function(event){
   var target=event.target&&event.target.closest?event.target.closest(
-    "#saveProfile,#saveJob,#confirmDelete,.job-setting-actions button"
+    "#saveJob,#confirmDelete,.job-setting-actions button"
   ):null;
   if(!REMOTE_READ_ONLY||!target)return;
   event.preventDefault();event.stopImmediatePropagation();

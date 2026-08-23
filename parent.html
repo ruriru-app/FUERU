@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.29.Step2</title>
+<title>FUERU 保護者版 v0.9.30.Step2 Theme Sync</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -1784,19 +1784,20 @@ function remoteFrequencyLabel(value,weekdays){
 }
 function safeRemoteChildAppearance(icon,main,sub,deep){
   const themes=[
-    ["#8CCBC2","#EAF7F5","#2F746B"],
-    ["#8BBFE5","#EAF5FC","#376E98"],
-    ["#B59AD9","#F1EBF8","#68508F"],
-    ["#EF9A8B","#FDEDEA","#995044"],
-    ["#EFA6C5","#FCEEF4","#965572"],
-    ["#F3B26F","#FFF1E2","#98602E"],
-    ["#F2D16F","#FFF8D9","#8D7428"],
-    ["#8FA9D8","#ECF1FA","#495F8E"]
+    {main:"#8CCBC2",sub:"#EAF7F5",deep:"#2F746B"},
+    {main:"#8BBFE5",sub:"#EAF5FC",deep:"#376E98"},
+    {main:"#B59AD9",sub:"#F1EBF8",deep:"#68508F"},
+    {main:"#EF9A8B",sub:"#FDEDEA",deep:"#995044"},
+    {main:"#EFA6C5",sub:"#FCEEF4",deep:"#965572"},
+    {main:"#F3B26F",sub:"#FFF1E2",deep:"#98602E"},
+    {main:"#F2D16F",sub:"#FFF8D9",deep:"#8D7428"},
+    {main:"#8FA9D8",sub:"#ECF1FA",deep:"#495F8E"}
   ];
-  const theme=themes.find(values=>values[0]===main&&values[1]===sub&&values[2]===deep)||themes[0];
+  const mainTheme=themes.find(theme=>theme.main===main&&theme.deep===deep)||themes[0];
+  const subTheme=themes.find(theme=>theme.sub===sub)||themes[2];
   return {
     icon:["bird","star","flower","moon"].includes(icon)?icon:"bird",
-    main:theme[0],sub:theme[1],deep:theme[2]
+    main:mainTheme.main,sub:subTheme.sub,deep:mainTheme.deep
   };
 }
 async function loadRemoteParentState(){

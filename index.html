@@ -466,7 +466,7 @@
 
       <section id="entryChoiceView" class="card hidden">
         <h2>この端末を<br>どう使いますか？</h2>
-        <p class="muted compact">この設定は初回だけです。あとから変更できるようにします。</p>
+        <p class="muted compact" id="entryChoiceLead">この設定は、あとから設定画面で変更できます。</p>
         <div class="mode-grid">
           <button id="chooseParentEntryButton" class="mode-button" type="button">
             <img class="mode-illustration" src="fueru-mode-parent.svg" alt="" width="48" height="48">
@@ -482,6 +482,7 @@
           </button>
         </div>
         <p class="device-coming">子どもは自分のPINまたは9点パターン、保護者はメール認証で画面を開きます。</p>
+        <button id="cancelDeviceModeChangeButton" class="button ghost hidden" type="button">変更をやめて元の画面へ戻る</button>
       </section>
 
       <section id="loginView" class="card hidden">
@@ -591,6 +592,7 @@
         <button id="registerSharedDeviceButton" class="button ghost" type="button">この端末を家族みんなで使う</button>
         <p id="deviceMessage" class="message hidden" role="status" aria-live="polite"></p>
         <p class="device-coming">家族共用にすると、毎回「だれが使いますか？」から始まり、保護者画面はメール認証後に開きます。</p>
+        <button id="cancelDeviceRegistrationButton" class="button ghost hidden" type="button">変更をやめて元の画面へ戻る</button>
         <button class="button ghost logout-button" type="button">ログアウト</button>
       </section>
 
@@ -738,6 +740,7 @@
       const SHARED_PARENT_PENDING_KEY = 'FUERU_SHARED_PARENT_PENDING_V1';
       const SHARED_PARENT_SESSION_KEY = 'FUERU_SHARED_PARENT_SESSION_V1';
       const SETUP_MODE_KEY = 'FUERU_PENDING_DEVICE_MODE_V1';
+      const MODE_CHANGE_KEY = 'FUERU_DEVICE_MODE_CHANGE_V1';
 
       const views = [
         'loadingView', 'entryChoiceView', 'loginView', 'childConnectView',
@@ -760,6 +763,7 @@
       let pairingFamilyCode = '';
       let pairingToken = '';
       const initialPairingToken = pairingTokenFromUrl();
+      const initialModeChangeRequested = new URLSearchParams(window.location.search).get('change-device-mode') === '1';
       let qrEntryMode = Boolean(initialPairingToken);
       let pairingPattern = [];
       let pairingPatternDraft = [];
@@ -771,6 +775,43 @@
 
       function showView(id) {
         views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
+      }
+
+      function storedDeviceMode() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(DEVICE_STORAGE_KEY) || 'null');
+          return saved?.version === 1 && ['parent', 'child', 'shared'].includes(saved.mode)
+            ? saved.mode
+            : '';
+        } catch {
+          return '';
+        }
+      }
+
+      function deviceModeChangeActive() {
+        return localStorage.getItem(MODE_CHANGE_KEY) === '1';
+      }
+
+      function showEntryChoiceView() {
+        const changing = deviceModeChangeActive();
+        byId('entryChoiceLead').textContent = changing
+          ? '現在の接続は、新しい使い方の設定が完了するまで残ります。'
+          : 'この設定は、あとから設定画面で変更できます。';
+        byId('cancelDeviceModeChangeButton').classList.toggle('hidden', !(changing && storedDeviceMode()));
+        showView('entryChoiceView');
+      }
+
+      function finishDeviceModeChange() {
+        localStorage.removeItem(SETUP_MODE_KEY);
+        localStorage.removeItem(MODE_CHANGE_KEY);
+      }
+
+      function cancelDeviceModeChange() {
+        const mode = storedDeviceMode();
+        finishDeviceModeChange();
+        if (mode === 'parent') window.location.replace('parent.html?v=device-mode-20260823');
+        else if (mode === 'child') window.location.replace('child.html?v=device-mode-20260823');
+        else window.location.replace('./?v=device-mode-20260823');
       }
 
       function setMessage(id, text, isError = false) {
@@ -901,10 +942,14 @@
         const sharedParent = mode === 'shared-parent';
         byId('loginTitle').innerHTML = sharedParent
           ? '保護者の方の確認'
-          : '保護者の方から<br>はじめます';
+          : deviceModeChangeActive()
+            ? '保護者の方の確認'
+            : '保護者の方から<br>はじめます';
         byId('loginLead').textContent = sharedParent
           ? '子どもが保護者画面へ入れないよう、登録したメールで確認します。'
-          : '初めての方も、すでにFUERUを使っている方も、同じ入口です。';
+          : deviceModeChangeActive()
+            ? '新しい使い方を安全に設定するため、保護者のメールで確認します。'
+            : '初めての方も、すでにFUERUを使っている方も、同じ入口です。';
         setMessage('loginMessage', '');
       }
 
@@ -1071,7 +1116,10 @@
           ? 'この端末は保護者用として登録済みです。'
           : requestedMode === 'shared'
             ? '家族みんなで使う端末として登録します。子どもは自分の鍵、保護者はメールで確認します。'
-            : 'この設定は最初の1回だけです。次回から保護者用としてFUERUを開きます。';
+            : deviceModeChangeActive()
+              ? '保護者用端末として安全に切り替えます。登録が完了するまで現在の接続は残ります。'
+              : 'この設定は最初の1回だけです。次回から保護者用としてFUERUを開きます。';
+        byId('cancelDeviceRegistrationButton').classList.toggle('hidden', !deviceModeChangeActive());
         setMessage('deviceMessage', inspecting && currentDevice ? '端末設定は正常です。' : '');
         showView('deviceView');
       }
@@ -1579,52 +1627,75 @@
         rendering = true;
 
         try {
-          const childDevice = readChildDeviceConnection();
-          if (childDevice) {
-            currentDevice = childDevice;
-            renderChildReady(childDevice);
+          const requestedMode = localStorage.getItem(SETUP_MODE_KEY);
+          const changingMode = deviceModeChangeActive();
+          const choosingGuardianMode = changingMode && (requestedMode === 'parent' || requestedMode === 'shared');
+
+          if (changingMode && requestedMode === 'choose') {
+            currentDevice = null;
+            showEntryChoiceView();
             return;
           }
 
-          const sharedDevice = readSharedDeviceConnection();
-          if (sharedDevice) {
-            showView('loadingView');
-            if (!session?.user) {
+          if (changingMode && requestedMode === 'child') {
+            currentDevice = null;
+            showChildConnectView();
+            return;
+          }
+
+          if (!choosingGuardianMode) {
+            const childDevice = readChildDeviceConnection();
+            if (childDevice) {
+              currentDevice = childDevice;
+              renderChildReady(childDevice);
+              return;
+            }
+
+            const sharedDevice = readSharedDeviceConnection();
+            if (sharedDevice) {
+              showView('loadingView');
+              if (!session?.user) {
+                const refreshed = await refreshSharedProfiles(sharedDevice);
+                renderSharedChooser(refreshed);
+                return;
+              }
+
+              const sharedFamilies = await loadFamilies(session.user);
+              const sharedFamily = sharedFamilies.find((family) => family.id === sharedDevice.familyId);
+              if (!sharedFamily || session.user.id !== sharedDevice.userId) {
+                localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+                await client.auth.signOut({ scope: 'local' });
+                renderSharedChooser(sharedDevice, 'この家庭に登録した保護者のメールで確認してください。');
+                return;
+              }
+
+              if (localStorage.getItem(SHARED_PARENT_PENDING_KEY) === '1') {
+                localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+                sessionStorage.setItem(SHARED_PARENT_SESSION_KEY, JSON.stringify({
+                  version: 1,
+                  userId: session.user.id,
+                  familyId: sharedDevice.familyId,
+                  startedAt: Date.now()
+                }));
+                window.location.replace('parent.html?v=shared-device-20260821');
+                return;
+              }
+
               const refreshed = await refreshSharedProfiles(sharedDevice);
+              await client.auth.signOut({ scope: 'local' });
               renderSharedChooser(refreshed);
               return;
             }
-
-            const sharedFamilies = await loadFamilies(session.user);
-            const sharedFamily = sharedFamilies.find((family) => family.id === sharedDevice.familyId);
-            if (!sharedFamily || session.user.id !== sharedDevice.userId) {
-              localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
-              await client.auth.signOut({ scope: 'local' });
-              renderSharedChooser(sharedDevice, 'この家庭に登録した保護者のメールで確認してください。');
-              return;
-            }
-
-            if (localStorage.getItem(SHARED_PARENT_PENDING_KEY) === '1') {
-              localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
-              sessionStorage.setItem(SHARED_PARENT_SESSION_KEY, JSON.stringify({
-                version: 1,
-                userId: session.user.id,
-                familyId: sharedDevice.familyId,
-                startedAt: Date.now()
-              }));
-              window.location.replace('parent.html?v=shared-device-20260821');
-              return;
-            }
-
-            const refreshed = await refreshSharedProfiles(sharedDevice);
-            await client.auth.signOut({ scope: 'local' });
-            renderSharedChooser(refreshed);
-            return;
           }
 
           if (!session?.user) {
             currentDevice = null;
-            showView('entryChoiceView');
+            if (choosingGuardianMode) {
+              configureLogin('parent');
+              showView('loginView');
+            } else {
+              showEntryChoiceView();
+            }
             return;
           }
 
@@ -1654,7 +1725,7 @@
             setMessage('homeMessage', '支給日の確認は次回もう一度行います。通常の確認は続けられます。', true);
           }
 
-          if (currentChildren.length && !currentDevice) {
+          if (choosingGuardianMode || (currentChildren.length && !currentDevice)) {
             prepareDeviceView(session);
             return;
           }
@@ -1668,35 +1739,51 @@
         }
       }
 
-      byId('chooseParentEntryButton').addEventListener('click', () => {
-        localStorage.setItem(SETUP_MODE_KEY, 'parent');
+      async function chooseGuardianDeviceMode(mode) {
+        localStorage.setItem(SETUP_MODE_KEY, mode);
+        const { data } = await client.auth.getSession();
+        if (data.session?.user) {
+          await renderForSession(data.session);
+          return;
+        }
         configureLogin('parent');
         showView('loginView');
+      }
+
+      byId('chooseParentEntryButton').addEventListener('click', async () => {
+        await chooseGuardianDeviceMode('parent');
       });
 
       byId('chooseChildEntryButton').addEventListener('click', () => {
-        localStorage.removeItem(SETUP_MODE_KEY);
+        if (deviceModeChangeActive()) localStorage.setItem(SETUP_MODE_KEY, 'child');
+        else localStorage.removeItem(SETUP_MODE_KEY);
         showChildConnectView();
       });
-      byId('chooseSharedEntryButton').addEventListener('click', () => {
-        localStorage.setItem(SETUP_MODE_KEY, 'shared');
-        configureLogin('parent');
-        showView('loginView');
+      byId('chooseSharedEntryButton').addEventListener('click', async () => {
+        await chooseGuardianDeviceMode('shared');
       });
       byId('backToEntryFromLoginButton').addEventListener('click', () => {
         localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
+        if (deviceModeChangeActive()) {
+          localStorage.setItem(SETUP_MODE_KEY, 'choose');
+          showEntryChoiceView();
+          return;
+        }
         const shared = readSharedDeviceConnection();
         if (shared) renderSharedChooser(shared);
         else {
           localStorage.removeItem(SETUP_MODE_KEY);
-          showView('entryChoiceView');
+          showEntryChoiceView();
         }
       });
       byId('backToEntryFromChildButton').addEventListener('click', () => {
         qrEntryMode = false;
         resetChildPairingFlow(true);
-        showView('entryChoiceView');
+        if (deviceModeChangeActive()) localStorage.setItem(SETUP_MODE_KEY, 'choose');
+        showEntryChoiceView();
       });
+      byId('cancelDeviceModeChangeButton').addEventListener('click', cancelDeviceModeChange);
+      byId('cancelDeviceRegistrationButton').addEventListener('click', cancelDeviceModeChange);
 
       byId('childLookupForm').addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -1852,6 +1939,7 @@
             registeredAt: new Date().toISOString()
           };
           localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(record));
+          finishDeviceModeChange();
           pairingFamilyCode = '';
           pairingToken = '';
           byId('pairingPin').value = '';
@@ -1873,7 +1961,7 @@
       byId('backToSharedChooserButton').addEventListener('click', () => {
         const device = readSharedDeviceConnection();
         if (device) renderSharedChooser(device);
-        else showView('entryChoiceView');
+        else showEntryChoiceView();
       });
 
       document.querySelectorAll('[data-shared-pattern-point]').forEach((dot) => {
@@ -2139,7 +2227,7 @@
             registeredAt: new Date().toISOString()
           };
           localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(record));
-          localStorage.removeItem(SETUP_MODE_KEY);
+          finishDeviceModeChange();
           currentDevice = record;
           await renderForSession(sessionData.session);
         } catch (error) {
@@ -2224,7 +2312,7 @@
             registeredAt: new Date().toISOString()
           };
           saveSharedDeviceConnection(record);
-          localStorage.removeItem(SETUP_MODE_KEY);
+          finishDeviceModeChange();
           localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
           await client.auth.signOut({ scope: 'local' });
           renderSharedChooser(record, '家族共用端末として準備できました。');
@@ -2254,7 +2342,8 @@
           resetChildForm();
           await client.auth.signOut();
           window.history.replaceState(null, '', window.location.pathname);
-          showView('entryChoiceView');
+          if (deviceModeChangeActive()) localStorage.setItem(SETUP_MODE_KEY, 'choose');
+          showEntryChoiceView();
           button.disabled = false;
         });
       });
@@ -2276,6 +2365,13 @@
               detectSessionInUrl: true
             }
           });
+
+          if (initialModeChangeRequested && storedDeviceMode()) {
+            localStorage.setItem(MODE_CHANGE_KEY, '1');
+            localStorage.setItem(SETUP_MODE_KEY, 'choose');
+          } else if (initialModeChangeRequested) {
+            finishDeviceModeChange();
+          }
 
           client.auth.onAuthStateChange((event, session) => {
             if (qrEntryMode) return;

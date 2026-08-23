@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.28.Step2</title>
+<title>FUERU 保護者版 v0.9.29.Step2</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -1164,6 +1164,9 @@ button{cursor:pointer}
       </button>
       <button class="settings-link" type="button" id="openDeviceSharingSettings">
         <span>端末・共有設定<small>保護者用・子ども用端末の管理</small></span><span class="chevron">›</span>
+      </button>
+      <button class="settings-link" type="button" id="changeDeviceMode">
+        <span>この端末の使い方を変更<small>保護者用・子ども用・家族共用を選び直す</small></span><span class="chevron">›</span>
       </button>
       <button class="settings-link" type="button">
         <span>アプリ全体の設定<small>表示・バックアップ・その他</small></span><span class="chevron">›</span>
@@ -3959,6 +3962,7 @@ document.getElementById("openDeviceSharingSettings").onclick=()=>{
   showView("deviceSharingSettingsView");
   loadChildDeviceConnections();
 };
+document.getElementById("changeDeviceMode").onclick=()=>location.replace("./?change-device-mode=1");
 document.getElementById("backFromDeviceSharingSettings").onclick=()=>showView(deviceSettingsReturnView);
 document.getElementById("copyParentFamilyCode").onclick=copyParentFamilyCode;
 document.getElementById("backFromWithdrawSettings").onclick=()=>showView("settingsView");

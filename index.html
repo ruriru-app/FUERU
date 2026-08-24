@@ -531,6 +531,7 @@
           <p><strong>Safariで認証を終えた方へ</strong><br>Safariでコピーしたログイン情報を、ホーム画面のFUERUへ引き継げます。</p>
           <label for="handoffTokenInput">ログインの引き継ぎ情報</label>
           <input id="handoffTokenInput" class="handoff-copy-field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ここを長押しして貼り付け">
+          <p class="muted compact">① 上の欄を長押し　②「貼り付け」　③ 下のボタンを押す</p>
           <button id="importHandoffButton" class="button" type="button">Safariから引き継いでログイン</button>
           <p id="handoffImportMessage" class="message hidden" role="status" aria-live="polite"></p>
         </div>
@@ -636,7 +637,7 @@
           <button id="showDeviceSettingsButton" type="button">確認</button>
         </div>
         <div id="familyList" class="family-list"></div>
-          <a class="button primary" href="parent.html?v=release-1.1.0">保護者画面を開く</a>
+          <a class="button primary" href="parent.html?v=release-1.1.1">保護者画面を開く</a>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
 
         <section class="child-setup" aria-labelledby="childSetupTitle">
@@ -705,7 +706,7 @@
         <p id="childReadyName" class="ready-name"></p>
         <p id="childReadyUnlock" class="muted compact"></p>
         <p class="message">この端末専用の安全な接続情報を保存しました。家族コードやPINそのものを、データを見るための鍵には使用しません。</p>
-          <a class="button primary" href="child.html?v=release-1.1.0">子ども画面を開く</a>
+          <a class="button primary" href="child.html?v=release-1.1.1">子ども画面を開く</a>
         <p class="device-coming">子ども画面は、接続した本人のデータだけを読み込みます。報告・出金・おこづかい帳の記録は家庭のデータへ保存されます。</p>
       </section>
 
@@ -858,9 +859,9 @@
       function cancelDeviceModeChange() {
         const mode = storedDeviceMode();
         finishDeviceModeChange();
-      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.0');
-      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.0');
-      else window.location.replace('./?v=release-1.1.0');
+      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.1');
+      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.1');
+      else window.location.replace('./?v=release-1.1.1');
       }
 
       function setMessage(id, text, isError = false) {
@@ -1760,7 +1761,7 @@
                   familyId: sharedDevice.familyId,
                   startedAt: Date.now()
                 }));
-    window.location.replace('parent.html?v=release-1.1.0');
+    window.location.replace('parent.html?v=release-1.1.1');
                 return;
               }
 
@@ -2102,7 +2103,7 @@
           await establishSharedChildSession(device, profile, secret);
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
-      window.location.href = 'child.html?v=release-1.1.0';
+      window.location.href = 'child.html?v=release-1.1.1';
         } catch (error) {
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
@@ -2187,14 +2188,11 @@
 
       byId('importHandoffButton').addEventListener('click', async () => {
         const button = byId('importHandoffButton');
-        let value = byId('handoffTokenInput').value.trim();
+        const value = byId('handoffTokenInput').value.trim();
         setMessage('handoffImportMessage', '');
-        if (!value && navigator.clipboard?.readText) {
-          try { value = await navigator.clipboard.readText(); } catch { /* manual paste below */ }
-        }
         const tokenHash = handoffTokenFromText(value);
         if (!tokenHash) {
-          setMessage('handoffImportMessage', 'Safariでコピーした後、この入力欄を長押しして「貼り付け」を選んでください。', true);
+          setMessage('handoffImportMessage', '上の入力欄を長押しして「貼り付け」を選び、もう一度ボタンを押してください。', true);
           byId('handoffTokenInput').focus();
           return;
         }
@@ -2213,6 +2211,11 @@
           button.disabled = false;
           button.textContent = 'Safariから引き継いでログイン';
         }
+      });
+
+      byId('handoffTokenInput').addEventListener('input', () => {
+        const value = byId('handoffTokenInput').value.trim();
+        setMessage('handoffImportMessage', value ? '貼り付けました。下のボタンを押してください。' : '');
       });
 
       byId('familyForm').addEventListener('submit', async (event) => {

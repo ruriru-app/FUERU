@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.30.Step2 Theme Sync</title>
+<title>FUERU 保護者版 v0.9.31.Step2 App Settings</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -80,6 +80,18 @@ button{cursor:pointer}
 .settings-link{width:100%;border:1px solid var(--line);background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:15px 16px;display:flex;align-items:center;justify-content:space-between;text-align:left;color:var(--ink);font-weight:700}
 .settings-link small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:500}
 .chevron{font-size:25px;color:#4D9E93}
+.app-settings-stack{display:flex;flex-direction:column;gap:14px}
+.app-settings-card{padding:18px}
+.app-settings-title{margin:0 0 12px;color:#2F746B;font-size:17px;font-weight:800}
+.app-settings-list{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:0}
+.app-settings-list dt,.app-settings-list dd{margin:0;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.55}
+.app-settings-list dt{color:var(--muted);font-weight:700}
+.app-settings-list dd{text-align:right;font-weight:700;overflow-wrap:anywhere}
+.app-settings-list dt:last-of-type,.app-settings-list dd:last-of-type{border-bottom:0}
+.app-sync-status{margin:0 0 13px;padding:11px 12px;border-radius:13px;background:#EAF7F5;color:#2F746B;font-size:12px;font-weight:700;line-height:1.6;text-align:center}
+.app-sync-button{width:100%;min-height:48px;border:0;border-radius:14px;background:#4D9E93;color:#fff;font-size:15px;font-weight:800;box-shadow:0 6px 0 #3D867D}
+.app-sync-button:disabled{background:#CBD6D4;box-shadow:0 6px 0 #B7C2C0}
+.app-settings-note{margin:0;color:var(--muted);font-size:12px;line-height:1.75}
 .muted-note{margin-top:16px;padding:14px;border-radius:16px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7;font-weight:500}
 .family-code-card{padding:20px}
 .family-code-label{margin:0;color:var(--muted);font-size:12px;font-weight:700}
@@ -1168,8 +1180,8 @@ button{cursor:pointer}
       <button class="settings-link" type="button" id="changeDeviceMode">
         <span>この端末の使い方を変更<small>保護者用・子ども用・家族共用を選び直す</small></span><span class="chevron">›</span>
       </button>
-      <button class="settings-link" type="button">
-        <span>アプリ全体の設定<small>表示・バックアップ・その他</small></span><span class="chevron">›</span>
+      <button class="settings-link" type="button" id="openAppSettings">
+        <span>アプリ全体の設定<small>データの更新・ログイン情報・バージョン</small></span><span class="chevron">›</span>
       </button>
       <button class="settings-link" type="button" id="returnToSharedChooser" hidden>
         <span>使う人を選び直す<small>家族共用端末の「だれが使いますか？」へ戻る</small></span><span class="chevron">›</span>
@@ -1179,6 +1191,45 @@ button{cursor:pointer}
       </button>
     </div>
     <div class="parent-settings-note">お小遣い・お仕事・履歴は、保護者ホームの各子どもタイルから開きます。</div>
+  </section>
+
+  <section id="appSettingsView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromAppSettings">戻る</button>
+      <h1>アプリ全体の設定</h1>
+      <div></div>
+    </header>
+
+    <div class="app-settings-stack">
+      <section class="card app-settings-card">
+        <h2 class="app-settings-title">データの更新</h2>
+        <p class="app-sync-status" id="appSyncStatus" role="status" aria-live="polite">最新のデータを読み込みました</p>
+        <button class="app-sync-button" type="button" id="refreshAppData">最新のデータに更新</button>
+      </section>
+
+      <section class="card app-settings-card">
+        <h2 class="app-settings-title">現在の利用情報</h2>
+        <dl class="app-settings-list">
+          <dt>家庭</dt><dd id="appFamilyName">―</dd>
+          <dt>家族コード</dt><dd id="appFamilyCode">―</dd>
+          <dt>ログイン</dt><dd id="appLoginEmail">―</dd>
+          <dt>この端末</dt><dd id="appDeviceMode">―</dd>
+        </dl>
+      </section>
+
+      <section class="card app-settings-card">
+        <h2 class="app-settings-title">データの保存について</h2>
+        <p class="app-settings-note">お仕事・通帳・おこづかい帳・子どもの設定は、家庭のデータとして自動保存されます。手動でバックアップする操作は必要ありません。</p>
+      </section>
+
+      <section class="card app-settings-card">
+        <h2 class="app-settings-title">アプリ情報</h2>
+        <dl class="app-settings-list">
+          <dt>アプリ</dt><dd>FUERU 保護者版</dd>
+          <dt>バージョン</dt><dd>0.9.31</dd>
+        </dl>
+      </section>
+    </div>
   </section>
 
   <section id="deviceSharingSettingsView" class="view">
@@ -1885,6 +1936,7 @@ async function loadRemoteParentState(){
 async function refreshRemoteParentState(){
   const next=await loadRemoteParentState();
   state=next;
+  remoteLastSyncedAt=new Date();
   return next;
 }
 function remoteOperationError(error){
@@ -2145,6 +2197,7 @@ const seed={
 let state;
 try{state=await loadRemoteParentState();}
 catch(error){console.error(error);alert("保護者データを読み込めませんでした。FUERUの入口からもう一度お試しください。");location.replace("./");return;}
+let remoteLastSyncedAt=new Date();
 let currentChildId=null;
 
 let editingChildId=null;
@@ -2301,6 +2354,31 @@ function bindClick(id,handler){
 function showView(id){
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   document.getElementById(id).classList.add("active");
+}
+function formatAppSyncTime(date){
+  return date.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})+"に最新のデータを読み込みました";
+}
+function renderAppSettings(){
+  document.getElementById("appFamilyName").textContent=remoteFamilyInfo&&remoteFamilyInfo.name?remoteFamilyInfo.name:"家庭";
+  document.getElementById("appFamilyCode").textContent=remoteFamilyInfo&&remoteFamilyInfo.code?remoteFamilyInfo.code:"―";
+  document.getElementById("appLoginEmail").textContent=remoteSession&&remoteSession.user&&remoteSession.user.email?remoteSession.user.email:"確認できません";
+  document.getElementById("appDeviceMode").textContent=sharedParentMode?"家族みんなで使う端末":"保護者として使う端末";
+  document.getElementById("appSyncStatus").textContent=formatAppSyncTime(remoteLastSyncedAt);
+}
+async function refreshFromAppSettings(){
+  if(remoteBusy)return;
+  const button=document.getElementById("refreshAppData");
+  const status=document.getElementById("appSyncStatus");
+  remoteBusy=true;button.disabled=true;button.textContent="更新しています…";status.textContent="家庭の最新データを読み込んでいます…";
+  try{
+    await refreshRemoteParentState();
+    renderHome();renderAppSettings();
+  }catch(error){
+    console.error(error);
+    status.textContent="更新できませんでした。通信状態を確認して、もう一度お試しください。";
+  }finally{
+    remoteBusy=false;button.disabled=false;button.textContent="最新のデータに更新";
+  }
 }
 function formatDate(s){
   const d=new Date(s+"T00:00:00");
@@ -3953,6 +4031,9 @@ if(returnToSharedChooser&&sharedParentMode){
 }
 
 document.getElementById("openSettings").onclick=()=>showView("settingsView");
+document.getElementById("openAppSettings").onclick=()=>{renderAppSettings();showView("appSettingsView")};
+document.getElementById("backFromAppSettings").onclick=()=>showView("settingsView");
+document.getElementById("refreshAppData").onclick=refreshFromAppSettings;
 document.getElementById("openChildManage").onclick=()=>{showView("childManageView");renderChildManage()};
 document.getElementById("openLedgerSettings").onclick=()=>{showView("ledgerSettingsView");renderLedgerSettingsList()};
 document.getElementById("openWithdrawSettings").onclick=()=>{showView("withdrawSettingsView");renderWithdrawSettings()};

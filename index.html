@@ -194,6 +194,25 @@
       line-height: 1.7;
     }
 
+    .handoff-panel {
+      margin-top: 18px;
+      padding: 18px 16px;
+      border: 2px solid var(--line);
+      border-radius: 18px;
+      background: var(--mint-050);
+    }
+
+    .handoff-panel p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .handoff-panel strong { color: var(--ink); }
+
+    .handoff-copy-field { font-size: 12px; }
+
     .family-list { display: grid; gap: 12px; margin-top: 18px; }
     .family {
       padding: 17px;
@@ -508,7 +527,14 @@
         </form>
 
         <p id="loginMessage" class="message hidden" role="status" aria-live="polite"></p>
-        <p class="mail-note">パスワードは必要ありません。届いたメールのリンクをタップすると、この端末にログイン状態が保存されます。</p>
+        <div id="handoffImportPanel" class="handoff-panel hidden">
+          <p><strong>Safariで認証を終えた方へ</strong><br>Safariでコピーしたログイン情報を、ホーム画面のFUERUへ引き継げます。</p>
+          <label for="handoffTokenInput">ログインの引き継ぎ情報</label>
+          <input id="handoffTokenInput" class="handoff-copy-field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ここを長押しして貼り付け">
+          <button id="importHandoffButton" class="button" type="button">Safariから引き継いでログイン</button>
+          <p id="handoffImportMessage" class="message hidden" role="status" aria-live="polite"></p>
+        </div>
+        <p class="mail-note">パスワードは必要ありません。メールのリンクをSafariで開いた後、画面の案内に沿ってホーム画面版へ引き継げます。</p>
         <button id="backToEntryFromLoginButton" class="button ghost" type="button">端末の使い方を選び直す</button>
       </section>
 
@@ -610,7 +636,7 @@
           <button id="showDeviceSettingsButton" type="button">確認</button>
         </div>
         <div id="familyList" class="family-list"></div>
-          <a class="button primary" href="parent.html?v=release-1.0.2">保護者画面を開く</a>
+          <a class="button primary" href="parent.html?v=release-1.1.0">保護者画面を開く</a>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
 
         <section class="child-setup" aria-labelledby="childSetupTitle">
@@ -679,7 +705,7 @@
         <p id="childReadyName" class="ready-name"></p>
         <p id="childReadyUnlock" class="muted compact"></p>
         <p class="message">この端末専用の安全な接続情報を保存しました。家族コードやPINそのものを、データを見るための鍵には使用しません。</p>
-          <a class="button primary" href="child.html?v=release-1.0.2">子ども画面を開く</a>
+          <a class="button primary" href="child.html?v=release-1.1.0">子ども画面を開く</a>
         <p class="device-coming">子ども画面は、接続した本人のデータだけを読み込みます。報告・出金・おこづかい帳の記録は家庭のデータへ保存されます。</p>
       </section>
 
@@ -722,6 +748,20 @@
         <p id="sharedUnlockMessage" class="message hidden" role="status" aria-live="polite"></p>
       </section>
 
+      <section id="authHandoffView" class="card hidden">
+        <h2>ホーム画面のFUERUへ<br>ログインを引き継ぎます</h2>
+        <p class="muted compact">メールでの本人確認は完了しました。一回限りのログイン情報をコピーして、ホーム画面のFUERUへ戻ってください。</p>
+        <button id="createHandoffButton" class="button" type="button">引き継ぎ情報を準備する</button>
+        <div id="handoffReadyPanel" class="handoff-panel hidden">
+          <label for="handoffCopyValue">ログインの引き継ぎ情報</label>
+          <input id="handoffCopyValue" class="handoff-copy-field" type="text" readonly autocomplete="off">
+          <button id="copyHandoffButton" class="button" type="button">コピーする</button>
+          <p>コピー後、Safariを閉じてホーム画面のFUERUを開き、「Safariから引き継いでログイン」を押してください。</p>
+        </div>
+        <p id="handoffMessage" class="message hidden" role="status" aria-live="polite"></p>
+        <button id="continueInBrowserButton" class="button ghost" type="button">このままSafariで使う</button>
+      </section>
+
       <section id="fatalView" class="card hidden">
         <h2>接続を確認してください</h2>
         <p id="fatalMessage" class="message error"></p>
@@ -751,7 +791,7 @@
       const views = [
         'loadingView', 'entryChoiceView', 'loginView', 'childConnectView',
         'setupView', 'deviceView', 'homeView', 'childReadyView',
-        'sharedChooserView', 'sharedChildUnlockView', 'fatalView'
+        'sharedChooserView', 'sharedChildUnlockView', 'authHandoffView', 'fatalView'
       ];
       const byId = (id) => document.getElementById(id);
       let client = null;
@@ -778,6 +818,9 @@
       let sharedUnlockPattern = [];
       let sharedUnlockPatternDraft = [];
       let drawingSharedUnlockPattern = false;
+      const initialAuthCallback = /(?:[?#&])(access_token|refresh_token|token_hash|code|error_description)=/i.test(window.location.href);
+      let skipAuthHandoff = false;
+      let currentHandoffValue = '';
 
       function showView(id) {
         views.forEach((viewId) => byId(viewId).classList.toggle('hidden', viewId !== id));
@@ -815,9 +858,9 @@
       function cancelDeviceModeChange() {
         const mode = storedDeviceMode();
         finishDeviceModeChange();
-      if (mode === 'parent') window.location.replace('parent.html?v=release-1.0.2');
-      else if (mode === 'child') window.location.replace('child.html?v=release-1.0.2');
-      else window.location.replace('./?v=release-1.0.2');
+      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.0');
+      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.0');
+      else window.location.replace('./?v=release-1.1.0');
       }
 
       function setMessage(id, text, isError = false) {
@@ -833,8 +876,29 @@
           return '短時間に認証メールを複数送ったため、現在は送信できません。最後の送信から1時間ほど待って、1回だけお試しください。';
         }
         if (/invalid.*email|email.*invalid/i.test(message)) return 'メールアドレスを確認してください。';
+        if (/otp_expired|token.*expired|expired.*token/i.test(message)) return 'ログインの引き継ぎ情報の有効時間が切れています。Safariで新しく準備してください。';
+        if (/invalid.*token|token.*invalid|invalid.*otp/i.test(message)) return 'ログインの引き継ぎ情報を確認してください。Safariで新しく準備すると解決することがあります。';
         if (/failed to fetch|network/i.test(message)) return '通信できませんでした。インターネット接続を確認してください。';
         return '処理を完了できませんでした。少し時間をおいて、もう一度お試しください。';
+      }
+
+      function isStandaloneWebApp() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      }
+
+      function isIosDevice() {
+        const ua = window.navigator.userAgent || '';
+        return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && window.navigator.maxTouchPoints > 1);
+      }
+
+      function shouldOfferAuthHandoff() {
+        return initialAuthCallback && isIosDevice() && !isStandaloneWebApp() && !skipAuthHandoff;
+      }
+
+      function handoffTokenFromText(value) {
+        const text = String(value || '').trim();
+        const token = text.startsWith('FUERU-AUTH-V1:') ? text.slice('FUERU-AUTH-V1:'.length) : text;
+        return /^[A-Za-z0-9_-]{20,500}$/.test(token) ? token : '';
       }
 
       function pairingErrorMessage(error) {
@@ -957,6 +1021,9 @@
             ? '新しい使い方を安全に設定するため、保護者のメールで確認します。'
             : '初めての方も、すでにFUERUを使っている方も、同じ入口です。';
         setMessage('loginMessage', '');
+        byId('handoffImportPanel').classList.toggle('hidden', !isStandaloneWebApp());
+        byId('handoffTokenInput').value = '';
+        setMessage('handoffImportMessage', '');
       }
 
       function sharedProfileEmoji(profile) {
@@ -1637,6 +1704,16 @@
           const changingMode = deviceModeChangeActive();
           const choosingGuardianMode = changingMode && (requestedMode === 'parent' || requestedMode === 'shared');
 
+          if (session?.user && shouldOfferAuthHandoff()) {
+            currentHandoffValue = '';
+            byId('handoffCopyValue').value = '';
+            byId('handoffReadyPanel').classList.add('hidden');
+            byId('copyHandoffButton').textContent = 'コピーする';
+            setMessage('handoffMessage', '');
+            showView('authHandoffView');
+            return;
+          }
+
           if (changingMode && requestedMode === 'choose') {
             currentDevice = null;
             showEntryChoiceView();
@@ -1683,7 +1760,7 @@
                   familyId: sharedDevice.familyId,
                   startedAt: Date.now()
                 }));
-    window.location.replace('parent.html?v=release-1.0.2');
+    window.location.replace('parent.html?v=release-1.1.0');
                 return;
               }
 
@@ -2025,7 +2102,7 @@
           await establishSharedChildSession(device, profile, secret);
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
-      window.location.href = 'child.html?v=release-1.0.2';
+      window.location.href = 'child.html?v=release-1.1.0';
         } catch (error) {
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
@@ -2054,12 +2131,87 @@
             }
           });
           if (error) throw error;
-          setMessage('loginMessage', 'メールを送りました。届いたメールのリンクをタップしてください。');
+          setMessage('loginMessage', 'メールを送りました。届いたメールのリンクをSafariで開いてください。');
         } catch (error) {
           setMessage('loginMessage', friendlyError(error), true);
         } finally {
           button.disabled = false;
           button.textContent = 'ログイン用メールを送る';
+        }
+      });
+
+      byId('createHandoffButton').addEventListener('click', async () => {
+        const button = byId('createHandoffButton');
+        setMessage('handoffMessage', '');
+        button.disabled = true;
+        button.textContent = '準備しています…';
+        try {
+          const { data, error } = await client.functions.invoke('auth-handoff', {
+            body: { action: 'create' }
+          });
+          if (error || !data?.ok || !handoffTokenFromText(data.token_hash)) throw error || new Error('handoff_failed');
+          currentHandoffValue = `FUERU-AUTH-V1:${data.token_hash}`;
+          byId('handoffCopyValue').value = currentHandoffValue;
+          byId('handoffReadyPanel').classList.remove('hidden');
+          setMessage('handoffMessage', '準備できました。「コピーする」を押してください。');
+        } catch (error) {
+          setMessage('handoffMessage', friendlyError(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = '引き継ぎ情報を準備する';
+        }
+      });
+
+      byId('copyHandoffButton').addEventListener('click', async () => {
+        if (!currentHandoffValue) return;
+        try {
+          await navigator.clipboard.writeText(currentHandoffValue);
+        } catch {
+          const field = byId('handoffCopyValue');
+          field.focus();
+          field.select();
+          if (!document.execCommand('copy')) {
+            setMessage('handoffMessage', '入力欄を長押しして「コピー」を選んでください。', true);
+            return;
+          }
+        }
+        byId('copyHandoffButton').textContent = '✓ コピーしました';
+        setMessage('handoffMessage', 'Safariを閉じて、ホーム画面のFUERUへ戻ってください。');
+      });
+
+      byId('continueInBrowserButton').addEventListener('click', async () => {
+        skipAuthHandoff = true;
+        const { data } = await client.auth.getSession();
+        await renderForSession(data.session);
+      });
+
+      byId('importHandoffButton').addEventListener('click', async () => {
+        const button = byId('importHandoffButton');
+        let value = byId('handoffTokenInput').value.trim();
+        setMessage('handoffImportMessage', '');
+        if (!value && navigator.clipboard?.readText) {
+          try { value = await navigator.clipboard.readText(); } catch { /* manual paste below */ }
+        }
+        const tokenHash = handoffTokenFromText(value);
+        if (!tokenHash) {
+          setMessage('handoffImportMessage', 'Safariでコピーした後、この入力欄を長押しして「貼り付け」を選んでください。', true);
+          byId('handoffTokenInput').focus();
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = '引き継いでいます…';
+        try {
+          const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' });
+          if (error || !data?.session) throw error || new Error('handoff_failed');
+          byId('handoffTokenInput').value = '';
+          await renderForSession(data.session);
+        } catch (error) {
+          byId('handoffTokenInput').value = '';
+          setMessage('handoffImportMessage', friendlyError(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Safariから引き継いでログイン';
         }
       });
 

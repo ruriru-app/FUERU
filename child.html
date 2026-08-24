@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FUERU Child v0.5.25 Step3 Theme Sync</title>
+<title>FUERU Child v0.5.26 Step3 Currency Ready</title>
 <style>
 :root{
   --theme-main:#8CCBC2;--theme-main-dark:#4D9E93;--theme-main-deep:#2F746B;--theme-main-light:#EAF7F5;
@@ -1904,13 +1904,13 @@ body.fueru-child-booting .app{visibility:hidden}
 
   <button class="monthly-reward-card" type="button" id="openRewardDetail" aria-label="今月のお仕事報酬の詳細を開く">
     <span class="monthly-reward-label">今月のお仕事報酬</span>
-    <span class="monthly-reward-amount"><span id="monthlyConfirmed">0円</span><span class="monthly-reward-chevron">›</span></span>
+    <span class="monthly-reward-amount"><span id="monthlyConfirmed">0</span><span class="monthly-reward-chevron">›</span></span>
   </button>
 
   <section class="card passbook-card" aria-label="FUERU通帳">
     <h2 class="passbook-title">FUERU通帳</h2>
     <div class="passbook-balance-line">
-      <span class="passbook-balance-value" id="homePassbookBalance">5,320円</span>
+      <span class="passbook-balance-value" id="homePassbookBalance">0</span>
     </div>
     <button class="passbook-open" type="button" id="openPassbook">開く</button>
   </section>
@@ -1982,21 +1982,21 @@ body.fueru-child-booting .app{visibility:hidden}
 <label class="job-row-home">
   <input type="checkbox" class="job-check" data-job-id="job_bath" data-reward="10">
   <span class="job-copy"><span class="job-name-home">17:40までに風呂掃除＆お湯張り</span><span class="job-meta-home">毎日</span></span>
-  <span class="reward">10円</span>
+  <span class="reward">10</span>
 </label>
 <label class="job-row-home">
   <input type="checkbox" class="job-check" data-job-id="job_laundry" data-reward="20">
   <span class="job-copy"><span class="job-name-home">洗濯物の片付け（畳んで引き出しへ）</span><span class="job-meta-home">毎日</span></span>
-  <span class="reward">20円</span>
+  <span class="reward">20</span>
 </label>
 <label class="job-row-home">
   <input type="checkbox" class="job-check" data-job-id="job_kumon" data-reward="50">
   <span class="job-copy"><span class="job-name-home">11:00までに公文を完了</span><span class="job-meta-home">土・日</span></span>
-  <span class="reward">50円</span>
+  <span class="reward">50</span>
 </label>
 </div>
     <div class="actionbar">
-      <div class="summary">選択中 <strong id="selectedCount">0</strong> 件<br>この日の報酬 <strong id="selectedReward">0円</strong></div>
+      <div class="summary">選択中 <strong id="selectedCount">0</strong> 件<br>この日の報酬 <strong id="selectedReward">0</strong></div>
       <button class="report" type="button" id="reportButton" disabled>報告する</button>
     </div>
   </section>
@@ -2078,7 +2078,7 @@ body.fueru-child-booting .app{visibility:hidden}
       <div class="ledger-wallet-label">現在の手持ち</div>
       <div class="ledger-wallet-note">財布にあるお金のめやす</div>
     </div>
-    <strong id="ledgerWalletBalance">0円</strong>
+    <strong id="ledgerWalletBalance">0</strong>
   </section>
 
   <section class="card ledger-action-card" id="ledgerIncomeAccordion">
@@ -2095,7 +2095,7 @@ body.fueru-child-booting .app{visibility:hidden}
       <label class="ledger-field-label" for="ledgerIncomeAmount">いくら？</label>
       <div class="ledger-amount-wrap">
         <input class="ledger-amount-input" type="number" id="ledgerIncomeAmount" min="1" step="1" inputmode="numeric" placeholder="0">
-        <span>円</span>
+        <span data-currency-unit></span>
       </div>
       <div class="ledger-entry-error" id="ledgerIncomeError" role="alert"></div>
       <div class="ledger-entry-actions single">
@@ -2118,7 +2118,7 @@ body.fueru-child-booting .app{visibility:hidden}
       <label class="ledger-field-label" for="ledgerExpenseAmount">いくら？</label>
       <div class="ledger-amount-wrap">
         <input class="ledger-amount-input" type="number" id="ledgerExpenseAmount" min="1" step="1" inputmode="numeric" placeholder="0">
-        <span>円</span>
+        <span data-currency-unit></span>
       </div>
       <div class="ledger-entry-error" id="ledgerExpenseError" role="alert"></div>
       <div class="ledger-entry-actions single">
@@ -2135,13 +2135,13 @@ body.fueru-child-booting .app{visibility:hidden}
     <div class="period-accordion-body">
       <div class="period-summary-grid">
         <div class="period-summary-label">期間開始時の手持ち</div>
-        <div class="period-summary-value" id="ledgerPeriodOpeningBalance">0円</div>
+        <div class="period-summary-value" id="ledgerPeriodOpeningBalance">0</div>
         <div class="period-summary-label">入ったお金</div>
-        <div class="period-summary-value" id="ledgerPeriodIncome">＋0円</div>
+        <div class="period-summary-value" id="ledgerPeriodIncome">0</div>
         <div class="period-summary-label">使ったお金</div>
-        <div class="period-summary-value minus" id="ledgerPeriodExpense">0円</div>
+        <div class="period-summary-value minus" id="ledgerPeriodExpense">0</div>
         <div class="period-summary-label">期間終了時の手持ち</div>
-        <div class="period-summary-value" id="ledgerPeriodClosingBalance">0円</div>
+        <div class="period-summary-value" id="ledgerPeriodClosingBalance">0</div>
         <div class="period-summary-label">記録件数</div>
         <div class="period-summary-value" id="ledgerPeriodCount">0件</div>
       </div>
@@ -2161,7 +2161,7 @@ body.fueru-child-booting .app{visibility:hidden}
         <h2>お金の記録</h2>
         <div id="ledgerMonthCount">0件の記録</div>
       </div>
-      <div id="ledgerMonthTotal">収支 0円</div>
+      <div id="ledgerMonthTotal">収支 0</div>
     </div>
     <div class="ledger-history-list" id="ledgerHistoryList"></div>
   </section>
@@ -2178,7 +2178,7 @@ body.fueru-child-booting .app{visibility:hidden}
     <label class="ledger-field-label" for="ledgerEditAmount">金額</label>
     <div class="ledger-amount-wrap">
       <input class="ledger-amount-input" type="number" id="ledgerEditAmount" min="1" step="1" inputmode="numeric">
-      <span>円</span>
+      <span data-currency-unit></span>
     </div>
     <div class="ledger-entry-error" id="ledgerEditError" role="alert"></div>
     <div class="ledger-entry-actions">
@@ -2196,7 +2196,7 @@ body.fueru-child-booting .app{visibility:hidden}
 
   <section class="card passbook-summary">
     <div class="passbook-summary-label">現在の残高</div>
-    <div class="passbook-summary-value" id="passbookBalance">5,320円</div>
+    <div class="passbook-summary-value" id="passbookBalance">0</div>
   </section>
 
   <div class="withdraw-pending" id="withdrawPendingNotice"></div>
@@ -2226,11 +2226,11 @@ body.fueru-child-booting .app{visibility:hidden}
     <div class="period-accordion-body" id="periodAccordionBody">
       <div class="period-summary-grid">
         <div class="period-summary-label">期間収支</div>
-        <div class="period-summary-value" id="periodNet">＋0円</div>
+        <div class="period-summary-value" id="periodNet">0</div>
         <div class="period-summary-label">入金</div>
-        <div class="period-summary-value plus" id="periodIncome">＋0円</div>
+        <div class="period-summary-value plus" id="periodIncome">0</div>
         <div class="period-summary-label">出金</div>
-        <div class="period-summary-value minus" id="periodExpense">0円</div>
+        <div class="period-summary-value minus" id="periodExpense">0</div>
       </div>
       <button class="period-print-button" type="button" id="periodPrintButton">FUERU通帳をプリント</button>
     </div>
@@ -2257,16 +2257,16 @@ body.fueru-child-booting .app{visibility:hidden}
   <section class="card withdraw-card">
     <div class="withdraw-balance">
       <span>現在の残高</span>
-      <strong id="withdrawBalance">0円</strong>
+      <strong id="withdrawBalance">0</strong>
     </div>
 
     <div class="withdraw-field">
       <label for="withdrawAmount">出金したい金額</label>
       <div class="withdraw-input-wrap">
         <input class="withdraw-input" id="withdrawAmount" type="number" min="100" step="100" inputmode="numeric" placeholder="0">
-        <span class="withdraw-unit">円</span>
+        <span class="withdraw-unit" data-currency-unit></span>
       </div>
-      <div class="withdraw-unit-guidance" id="withdrawUnitGuidance">100円単位で入力してください</div>
+      <div class="withdraw-unit-guidance" id="withdrawUnitGuidance"></div>
       <div class="withdraw-limit-note" id="withdrawLimitNote"></div>
     </div>
 
@@ -2289,9 +2289,9 @@ body.fueru-child-booting .app{visibility:hidden}
   <section class="card detail-summary">
     <h2 class="detail-month" id="detailMonthTitle">2026年7月</h2>
     <div class="money-grid">
-      <div class="label">確定報酬</div><div class="value" id="detailConfirmed">0円</div>
-      <div class="label">確認待ち</div><div class="value" id="detailWaiting">0円</div>
-      <div class="label total-label">報告済み合計</div><div class="value total-value" id="detailReportedTotal">0円</div>
+      <div class="label">確定報酬</div><div class="value" id="detailConfirmed">0</div>
+      <div class="label">確認待ち</div><div class="value" id="detailWaiting">0</div>
+      <div class="label total-label">報告済み合計</div><div class="value total-value" id="detailReportedTotal">0</div>
     </div>
   </section>
 
@@ -2324,7 +2324,7 @@ body.fueru-child-booting .app{visibility:hidden}
       <form id="jobForm">
         <input type="hidden" id="editJobId">
         <div class="field"><label class="field-title" for="jobName">お仕事内容</label><input id="jobName" type="text" required placeholder="例：風呂掃除＆お湯張り"></div>
-        <div class="field"><label class="field-title" for="reward">報酬（円）</label><input id="reward" type="number" min="0" step="1" required value="10"></div>
+        <div class="field"><label class="field-title" for="reward">報酬</label><input id="reward" type="number" min="0" step="1" required value="10"></div>
         <div class="field">
           <label class="field-title">頻度</label>
           <div class="freq-row">
@@ -2363,9 +2363,13 @@ body.fueru-child-booting .app{visibility:hidden}
 </div></div>
 <div class="toast" id="toast"></div>
 
+<script src="fueru-money.js"></script>
 <script>
 (async function(){
 "use strict";
+
+var moneyFormat=window.FueruMoney;
+document.querySelectorAll("[data-currency-unit]").forEach(function(element){element.textContent=moneyFormat.unit();});
 
 var FUERU_CONFIG={
   url:"https://xftiircdvszesknamrmx.supabase.co",
@@ -2738,7 +2742,7 @@ function updateWithdrawalAmountState(showError){
   }else if(raw!==""&&amount>balance){
     message="現在の残高を超えて出金することはできません。";
   }else if(raw!==""&&amount%unit!==0){
-    message=unit.toLocaleString("ja-JP")+"円単位で入力してください。";
+    message=moneyFormat.unitStep(unit)+"で入力してください。";
   }
 
   if(input)input.classList.toggle("invalid",!!message&&raw!=="");
@@ -2762,7 +2766,7 @@ function renderWithdrawalState(){
   if(notice){
     notice.classList.toggle("show",!!pending);
     if(pending){
-      notice.innerHTML='出金依頼中　'+Number(pending.amount||0).toLocaleString()+'円<br>保護者から現金を受け取るまでお待ちください。';
+      notice.innerHTML='出金依頼中　'+moneyFormat.format(pending.amount)+'<br>保護者から現金を受け取るまでお待ちください。';
     }else{notice.innerHTML="";}
   }
   var cancel=document.getElementById("cancelWithdrawalRequest");
@@ -2778,7 +2782,7 @@ function openWithdrawalView(){
 
   document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active")});
   document.getElementById("withdrawalView").classList.add("active");
-  document.getElementById("withdrawBalance").textContent=balance.toLocaleString("ja-JP")+"円";
+  document.getElementById("withdrawBalance").textContent=moneyFormat.format(balance);
 
   var amountInput=document.getElementById("withdrawAmount");
   amountInput.value="";
@@ -2788,11 +2792,11 @@ function openWithdrawalView(){
   amountInput.placeholder=unit.toLocaleString("ja-JP");
 
   document.getElementById("withdrawUnitGuidance").textContent=
-    unit.toLocaleString("ja-JP")+"円単位で入力してください";
+    moneyFormat.unitStep(unit)+"で入力してください";
   document.getElementById("withdrawLimitNote").textContent=
     maximum>=unit
-      ?"出金できる最大額："+maximum.toLocaleString("ja-JP")+"円"
-      :"残高が"+unit.toLocaleString("ja-JP")+"円未満のため、現在は出金できません。";
+      ?"出金できる最大額："+moneyFormat.format(maximum)
+      :"残高が"+moneyFormat.format(unit)+"未満のため、現在は出金できません。";
 
   document.getElementById("withdrawError").classList.remove("show");
   updateWithdrawalAmountState(false);
@@ -2809,7 +2813,7 @@ async function submitWithdrawalRequest(){
   var unit=validWithdrawalUnit(child.withdrawalUnit);
   if(amount<=0){fail("出金する金額を入力してください。");return;}
   if(amount>balance){fail("現在の残高を超えて出金することはできません。");return;}
-  if(amount%unit!==0){fail(unit.toLocaleString("ja-JP")+"円単位で入力してください。");return;}
+  if(amount%unit!==0){fail(moneyFormat.unitStep(unit)+"で入力してください。");return;}
   var submit=document.getElementById("submitWithdrawal");
   submit.disabled=true;
   var result=await performChildMutation("request_withdrawal",{amount:amount});
@@ -2869,9 +2873,8 @@ function transactionTypeLabel(tx){
   if(category==="out")return tx.reason||"出金";
   return "お仕事報酬";
 }
-function signedYen(amount){
-  amount=Number(amount)||0;
-  return (amount>=0?"＋":"－")+Math.abs(amount).toLocaleString()+"円";
+function signedMoney(amount){
+  return moneyFormat.signed(amount,true);
 }
 function childDisplayPeriod(child,offset){
   offset=Number(offset)||0;
@@ -2917,8 +2920,8 @@ function renderSharedPassbook(){
   var data=loadSharedState(),child=sharedChild(data);if(!child)return;
   var balance=Number(child.passbookBalance||0);
   var home=document.getElementById("homePassbookBalance"),detail=document.getElementById("passbookBalance");
-  if(home)home.textContent=balance.toLocaleString()+"円";
-  if(detail)detail.textContent=balance.toLocaleString()+"円";
+  if(home)home.textContent=moneyFormat.format(balance);
+  if(detail)detail.textContent=moneyFormat.format(balance);
   renderWithdrawalState();
 
   var box=document.getElementById("transactionList");if(!box)return;
@@ -2948,10 +2951,10 @@ function renderSharedPassbook(){
   var incomeEl=document.getElementById("periodIncome");
   var expenseEl=document.getElementById("periodExpense");
   var netEl=document.getElementById("periodNet");
-  if(incomeEl)incomeEl.textContent=signedYen(income);
-  if(expenseEl)expenseEl.textContent=expense?("－"+expense.toLocaleString()+"円"):"0円";
+  if(incomeEl)incomeEl.textContent=signedMoney(income);
+  if(expenseEl)expenseEl.textContent=moneyFormat.negative(expense);
   if(netEl){
-    netEl.textContent=signedYen(net);
+    netEl.textContent=signedMoney(net);
     netEl.classList.toggle("minus",net<0);
   }
 
@@ -3003,7 +3006,7 @@ function renderSharedPassbook(){
 
     var sum=document.createElement("div");
     sum.className="transaction-day-total "+(total>=0?"plus":"minus");
-    sum.textContent=signedYen(total);
+    sum.textContent=signedMoney(total);
 
     day.append(date,type,sum);
 
@@ -3030,7 +3033,7 @@ function renderSharedPassbook(){
         if(showAmount){
           var amount=document.createElement("span");
           amount.className="transaction-inline-amount";
-          amount.textContent="（"+signedYen(item.amount)+"）";
+          amount.textContent="（"+signedMoney(item.amount)+"）";
           title.appendChild(amount);
         }
 
@@ -3338,7 +3341,7 @@ function renderHome(){
     copy.appendChild(name);copy.appendChild(meta);
 
     var right=document.createElement("span");right.className="job-right";
-    var rewardEl=document.createElement("span");rewardEl.className="reward";rewardEl.textContent=shownReward+"円";
+    var rewardEl=document.createElement("span");rewardEl.className="reward";rewardEl.textContent=moneyFormat.format(shownReward);
     right.appendChild(rewardEl);
 
     row.appendChild(leftControl);row.appendChild(copy);row.appendChild(right);jobsList.appendChild(row);
@@ -3353,7 +3356,7 @@ function updateSummary(){
     if(item.record&&(item.record.status==="waiting"||item.record.status==="done"))reportedTotal+=Number(item.record.snapshot.reward)||0;
   });
   selectedCount.textContent=count;
-  selectedReward.textContent=(reportedTotal+selectedTotal)+"円";
+  selectedReward.textContent=moneyFormat.format(reportedTotal+selectedTotal);
   reportButton.disabled=count===0||selectedDate>TODAY;
 }
 
@@ -3391,14 +3394,14 @@ function monthSummary(baseDate){
 }
 function renderMonthlyReward(){
   var summary=monthSummary(TODAY);
-  monthlyConfirmed.textContent=summary.confirmed+"円";
+  monthlyConfirmed.textContent=moneyFormat.format(summary.confirmed);
 }
 function renderRewardDetail(){
   var summary=monthSummary(TODAY);
   detailMonthTitle.textContent=TODAY.getFullYear()+"年"+(TODAY.getMonth()+1)+"月";
-  detailConfirmed.textContent=summary.confirmed+"円";
-  detailWaiting.textContent=summary.waiting+"円";
-  detailReportedTotal.textContent=summary.reportedTotal+"円";
+  detailConfirmed.textContent=moneyFormat.format(summary.confirmed);
+  detailWaiting.textContent=moneyFormat.format(summary.waiting);
+  detailReportedTotal.textContent=moneyFormat.format(summary.reportedTotal);
   jobBreakdown.innerHTML="";
   var entries=Object.keys(summary.byJob).map(function(id){return summary.byJob[id]});
   entries=entries.filter(function(item){return item.countConfirmed>0||item.countWaiting>0});
@@ -3415,20 +3418,20 @@ function renderRewardDetail(){
     if(item.countConfirmed>0){
       var confirmedLine=document.createElement("div");
       confirmedLine.className="calc-line confirmed-line";
-      confirmedLine.textContent="確定　"+item.unit+"円×"+item.countConfirmed+"回＝"+item.confirmed+"円";
+      confirmedLine.textContent="確定　"+moneyFormat.format(item.unit)+"×"+item.countConfirmed+"回＝"+moneyFormat.format(item.confirmed);
       calc.appendChild(confirmedLine);
     }
 
     if(item.countWaiting>0){
       var waitingLine=document.createElement("div");
       waitingLine.className="calc-line waiting-line";
-      waitingLine.textContent="（確認待ち　"+item.unit+"円×"+item.countWaiting+"回＝"+item.waiting+"円）";
+      waitingLine.textContent="（確認待ち　"+moneyFormat.format(item.unit)+"×"+item.countWaiting+"回＝"+moneyFormat.format(item.waiting)+"）";
       calc.appendChild(waitingLine);
     }
 
     var totalLine=document.createElement("div");
     totalLine.className="breakdown-total";
-    totalLine.textContent=item.confirmed+"円"+(item.countWaiting>0?"（"+total+"円）":"");
+    totalLine.textContent=moneyFormat.format(item.confirmed)+(item.countWaiting>0?"（"+moneyFormat.format(total)+"）":"");
 
     row.appendChild(name);
     row.appendChild(calc);
@@ -3444,7 +3447,7 @@ function renderRewardDetail(){
     if(item.waiting>0){state.className="history-state wait";state.textContent="確認待ち"}
     else if(item.confirmed>0&&item.unreported===0){state.className="history-state done";state.textContent="確定"}
     else{state.className="history-state missed";state.textContent="未報告あり"}
-    var money=document.createElement("strong");money.textContent=amount+"円";
+    var money=document.createElement("strong");money.textContent=moneyFormat.format(amount);
     row.appendChild(date);row.appendChild(state);row.appendChild(money);dailyHistory.appendChild(row);
   });
 }
@@ -3457,7 +3460,7 @@ function renderSettings(){
     var row=document.createElement("div");row.className="job-setting-row";
     var main=document.createElement("div");
     var name=document.createElement("div");name.className="job-setting-name";name.textContent=j.name;
-    var meta=document.createElement("div");meta.className="job-setting-meta";meta.textContent=frequencyText(j)+" ／ "+j.reward+"円 ／ "+(j.enabled?"ON":"OFF");
+    var meta=document.createElement("div");meta.className="job-setting-meta";meta.textContent=frequencyText(j)+" ／ "+moneyFormat.format(j.reward)+" ／ "+(j.enabled?"ON":"OFF");
     main.appendChild(name);main.appendChild(meta);
     var actions=document.createElement("div");actions.className="job-setting-actions";
     var edit=document.createElement("button");edit.type="button";edit.className="action edit";edit.textContent="編集";edit.onclick=function(){startEdit(j.id)};
@@ -3797,7 +3800,7 @@ function renderLedgerSummaryAndHistory(){
   if(changed)saveSharedState(data);
   var all=ensureLedgerEntries(child);
   var balance=all.reduce(function(sum,e){return sum+ledgerSignedAmount(e);},0);
-  document.getElementById("ledgerWalletBalance").textContent=balance.toLocaleString()+"円";
+  document.getElementById("ledgerWalletBalance").textContent=moneyFormat.format(balance);
 
   var period=childDisplayPeriod(child,ledgerPeriodOffset);
   document.getElementById("ledgerMonthTitle").textContent=period.title;
@@ -3815,11 +3818,11 @@ function renderLedgerSummaryAndHistory(){
   },0);
   var closingBalance=openingBalance+net;
   document.getElementById("ledgerMonthCount").textContent=entries.length+"件の記録";
-  document.getElementById("ledgerMonthTotal").textContent="収支 "+(net>=0?"+":"")+net.toLocaleString()+"円";
-  document.getElementById("ledgerPeriodOpeningBalance").textContent=openingBalance.toLocaleString()+"円";
-  document.getElementById("ledgerPeriodIncome").textContent=signedYen(income);
-  document.getElementById("ledgerPeriodExpense").textContent=expense?("－"+expense.toLocaleString()+"円"):"0円";
-  document.getElementById("ledgerPeriodClosingBalance").textContent=closingBalance.toLocaleString()+"円";
+  document.getElementById("ledgerMonthTotal").textContent="収支 "+moneyFormat.signed(net,true);
+  document.getElementById("ledgerPeriodOpeningBalance").textContent=moneyFormat.format(openingBalance);
+  document.getElementById("ledgerPeriodIncome").textContent=signedMoney(income);
+  document.getElementById("ledgerPeriodExpense").textContent=moneyFormat.negative(expense);
+  document.getElementById("ledgerPeriodClosingBalance").textContent=moneyFormat.format(closingBalance);
   document.getElementById("ledgerPeriodCount").textContent=entries.length+"件";
 
   var list=document.getElementById("ledgerHistoryList");
@@ -3835,7 +3838,7 @@ function renderLedgerSummaryAndHistory(){
       '<span class="ledger-history-date"><span class="md">'+escapeLedgerHtml(fd.md)+'</span><span class="dow">'+escapeLedgerHtml(fd.dow)+'</span></span>'+
       '<span class="ledger-history-content">'+escapeLedgerHtml(entry.purposeIcon||"●")+' '+escapeLedgerHtml(entry.purposeName||"記録")+
       (entry.system?'<small>自動記録</small>':'<small>タップして編集</small>')+'</span>'+
-      '<span class="ledger-history-amount '+(plus?'plus':'minus')+'">'+(plus?'+':'－')+Number(entry.amount||0).toLocaleString()+'円</span>'+
+      '<span class="ledger-history-amount '+(plus?'plus':'minus')+'">'+moneyFormat.signed(plus?entry.amount:-Number(entry.amount||0),true)+'</span>'+
       '</button></div>';
   }).join("");
   Array.prototype.forEach.call(list.querySelectorAll(".ledger-history-row.editable"),function(btn){
@@ -3977,9 +3980,9 @@ function ledgerPrintDateLabel(key){
   var dow=["日","月","火","水","木","金","土"][d.getDay()];
   return (d.getMonth()+1)+"/"+d.getDate()+"("+dow+")";
 }
-function ledgerPrintYenSigned(entry){
+function ledgerPrintMoneySigned(entry){
   var amount=Math.abs(Number(entry.amount||0));
-  return (entry.kind==="income"?"+":"−")+amount.toLocaleString("ja-JP")+"円";
+  return moneyFormat.signed(entry.kind==="income"?amount:-amount,true);
 }
 function ledgerPrintMemo(entry){
   return entry.memo||entry.note||entry.comment||"";
@@ -4020,7 +4023,7 @@ function ledgerPrintRows(entries,startNo,rowCount,kind){
       '<div class="n">'+(startNo+i)+'</div>'+
       '<div class="date">'+ledgerPrintEsc(ledgerPrintDateLabel(e.date))+'</div>'+
       '<div class="content"><span class="purpose">'+ledgerPrintEsc(e.purposeName||"記録")+'</span>'+
-      '<span class="amt '+(plus?'plus':'minus')+'">'+ledgerPrintEsc(ledgerPrintYenSigned(e))+'</span></div>'+
+      '<span class="amt '+(plus?'plus':'minus')+'">'+ledgerPrintEsc(ledgerPrintMoneySigned(e))+'</span></div>'+
       '<div class="memo">'+ledgerPrintEsc(ledgerPrintMemo(e))+'</div>'+
     '</div>';
   }
@@ -4037,10 +4040,10 @@ function ledgerPrintFirstPage(entries,totalCount,pageNo,totalPages,period,stats,
     ledgerPrintHeader(pageNo,totalPages,period,printDate)+
     '<div class="lp-asset lp-summary" style="top:'+summaryTop+'mm"><img src="'+LEDGER_PRINT_ASSET_SUMMARY+'" alt=""></div>'+
     '<div class="lp-summary-values" style="top:'+summaryTop+'mm">'+
-      '<div class="lp-summary-value opening">'+stats.opening.toLocaleString("ja-JP")+'円</div>'+
-      '<div class="lp-summary-value income">+'+stats.income.toLocaleString("ja-JP")+'円</div>'+
-      '<div class="lp-summary-value expense">−'+stats.expense.toLocaleString("ja-JP")+'円</div>'+
-      '<div class="lp-summary-value closing">'+stats.closing.toLocaleString("ja-JP")+'円</div>'+
+      '<div class="lp-summary-value opening">'+moneyFormat.format(stats.opening)+'</div>'+
+      '<div class="lp-summary-value income">'+moneyFormat.signed(stats.income,true)+'</div>'+
+      '<div class="lp-summary-value expense">'+moneyFormat.negative(stats.expense)+'</div>'+
+      '<div class="lp-summary-value closing">'+moneyFormat.format(stats.closing)+'</div>'+
     '</div>'+
     '<div class="lp-asset lp-details10" style="top:'+detailTop+'mm"><img src="'+LEDGER_PRINT_ASSET_DETAILS10+'" alt=""></div>'+
     '<div class="lp-detail-overlay lp-details10-overlay" style="top:'+detailTop+'mm">'+

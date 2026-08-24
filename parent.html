@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUERU 保護者版 v0.9.31.Step2 App Settings</title>
+<title>FUERU 保護者版 v0.9.32.Step2 Currency Ready</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -395,8 +395,8 @@ button{cursor:pointer}
 .special-child-icon svg{width:56px;height:56px}
 .special-child-name{font-size:20px;font-weight:700}
 .money-input-wrap{position:relative}
-.money-input-wrap .text-input{padding-right:42px}
-.money-suffix{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none}
+.money-input-wrap .text-input{padding-right:13px}
+.money-suffix{position:static;flex:0 0 auto;color:var(--muted);font-weight:700;pointer-events:none;white-space:nowrap}
 .reason-input{min-height:96px;resize:vertical;line-height:1.6}
 .special-note{margin-top:10px;color:var(--muted);font-size:11px;line-height:1.65}
 .special-success{display:none;margin-bottom:12px;padding:12px 14px;border-radius:15px;background:#EAF7F5;border:2px solid var(--child-main,#8CCBC2);color:var(--child-deep,#2F746B);font-weight:700;text-align:center}
@@ -1129,7 +1129,7 @@ button{cursor:pointer}
       </div>
       <div class="withdraw-amount-box">
         <div class="withdraw-amount-label">出金希望額</div>
-        <div class="withdraw-amount-value" id="withdrawRequestAmount">0円</div>
+        <div class="withdraw-amount-value" id="withdrawRequestAmount">0</div>
       </div>
       <p class="withdraw-instruction" id="withdrawInstruction">現金を渡したあと、<br><strong>お子さん本人</strong>に自分の鍵を入力してもらってください。</p>
       <div class="withdraw-key-field" id="withdrawPinField">
@@ -1226,7 +1226,7 @@ button{cursor:pointer}
         <h2 class="app-settings-title">アプリ情報</h2>
         <dl class="app-settings-list">
           <dt>アプリ</dt><dd>FUERU 保護者版</dd>
-          <dt>バージョン</dt><dd>0.9.31</dd>
+          <dt>バージョン</dt><dd>0.9.32</dd>
         </dl>
       </section>
     </div>
@@ -1510,7 +1510,7 @@ button{cursor:pointer}
 
       <section class="setting-edit-accordion" id="allowanceSettingSection">
         <button class="setting-edit-toggle" type="button">
-          <span><strong>お小遣い設定</strong><small id="allowanceSettingSummary">定額 0円</small></span><span class="arrow">⌄</span>
+          <span><strong>お小遣い設定</strong><small id="allowanceSettingSummary">定額 0</small></span><span class="arrow">⌄</span>
         </button>
         <div class="setting-edit-body">
           <label class="field-label" for="allowanceAmount">毎月の定額お小遣い</label>
@@ -1605,7 +1605,7 @@ button{cursor:pointer}
       <label class="field-label" for="jobNameInput">仕事内容</label>
       <input class="text-input" id="jobNameInput" maxlength="40">
       <div class="form-row">
-        <div><label class="field-label" for="jobRewardInput">報酬</label><div class="money-input-wrap"><input class="text-input" id="jobRewardInput" type="number" min="0" step="10" inputmode="numeric"><span class="money-unit">円</span></div></div>
+        <div><label class="field-label" for="jobRewardInput">報酬</label><div class="money-input-wrap"><input class="text-input" id="jobRewardInput" type="number" min="0" step="10" inputmode="numeric"><span class="money-unit" data-currency-unit></span></div></div>
         <div><label class="field-label" for="jobFrequency">頻度</label><select class="select-input" id="jobFrequency"><option value="daily">毎日</option><option value="weekdays">平日</option><option value="weekly">曜日指定</option></select></div>
       </div>
       <div id="weekdaySection"><div class="field-label">曜日</div><div class="weekday-grid" id="weekdayGrid"></div></div>
@@ -1642,7 +1642,7 @@ button{cursor:pointer}
         <div class="accordion-body">
           <div class="payment-setting-block">
             <div class="payment-setting-head"><h3 class="payment-setting-title">お小遣い設定</h3></div>
-            <div class="payment-setting-summary"><span class="label">定額お小遣い</span><span class="value" id="hubAllowance">0円</span><span class="label">支給日</span><span class="value" id="hubPayDay">-</span></div>
+            <div class="payment-setting-summary"><span class="label">定額お小遣い</span><span class="value" id="hubAllowance">0</span><span class="label">支給日</span><span class="value" id="hubPayDay">-</span></div>
           </div>
           <div class="payment-setting-block" id="hubRewardBlock">
             <div class="payment-setting-head"><h3 class="payment-setting-title">お仕事報酬設定</h3></div>
@@ -1698,7 +1698,7 @@ button{cursor:pointer}
       <label class="field-label" for="specialRewardAmount">金額</label>
       <div class="money-input-wrap">
         <input class="text-input" id="specialRewardAmount" type="number" min="1" max="10000000" step="1" inputmode="numeric" value="0">
-        <span class="money-suffix">円</span>
+        <span class="money-suffix" data-currency-unit></span>
       </div>
       <label class="field-label" for="specialRewardReason">理由</label>
       <textarea class="text-input reason-input" id="specialRewardReason" maxlength="200" placeholder="例：テストをよく頑張りました"></textarea>
@@ -1735,9 +1735,9 @@ button{cursor:pointer}
 
     <div class="history-summary">
       <span class="label">次回支給日</span><span class="value" id="historyPayDate">-</span>
-      <span class="label">定額お小遣い</span><span class="value" id="historyAllowance">0円</span>
-      <span class="label">確定済み支給額 <small class="summary-note">（お小遣い＋お仕事報酬）</small></span><span class="value" id="historyConfirmed">0円</span>
-      <span class="label">FUERU通帳残高</span><span class="value" id="historyBalance">0円</span>
+      <span class="label">定額お小遣い</span><span class="value" id="historyAllowance">0</span>
+      <span class="label">確定済み支給額 <small class="summary-note">（お小遣い＋お仕事報酬）</small></span><span class="value" id="historyConfirmed">0</span>
+      <span class="label">FUERU通帳残高</span><span class="value" id="historyBalance">0</span>
     </div>
 
     <h2 class="history-passbook-heading" id="historyPassbookTitle">FUERU通帳</h2>
@@ -1749,7 +1749,7 @@ button{cursor:pointer}
     <h2 class="history-passbook-heading" id="historyLedgerTitle">FUERUおこづかい帳</h2>
     <section class="card history-passbook-card">
       <div class="history-ledger-summary">
-        <span>現在の手持ち</span><strong id="historyLedgerBalance">0円</strong>
+        <span>現在の手持ち</span><strong id="historyLedgerBalance">0</strong>
         <span>記録件数</span><strong id="historyLedgerCount">0件</strong>
         <div class="history-ledger-note">子ども本人が記録した、財布にあるお金のめやすです。</div><div></div>
       </div>
@@ -1786,9 +1786,13 @@ button{cursor:pointer}
 
 <script src="vendor-qrcode-generator-2.0.4.js"></script>
 <script src="vendor-supabase-js-2.112.3.js"></script>
+<script src="fueru-money.js"></script>
 <script>
 (async function(){
 "use strict";
+
+const moneyFormat=window.FueruMoney;
+document.querySelectorAll("[data-currency-unit]").forEach(element=>{element.textContent=moneyFormat.unit()});
 
 const FUERU_REMOTE_CONFIG={
   url:"https://xftiircdvszesknamrmx.supabase.co",
@@ -2463,7 +2467,7 @@ async function openWithdrawConfirm(childId){
   document.getElementById("withdrawChildIcon").style.background=child.sub;
   document.getElementById("withdrawChildIcon").innerHTML=iconSvg(child.icon||"bird",child.main,child.sub);
   document.getElementById("withdrawChildName").textContent=child.name;
-  document.getElementById("withdrawRequestAmount").textContent=Number(req.amount||0).toLocaleString()+"円";
+  document.getElementById("withdrawRequestAmount").textContent=moneyFormat.format(req.amount);
   const error=document.getElementById("withdrawConfirmError");error.classList.remove("show");
   const card=document.getElementById("withdrawConfirmCard");
   card.style.setProperty("--child-main",child.main);card.style.setProperty("--child-sub",child.sub);card.style.setProperty("--child-deep",child.deep);
@@ -2475,7 +2479,7 @@ async function openWithdrawConfirm(childId){
     const prepared=await callParentWithdrawal("prepare",{request_id:req.id});
     if(activeWithdrawalRequestId!==req.id)return;
     document.getElementById("withdrawChildName").textContent=prepared.child_name||child.name;
-    document.getElementById("withdrawRequestAmount").textContent=Number(prepared.amount||req.amount||0).toLocaleString()+"円";
+    document.getElementById("withdrawRequestAmount").textContent=moneyFormat.format(prepared.amount||req.amount);
     setWithdrawalKeyType(prepared.key_type);
     button.disabled=false;button.textContent="出金を確定する";
   }catch(problem){
@@ -2562,7 +2566,7 @@ function renderHome(){
     allowanceLabel.textContent="定額お小遣い";
     const allowanceValue=document.createElement("span");
     allowanceValue.className="metric-value";
-    allowanceValue.textContent=Number(child.allowance||0).toLocaleString()+"円";
+    allowanceValue.textContent=moneyFormat.format(child.allowance);
     allowanceMetric.append(allowanceLabel,allowanceValue);
 
     const rewardMetric=document.createElement("span");
@@ -2573,7 +2577,7 @@ function renderHome(){
     const rewardValue=document.createElement("span");
     rewardValue.className="metric-value";
     syncConfirmed(child);
-    rewardValue.textContent=Number(child.confirmed||0).toLocaleString()+"円";
+    rewardValue.textContent=moneyFormat.format(child.confirmed);
     rewardMetric.append(rewardLabel,rewardValue);
 
     meta.append(nextTitle,allowanceMetric,rewardMetric);
@@ -2606,7 +2610,7 @@ function renderHome(){
       const withdrawalButton=document.createElement("button");
       withdrawalButton.type="button";
       withdrawalButton.className="withdraw-request-btn";
-      withdrawalButton.innerHTML=`出金依頼　${Number(withdrawal.amount||0).toLocaleString()}円<small>現金を渡したら、お子さん本人がPINを入力</small>`;
+      withdrawalButton.innerHTML=`出金依頼　${moneyFormat.format(withdrawal.amount)}<small>現金を渡したら、お子さん本人がPINを入力</small>`;
       withdrawalButton.onclick=()=>openWithdrawConfirm(child.id);
       buttons.appendChild(withdrawalButton);
     }
@@ -2615,9 +2619,9 @@ function renderHome(){
       const payoutButton=document.createElement("button");
       payoutButton.type="button";
       payoutButton.className="payout-due-btn";
-      payoutButton.innerHTML=`支給する　${payout.amount.toLocaleString()}円<small>定額お小遣いと支給日到来分のお仕事報酬を入金</small>`;
+      payoutButton.innerHTML=`支給する　${moneyFormat.format(payout.amount)}<small>定額お小遣いと支給日到来分のお仕事報酬を入金</small>`;
       payoutButton.onclick=async()=>{
-        if(!confirm(`${child.name}へ${payout.amount.toLocaleString()}円を支給しますか？`))return;
+        if(!confirm(`${child.name}へ${moneyFormat.format(payout.amount)}を支給しますか？`))return;
         if(remoteBusy)return;
         remoteBusy=true;payoutButton.disabled=true;
         const originalText=payoutButton.innerHTML;
@@ -2629,7 +2633,7 @@ function renderHome(){
           const total=Number(row&&row.total_amount)||0;
           await refreshRemoteParentState();renderHome();
           alert(total>0
-            ?`お仕事報酬とお小遣いを\nFUERU通帳へ送金しました。\n\n支給額は${total.toLocaleString()}円です。`
+            ?`お仕事報酬とお小遣いを\nFUERU通帳へ送金しました。\n\n支給額は${moneyFormat.format(total)}です。`
             :"現在、支給する金額はありません。");
         }catch(error){remoteOperationError(error);payoutButton.innerHTML=originalText;}
         finally{remoteBusy=false;payoutButton.disabled=false;}
@@ -2684,7 +2688,7 @@ function renderChild(){
         row.innerHTML=`
           <input class="report-check" type="checkbox" value="${escapeHtml(report.id)}">
           <span><span class="report-name">${escapeHtml(report.name)}</span><span class="report-sub">${escapeHtml(report.frequency)}</span></span>
-          <span class="report-money">${Number(report.reward||0).toLocaleString()}円</span>`;
+          <span class="report-money">${moneyFormat.format(report.reward)}</span>`;
         group.appendChild(row);
       });
       box.appendChild(group);
@@ -2793,7 +2797,7 @@ function processDueRewards(showMessage=true){
     const result=executePayout(child,status.payoutDate,"auto",status.includeAllowance);
     if(result.total>0){
       changed=true;
-      messages.push(`${child.name}：お仕事報酬とお小遣いを\nFUERU通帳へ自動で送金しました。\n\n支給額は${result.total.toLocaleString()}円です。`);
+      messages.push(`${child.name}：お仕事報酬とお小遣いを\nFUERU通帳へ自動で送金しました。\n\n支給額は${moneyFormat.format(result.total)}です。`);
     }
   });
   if(changed)save();
@@ -2819,7 +2823,7 @@ function renderJobSettings(){
     if(!child.jobs.length)list.innerHTML='<div class="empty">登録されているお仕事はありません</div>';
     child.jobs.forEach(job=>{
       const item=document.createElement("div");item.className="job-item"+(job.enabled?"":" off");
-      item.innerHTML=`<div><div class="job-item-name">${escapeHtml(job.name)}</div><div class="job-item-meta">${escapeHtml(frequencyLabel(job))}／${Number(job.reward||0).toLocaleString()}円</div></div><div class="job-item-actions"><span class="job-status ${job.enabled?"":"off"}">${job.enabled?"ON":"OFF"}</span><button class="mini-btn">編集</button></div>`;
+      item.innerHTML=`<div><div class="job-item-name">${escapeHtml(job.name)}</div><div class="job-item-meta">${escapeHtml(frequencyLabel(job))}／${moneyFormat.format(job.reward)}</div></div><div class="job-item-actions"><span class="job-status ${job.enabled?"":"off"}">${job.enabled?"ON":"OFF"}</span><button class="mini-btn">編集</button></div>`;
       item.querySelector("button").onclick=()=>openJobEditor(child.id,job.id);list.appendChild(item);
     });
     card.querySelector(".add-job-btn").onclick=()=>openJobEditor(child.id,null);box.appendChild(card);
@@ -2865,7 +2869,7 @@ function openChildHub(id){
   document.getElementById("childHubTitle").textContent=child.name+"の設定";
   document.getElementById("hubProfileName").textContent=child.name;
   document.getElementById("hubProfileTheme").textContent="テーマカラー";
-  document.getElementById("hubAllowance").textContent=Number(child.allowance||0).toLocaleString()+"円";
+  document.getElementById("hubAllowance").textContent=moneyFormat.format(child.allowance);
   document.getElementById("hubPayDay").textContent=child.payType==="monthEnd"?"月末":("毎月"+(child.payDay||1)+"日");
   document.getElementById("hubRewardTiming").textContent=child.rewardTiming==="payday"?"支給日にまとめて入金":"承認のたびに入金";
   document.getElementById("hubRewardPayDay").textContent=rewardScheduleLabel(child);
@@ -2883,7 +2887,7 @@ function renderHubJobs(){
   if(!child.jobs.length)box.innerHTML='<div class="empty">登録されているお仕事はありません</div>';
   child.jobs.forEach(job=>{
     const row=document.createElement("div");row.className="child-job-row";
-    row.innerHTML=`<div><div class="child-job-name">${escapeHtml(job.name)}</div><div class="child-job-meta">${escapeHtml(frequencyLabel(job))}／${Number(job.reward||0).toLocaleString()}円</div></div>
+    row.innerHTML=`<div><div class="child-job-name">${escapeHtml(job.name)}</div><div class="child-job-meta">${escapeHtml(frequencyLabel(job))}／${moneyFormat.format(job.reward)}</div></div>
       <label class="compact-switch"><input type="checkbox" ${job.enabled!==false?"checked":""}><span></span></label>
       <button class="mini-btn">編集</button>`;
     row.querySelector("input").onchange=async e=>{
@@ -2937,7 +2941,7 @@ async function grantSpecialReward(){
   const reason=document.getElementById("specialRewardReason").value.trim();
   const date=document.getElementById("specialRewardDate").value||localDateString(new Date());
   const today=localDateString(new Date());
-  if(amount<=0||amount>10000000){alert("特別報酬の金額を1円から1,000万円までで入力してください");return}
+  if(amount<=0||amount>10000000){alert("特別報酬の金額を"+moneyFormat.format(1)+"から"+moneyFormat.format(10000000)+"までで入力してください");return}
   if(!reason){alert("特別報酬の理由を入力してください");return}
   if(reason.length>200){alert("理由は200文字以内で入力してください");return}
   if(date>today){alert("未来の日付には送金できません");return}
@@ -2950,7 +2954,7 @@ async function grantSpecialReward(){
     if(result.error)throw result.error;
     await refreshRemoteParentState();renderHome();
     const message=document.getElementById("specialRewardSuccess");
-    message.textContent=child.name+"のFUERU通帳へ"+amount.toLocaleString()+"円を送金しました";
+    message.textContent=child.name+"のFUERU通帳へ"+moneyFormat.format(amount)+"を送金しました";
     message.classList.add("show");
     document.getElementById("specialRewardAmount").value=0;
     document.getElementById("specialRewardReason").value="";
@@ -3020,9 +3024,8 @@ function parentDayState(child,d){
   if(states.every(s=>s==="done"))return "done";
   return "unreported";
 }
-function signedYen(amount){
-  amount=Number(amount)||0;
-  return (amount>=0?"＋":"－")+Math.abs(amount).toLocaleString()+"円";
+function signedMoney(amount){
+  return moneyFormat.signed(amount,true);
 }
 function transactionTypeLabel(tx){
   if(tx.type==="special")return "特別報酬";
@@ -3080,7 +3083,7 @@ function renderGroupedTransactions(child){
 
     const sum=document.createElement("div");
     sum.className="transaction-day-total "+(total>=0?"plus":"minus");
-    sum.textContent=signedYen(total);
+    sum.textContent=signedMoney(total);
 
     day.append(date,type,sum);
 
@@ -3118,7 +3121,7 @@ function renderGroupedTransactions(child){
 
         const amount=document.createElement("span");
         amount.className="transaction-inline-amount";
-        amount.textContent="（"+signedYen(item.amount)+"）";
+        amount.textContent="（"+signedMoney(item.amount)+"）";
         title.appendChild(amount);
 
         line.appendChild(title);
@@ -3137,7 +3140,7 @@ function renderParentLedgerEntries(child){
     String(b.date||"").localeCompare(String(a.date||""))||String(b.createdAt||"").localeCompare(String(a.createdAt||""))
   );
   const balance=entries.reduce((sum,entry)=>sum+(entry.kind==="expense"?-Number(entry.amount||0):Number(entry.amount||0)),0);
-  document.getElementById("historyLedgerBalance").textContent=balance.toLocaleString()+"円";
+  document.getElementById("historyLedgerBalance").textContent=moneyFormat.format(balance);
   document.getElementById("historyLedgerCount").textContent=entries.length.toLocaleString()+"件";
   if(!entries.length){box.innerHTML='<div class="empty">おこづかい帳の記録はまだありません</div>';return;}
 
@@ -3150,7 +3153,7 @@ function renderParentLedgerEntries(child){
     const type=document.createElement("div");type.className="transaction-day-type";
     type.textContent=(entry.icon?entry.icon+" ":"")+(entry.purposeName||"記録");
     const amount=document.createElement("div");amount.className="transaction-day-total "+(income?"plus":"minus");
-    amount.textContent=(income?"＋":"－")+Number(entry.amount||0).toLocaleString()+"円";
+    amount.textContent=moneyFormat.signed(income?entry.amount:-Number(entry.amount||0),true);
     row.append(date,type,amount);
     if(entry.category||entry.memo){
       const lines=document.createElement("div");lines.className="transaction-lines";
@@ -3217,7 +3220,7 @@ function openParentDayMenu(dateKey){
       const status=item.report?.status||"unreported";
       row.classList.toggle("cancelled",item.cancelled);
       const statusLabel=item.cancelled?"取り消し済み":status==="done"?"完了":status==="waiting"?"確認待ち":status==="missed"?"未達成":"未報告";
-      row.innerHTML=`<div class="day-job-name"></div><div class="day-job-meta">${statusLabel}／${Number(item.job.reward||0).toLocaleString()}円</div><div class="day-job-actions"></div>`;
+      row.innerHTML=`<div class="day-job-name"></div><div class="day-job-meta">${statusLabel}／${moneyFormat.format(item.job.reward)}</div><div class="day-job-actions"></div>`;
       row.querySelector(".day-job-name").textContent=item.job.name||"お仕事";
       const actions=row.querySelector(".day-job-actions");
       if(item.cancelled){
@@ -3266,9 +3269,9 @@ function renderHistory(){
   document.getElementById("historyMonthTitle").textContent=y+"年"+(m+1)+"月";
   document.getElementById("historyPayDate").textContent=nextPayLabel(child);
   syncConfirmed(child);
-  document.getElementById("historyAllowance").textContent=Number(child.allowance||0).toLocaleString()+"円";
-  document.getElementById("historyConfirmed").textContent=(Number(child.allowance||0)+Number(child.confirmed||0)).toLocaleString()+"円";
-  document.getElementById("historyBalance").textContent=Number(child.passbookBalance||0).toLocaleString()+"円";
+  document.getElementById("historyAllowance").textContent=moneyFormat.format(child.allowance);
+  document.getElementById("historyConfirmed").textContent=moneyFormat.format(Number(child.allowance||0)+Number(child.confirmed||0));
+  document.getElementById("historyBalance").textContent=moneyFormat.format(child.passbookBalance);
   renderGroupedTransactions(child);
   renderParentLedgerEntries(child);
 
@@ -3320,7 +3323,7 @@ function renderAllowanceList(){
       <span class="allowance-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</span>
       <span class="allowance-main">
         <span class="allowance-name" style="color:${child.deep}">${escapeHtml(child.name)}</span>
-        <span class="allowance-summary">定額 ${Number(child.allowance||0).toLocaleString()}円／${payLabel}<br>お仕事報酬：${child.rewardTiming==="payday"?"支給日にまとめて":"承認ごとに入金"}</span>
+        <span class="allowance-summary">定額 ${moneyFormat.format(child.allowance)}／${payLabel}<br>お仕事報酬：${child.rewardTiming==="payday"?"支給日にまとめて":"承認ごとに入金"}</span>
       </span>
       <span class="chevron" style="color:${child.deep}">›</span>`;
     card.onclick=()=>openAllowanceEditor(child.id,"list");
@@ -3358,7 +3361,7 @@ function openAllowanceEditor(id,source){
 
 function updateAllowanceEditorSummaries(child){
   const payLabel=child.payType==="monthEnd"?"月末":`毎月${child.payDay||1}日`;
-  document.getElementById("allowanceSettingSummary").textContent=`定額 ${Number(child.allowance||0).toLocaleString()}円／${payLabel}`;
+  document.getElementById("allowanceSettingSummary").textContent=`定額 ${moneyFormat.format(child.allowance)}／${payLabel}`;
   document.getElementById("rewardSettingSummary").textContent=child.rewardTiming==="payday"?`支給日にまとめて入金／${rewardScheduleLabel(child)}`:"承認のたびに入金";
   const closeLabel=child.closeType==="day"?`毎月${child.closeDay||1}日締め`:"月末締め";
   const periodLabel=child.periodMode==="month"?"月ごと":"支給サイクルごと";
@@ -3478,7 +3481,7 @@ function renderChildManage(){
       <div class="manage-icon" style="background:${child.sub}">${iconSvg(child.icon||"bird",child.main,child.sub)}</div>
       <div>
         <div class="manage-name" style="color:${child.deep}">${escapeHtml(child.name)}</div>
-        <div class="manage-sub">確認待ち ${waitingReports(child).length}件／確定報酬 ${child.confirmed}円</div>
+        <div class="manage-sub">確認待ち ${waitingReports(child).length}件／確定報酬 ${moneyFormat.format(child.confirmed)}</div>
         <button class="manage-qr-btn" type="button" data-action="qr">子ども端末用QR</button>
       </div>
       <div class="manage-actions">
@@ -3625,11 +3628,11 @@ function ensureLedgerData(child){
 }
 function clonePlain(value){return JSON.parse(JSON.stringify(value))}
 
-const WITHDRAWAL_UNITS=[1,10,100,500,1000];
+const WITHDRAWAL_UNITS=moneyFormat.withdrawalSteps();
 
 function withdrawalUnitLabel(unit){
   const value=Number(unit)||100;
-  return value.toLocaleString("ja-JP")+"円単位";
+  return moneyFormat.unitStep(value);
 }
 
 function renderWithdrawSettings(){
@@ -3667,12 +3670,12 @@ function renderWithdrawSettings(){
       <select class="withdraw-unit-select" id="withdrawUnit_${child.id}" data-child-id="${child.id}">
         ${WITHDRAWAL_UNITS.map(value=>`
           <option value="${value}" ${value===unit?"selected":""}>
-            ${value.toLocaleString("ja-JP")}円単位
+            ${moneyFormat.unitStep(value)}
           </option>
         `).join("")}
       </select>
       <div class="withdraw-unit-note">
-        例：100円単位なら、100円・200円・300円…で出金依頼できます。
+        例：${moneyFormat.unitStep(100)}なら、${moneyFormat.format(100)}・${moneyFormat.format(200)}・${moneyFormat.format(300)}…で出金依頼できます。
       </div>
     `;
     box.appendChild(card);
@@ -4291,7 +4294,7 @@ document.getElementById("saveAllowance").onclick=async()=>{
   if(!child)return;
   const allowanceValue=Number(document.getElementById("allowanceAmount").value);
   if(!Number.isInteger(allowanceValue)||allowanceValue<0||allowanceValue>10000000){
-    alert("毎月のお小遣いは、0円から1,000万円までの整数で入力してください。");return;
+    alert("毎月のお小遣いは、"+moneyFormat.format(0)+"から"+moneyFormat.format(10000000)+"までの整数で入力してください。");return;
   }
   const payType=document.querySelector('input[name="payType"]:checked');
   const payTypeValue=payType&&payType.value==="monthEnd"?"monthEnd":"day";

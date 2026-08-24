@@ -2428,7 +2428,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-      location.href="./?v=release-1.0.0";
+    location.href="./?v=release-1.0.1";
     });
   }
 }
@@ -3503,7 +3503,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-    location.replace("./?v=release-1.0.0");
+  location.replace("./?v=release-1.0.1");
   };
 }
 
@@ -3595,7 +3595,7 @@ var LEDGER_DEFAULT_INCOME_REASONS=[
   {id:"newyear",icon:"🎍",name:"お年玉"},
   {id:"other_income",icon:"💴",name:"その他"}
 ];
-var LEDGER_DEFAULT_EXPENSE_ITEMS=[
+var LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS=[
   {id:"snack",icon:"🍪",name:"おかし",category:"食費"},
   {id:"drink",icon:"🥤",name:"飲み物",category:"食費"},
   {id:"stationery",icon:"✏️",name:"文房具",category:"文房具"},
@@ -3604,6 +3604,21 @@ var LEDGER_DEFAULT_EXPENSE_ITEMS=[
   {id:"present",icon:"🎁",name:"プレゼント",category:"交際費"},
   {id:"transport",icon:"🚌",name:"電車・バス",category:"交通費"},
   {id:"other",icon:"🧺",name:"その他",category:"その他"}
+];
+var LEDGER_DEFAULT_FULL_EXPENSE_ITEMS=[
+  {id:"full_food",icon:"🍙",name:"飲食費",category:"飲食費"},
+  {id:"full_entertainment",icon:"🎡",name:"交際・娯楽費",category:"交際・娯楽費"},
+  {id:"full_clothing",icon:"👚",name:"衣服費",category:"衣服費"},
+  {id:"full_beauty",icon:"💄",name:"美容費",category:"美容費"},
+  {id:"full_hobby",icon:"🎧",name:"趣味費",category:"趣味費"},
+  {id:"full_learning",icon:"✏",name:"学習費",category:"学習費"},
+  {id:"full_digital",icon:"📱",name:"通信・デジタル費",category:"通信・デジタル費"},
+  {id:"full_transport",icon:"🚃",name:"交通費",category:"交通費"},
+  {id:"full_social",icon:"🎁",name:"交際費",category:"交際費"},
+  {id:"full_daily",icon:"🧴",name:"日用品費",category:"日用品費"},
+  {id:"full_sports",icon:"🏃",name:"部活・スポーツ費",category:"部活・スポーツ費"},
+  {id:"full_health",icon:"🏥",name:"医療・健康費",category:"医療・健康費"},
+  {id:"full_other",icon:"🧺",name:"その他",category:"その他"}
 ];
 
 function ledgerDateKey(d){
@@ -3661,7 +3676,7 @@ function ledgerExpenseItemsForChild(data,child){
         .map(function(x,n){return normalizeLedgerListItem(x,n,"使い道");});
     }
   }
-  return LEDGER_DEFAULT_EXPENSE_ITEMS.slice();
+  return (ledgerModeForChild(child)==="full"?LEDGER_DEFAULT_FULL_EXPENSE_ITEMS:LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS).slice();
 }
 function ensureLedgerEntries(child){
   if(!Array.isArray(child.ledgerEntries))child.ledgerEntries=[];

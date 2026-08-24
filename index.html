@@ -633,12 +633,23 @@
       <section id="homeView" class="card hidden">
         <h2>おかえりなさい</h2>
         <p id="homeEmail" class="signed-in-as"></p>
+        <div id="homeHandoffPanel" class="handoff-panel hidden">
+          <p><strong>ホーム画面のFUERUで使う</strong><br>このSafariのログインを、ホーム画面から開くFUERUへ引き継げます。</p>
+          <button id="homeCreateHandoffButton" class="button" type="button">引き継ぎ情報を準備する</button>
+          <div id="homeHandoffReadyPanel" class="hidden">
+            <label for="homeHandoffCopyValue">ログインの引き継ぎ情報</label>
+            <input id="homeHandoffCopyValue" class="handoff-copy-field" type="text" readonly autocomplete="off">
+            <button id="homeCopyHandoffButton" class="button" type="button">コピーする</button>
+            <p>コピー後、Safariを閉じ、ホーム画面のFUERUへ戻って貼り付けてください。</p>
+          </div>
+          <p id="homeHandoffMessage" class="message hidden" role="status" aria-live="polite"></p>
+        </div>
         <div id="deviceBadge" class="device-badge hidden">
           <span>この端末：保護者用</span>
           <button id="showDeviceSettingsButton" type="button">確認</button>
         </div>
         <div id="familyList" class="family-list"></div>
-          <a class="button primary" href="parent.html?v=release-1.1.4">保護者画面を開く</a>
+          <a class="button primary" href="parent.html?v=release-1.1.5">保護者画面を開く</a>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
 
         <section class="child-setup" aria-labelledby="childSetupTitle">
@@ -707,7 +718,7 @@
         <p id="childReadyName" class="ready-name"></p>
         <p id="childReadyUnlock" class="muted compact"></p>
         <p class="message">この端末専用の安全な接続情報を保存しました。家族コードやPINそのものを、データを見るための鍵には使用しません。</p>
-          <a class="button primary" href="child.html?v=release-1.1.4">子ども画面を開く</a>
+          <a class="button primary" href="child.html?v=release-1.1.5">子ども画面を開く</a>
         <p class="device-coming">子ども画面は、接続した本人のデータだけを読み込みます。報告・出金・おこづかい帳の記録は家庭のデータへ保存されます。</p>
       </section>
 
@@ -860,9 +871,9 @@
       function cancelDeviceModeChange() {
         const mode = storedDeviceMode();
         finishDeviceModeChange();
-      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.4');
-      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.4');
-      else window.location.replace('./?v=release-1.1.4');
+      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.5');
+      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.5');
+      else window.location.replace('./?v=release-1.1.5');
       }
 
       function setMessage(id, text, isError = false) {
@@ -1766,7 +1777,7 @@
                   familyId: sharedDevice.familyId,
                   startedAt: Date.now()
                 }));
-    window.location.replace('parent.html?v=release-1.1.4');
+    window.location.replace('parent.html?v=release-1.1.5');
                 return;
               }
 
@@ -1803,6 +1814,14 @@
           currentFamilies = families;
           currentChildren = await loadChildren(families);
           byId('homeEmail').textContent = `ログイン中：${session.user.email || '保護者'}`;
+          const offerHomeHandoff = isIosDevice() && !isStandaloneWebApp();
+          byId('homeHandoffPanel').classList.toggle('hidden', !offerHomeHandoff);
+          if (offerHomeHandoff) {
+            byId('homeHandoffCopyValue').value = '';
+            byId('homeHandoffReadyPanel').classList.add('hidden');
+            byId('homeCopyHandoffButton').textContent = 'コピーする';
+            setMessage('homeHandoffMessage', '');
+          }
           populateChildFamilies(families);
           renderFamilyList(families, currentChildren);
           currentDevice = readDeviceConnection(session.user, families);
@@ -2108,7 +2127,7 @@
           await establishSharedChildSession(device, profile, secret);
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
-      window.location.href = 'child.html?v=release-1.1.4';
+      window.location.href = 'child.html?v=release-1.1.5';
         } catch (error) {
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
@@ -2183,6 +2202,45 @@
         }
         byId('copyHandoffButton').textContent = '✓ コピーしました';
         setMessage('handoffMessage', 'Safariを閉じて、ホーム画面のFUERUへ戻ってください。');
+      });
+
+      byId('homeCreateHandoffButton').addEventListener('click', async () => {
+        const button = byId('homeCreateHandoffButton');
+        setMessage('homeHandoffMessage', '');
+        button.disabled = true;
+        button.textContent = '準備しています…';
+        try {
+          const { data, error } = await client.functions.invoke('auth-handoff', {
+            body: { action: 'create' }
+          });
+          if (error || !data?.ok || !handoffTokenFromText(data.token_hash)) throw error || new Error('handoff_failed');
+          currentHandoffValue = `FUERU-AUTH-V1:${data.token_hash}`;
+          byId('homeHandoffCopyValue').value = currentHandoffValue;
+          byId('homeHandoffReadyPanel').classList.remove('hidden');
+          setMessage('homeHandoffMessage', '準備できました。「コピーする」を押してください。');
+        } catch (error) {
+          setMessage('homeHandoffMessage', friendlyError(error), true);
+        } finally {
+          button.disabled = false;
+          button.textContent = '引き継ぎ情報を準備する';
+        }
+      });
+
+      byId('homeCopyHandoffButton').addEventListener('click', async () => {
+        if (!currentHandoffValue) return;
+        try {
+          await navigator.clipboard.writeText(currentHandoffValue);
+        } catch {
+          const field = byId('homeHandoffCopyValue');
+          field.focus();
+          field.select();
+          if (!document.execCommand('copy')) {
+            setMessage('homeHandoffMessage', '入力欄を長押しして「コピー」を選んでください。', true);
+            return;
+          }
+        }
+        byId('homeCopyHandoffButton').textContent = '✓ コピーしました';
+        setMessage('homeHandoffMessage', 'Safariを閉じて、ホーム画面のFUERUへ戻ってください。');
       });
 
       byId('continueInBrowserButton').addEventListener('click', async () => {

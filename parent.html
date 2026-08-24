@@ -408,6 +408,20 @@ button{cursor:pointer}
 .special-note{margin-top:10px;color:var(--muted);font-size:11px;line-height:1.65}
 .special-success{display:none;margin-bottom:12px;padding:12px 14px;border-radius:15px;background:#EAF7F5;border:2px solid var(--child-main,#8CCBC2);color:var(--child-deep,#2F746B);font-weight:700;text-align:center}
 .special-success.show{display:block}
+.shared-memo-card{margin-top:14px;padding:18px}
+.shared-memo-title{margin:0 0 6px;color:var(--child-deep,#2F746B);font-size:19px}
+.shared-memo-lead{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.7}
+.shared-memo-input{min-height:220px;resize:vertical;line-height:1.75;white-space:pre-wrap}
+.shared-memo-actions{display:grid;grid-template-columns:minmax(100px,.7fr) minmax(150px,1.3fr);gap:10px;margin-top:12px}
+.shared-memo-delete{min-height:48px;border:1px solid #E7AAAA;border-radius:14px;background:#fff;color:#B95F5F;font-weight:800}
+.shared-memo-status{min-height:1.5em;margin:11px 0 0;color:var(--child-deep,#2F746B);font-size:12px;font-weight:700;line-height:1.5}
+.shared-memo-status.error{color:#B95F5F}
+.family-settings-card{padding:20px}
+.family-settings-title{margin:0 0 7px;color:#2F746B;font-size:19px}
+.family-settings-lead{margin:0 0 18px;color:var(--muted);font-size:12px;line-height:1.7}
+.family-settings-status{min-height:1.5em;margin:12px 0 0;color:#2F746B;font-size:12px;font-weight:700}
+.family-settings-status.error{color:#B95F5F}
+@media(max-width:390px){.shared-memo-actions{grid-template-columns:1fr}}
 .transaction-card{margin-top:14px;padding:16px}
 .transaction-title{margin:0 0 10px;color:var(--child-deep,#2F746B);font-size:17px}
 .transaction-list{display:flex;flex-direction:column;gap:10px}
@@ -1172,6 +1186,9 @@ button{cursor:pointer}
     </header>
 
     <div class="settings-menu">
+      <button class="settings-link" type="button" id="openFamilySettings">
+        <span>家庭設定<small>家族名の確認・変更</small></span><span class="chevron">›</span>
+      </button>
       <button class="settings-link" type="button" id="openChildManage">
         <span>子ども管理<small>追加・編集・テーマ・表示順</small></span><span class="chevron">›</span>
       </button>
@@ -1198,6 +1215,22 @@ button{cursor:pointer}
       </button>
     </div>
     <div class="parent-settings-note">お小遣い・お仕事・履歴は、保護者ホームの各子どもタイルから開きます。</div>
+  </section>
+
+  <section id="familySettingsView" class="view">
+    <header class="topbar">
+      <button class="soft-btn" id="backFromFamilySettings">戻る</button>
+      <h1>家庭設定</h1>
+      <div></div>
+    </header>
+    <section class="card family-settings-card">
+      <h2 class="family-settings-title">家族名</h2>
+      <p class="family-settings-lead">FUERUの中で表示する家庭の名前です。変更しても家族コードや保存済みデータは変わりません。</p>
+      <label class="field-label" for="familyNameSetting">家族名</label>
+      <input class="text-input" id="familyNameSetting" type="text" maxlength="80" autocomplete="off">
+      <div class="editor-actions"><button class="save-btn" id="saveFamilyName">家族名を保存</button></div>
+      <p class="family-settings-status" id="familySettingsStatus" role="status" aria-live="polite"></p>
+    </section>
   </section>
 
   <section id="appSettingsView" class="view">
@@ -1233,7 +1266,7 @@ button{cursor:pointer}
         <h2 class="app-settings-title">アプリ情報</h2>
         <dl class="app-settings-list">
           <dt>アプリ</dt><dd>FUERU 保護者版</dd>
-            <dt>公開版</dt><dd>1.1.5</dd>
+            <dt>公開版</dt><dd>1.2.0</dd>
         </dl>
       </section>
     </div>
@@ -1716,6 +1749,17 @@ button{cursor:pointer}
       <p class="special-note">送金すると、FUERU通帳へ加算され、理由付きで履歴に残ります。過去の日付まで遡って登録できます。</p>
       <div class="editor-actions"><button class="save-btn" id="grantSpecialReward">FUERU通帳に送金</button></div>
     </section>
+    <section class="card shared-memo-card">
+      <h2 class="shared-memo-title">メモ</h2>
+      <p class="shared-memo-lead">この子と共有しておきたい内容を自由に書けます。送金や履歴とは連動しません。</p>
+      <label class="field-label" for="sharedMemoInput">共有する内容</label>
+      <textarea class="text-input shared-memo-input" id="sharedMemoInput" maxlength="10000" placeholder="親子で共有しておきたい内容を入力"></textarea>
+      <div class="shared-memo-actions">
+        <button class="shared-memo-delete" id="deleteSharedMemo" type="button">削除</button>
+        <button class="save-btn" id="saveSharedMemo" type="button">メモを保存</button>
+      </div>
+      <p class="shared-memo-status" id="sharedMemoStatus" role="status" aria-live="polite"></p>
+    </section>
   </section>
 
   <section id="childHistoryView" class="view">
@@ -1865,11 +1909,9 @@ function safeRemoteChildAppearance(icon,main,sub,deep){
 async function loadRemoteParentState(){
   const membership=await remoteClient.from("family_guardians").select("family_id").eq("family_id",REMOTE_FAMILY_ID).eq("user_id",remoteSession.user.id).maybeSingle();
   if(membership.error||!membership.data)throw membership.error||new Error("guardian membership required");
-  if(!remoteFamilyInfo){
-    const familyResult=await remoteClient.from("families").select("name, family_code").eq("id",REMOTE_FAMILY_ID).maybeSingle();
-    if(familyResult.error||!familyResult.data)throw familyResult.error||new Error("family not found");
-    remoteFamilyInfo={name:String(familyResult.data.name||"家庭"),code:String(familyResult.data.family_code||"").toUpperCase()};
-  }
+  const familyResult=await remoteClient.from("families").select("name, family_code").eq("id",REMOTE_FAMILY_ID).maybeSingle();
+  if(familyResult.error||!familyResult.data)throw familyResult.error||new Error("family not found");
+  remoteFamilyInfo={name:String(familyResult.data.name||"家庭"),code:String(familyResult.data.family_code||"").toUpperCase()};
   const results=await Promise.all([
     remoteClient.from("children").select("*").eq("family_id",REMOTE_FAMILY_ID).is("archived_at",null).order("sort_order",{ascending:true}),
     remoteClient.from("child_settings").select("*").eq("family_id",REMOTE_FAMILY_ID),
@@ -1933,7 +1975,7 @@ async function loadRemoteParentState(){
       allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",payDay:Number(settings.pay_day)||25,
       rewardTiming:settings.reward_timing||"immediate",rewardPaySchedule:settings.reward_pay_schedule||"allowance",rewardPayDay:Number(settings.reward_pay_day)||25,
       closeType:settings.close_type||"monthEnd",closeDay:Number(settings.close_day)||31,periodMode:settings.period_mode||"cycle",payoutMode:settings.payout_mode||"manual",
-      withdrawalUnit:Number(settings.withdrawal_unit)||100,ledgerMode:settings.ledger_mode||"easy",
+      withdrawalUnit:Number(settings.withdrawal_unit)||100,ledgerMode:settings.ledger_mode||"easy",sharedMemo:String(settings.shared_memo||""),
       jobs:jobsByChild.get(child.id)||[],reports:reportsByChild.get(child.id)||[],pendingRewards:pending,
       confirmed:pending.filter(item=>item.status==="pending").reduce((sum,item)=>sum+Number(item.amount||0),0),
       transactions:transactions,passbookBalance:transactions.reduce((sum,item)=>sum+Number(item.amount||0),0),lastAllowancePayoutDate:lastAllowancePayoutDate,
@@ -2413,6 +2455,33 @@ function renderAppSettings(){
   document.getElementById("appLoginEmail").textContent=remoteSession&&remoteSession.user&&remoteSession.user.email?remoteSession.user.email:"確認できません";
   document.getElementById("appDeviceMode").textContent=sharedParentMode?"家族みんなで使う端末":"保護者として使う端末";
   document.getElementById("appSyncStatus").textContent=formatAppSyncTime(remoteLastSyncedAt);
+}
+function openFamilySettings(){
+  document.getElementById("familyNameSetting").value=remoteFamilyInfo&&remoteFamilyInfo.name?remoteFamilyInfo.name:"";
+  const status=document.getElementById("familySettingsStatus");
+  status.textContent="";status.classList.remove("error");
+  showView("familySettingsView");
+}
+async function saveFamilyName(){
+  if(remoteBusy)return;
+  const input=document.getElementById("familyNameSetting");
+  const name=String(input.value||"").trim();
+  const status=document.getElementById("familySettingsStatus");
+  if(!name||name.length>80){status.textContent="家族名を1文字から80文字で入力してください。";status.classList.add("error");return;}
+  const button=document.getElementById("saveFamilyName");
+  remoteBusy=true;button.disabled=true;button.textContent="保存しています…";status.textContent="";status.classList.remove("error");
+  try{
+    const result=await remoteClient.rpc("update_family_name",{p_family_id:REMOTE_FAMILY_ID,p_name:name});
+    if(result.error)throw result.error;
+    const savedName=String(result.data||name);
+    remoteFamilyInfo.name=savedName;
+    remoteParentDevice={...remoteParentDevice,familyName:savedName};
+    localStorage.setItem(DEVICE_STORAGE_KEY,JSON.stringify(remoteParentDevice));
+    input.value=savedName;
+    renderAppSettings();renderDeviceSharingSettings();
+    status.textContent="家族名を保存しました。";
+  }catch(error){console.error(error);status.textContent="保存できませんでした。通信状態を確認して、もう一度お試しください。";status.classList.add("error");}
+  finally{remoteBusy=false;button.disabled=false;button.textContent="家族名を保存";}
 }
 async function refreshFromAppSettings(){
   if(remoteBusy)return;
@@ -2971,6 +3040,9 @@ function openSpecialReward(id){
   specialDate.value=today;
   specialDate.max=today;
   document.getElementById("specialRewardSuccess").classList.remove("show");
+  document.getElementById("sharedMemoInput").value=child.sharedMemo||"";
+  const memoStatus=document.getElementById("sharedMemoStatus");
+  memoStatus.textContent="";memoStatus.classList.remove("error");
   showView("specialRewardView");
 }
 function newRequestUuid(){
@@ -3005,6 +3077,31 @@ async function grantSpecialReward(){
     document.getElementById("specialRewardReason").value="";
   }catch(error){remoteOperationError(error);}
   finally{remoteBusy=false;button.disabled=false;button.textContent="FUERU通帳に送金";}
+}
+async function storeSharedMemo(nextMemo,successMessage){
+  const child=state.children.find(c=>c.id===specialRewardChildId);if(!child||remoteBusy)return;
+  const memo=String(nextMemo==null?"":nextMemo);
+  const status=document.getElementById("sharedMemoStatus");
+  if(memo.length>10000){status.textContent="メモは10000文字以内で入力してください。";status.classList.add("error");return;}
+  const saveButton=document.getElementById("saveSharedMemo");
+  const deleteButton=document.getElementById("deleteSharedMemo");
+  remoteBusy=true;saveButton.disabled=true;deleteButton.disabled=true;saveButton.textContent="保存しています…";
+  status.textContent="";status.classList.remove("error");
+  try{
+    const result=await remoteClient.rpc("update_child_shared_memo",{p_child_id:child.id,p_memo:memo});
+    if(result.error)throw result.error;
+    child.sharedMemo=String(result.data==null?memo:result.data);
+    document.getElementById("sharedMemoInput").value=child.sharedMemo;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    status.textContent=successMessage;
+  }catch(error){console.error(error);status.textContent="保存できませんでした。通信状態を確認して、もう一度お試しください。";status.classList.add("error");}
+  finally{remoteBusy=false;saveButton.disabled=false;deleteButton.disabled=false;saveButton.textContent="メモを保存";}
+}
+function saveSharedMemo(){storeSharedMemo(document.getElementById("sharedMemoInput").value,"メモを保存しました。");}
+function deleteSharedMemo(){
+  const current=document.getElementById("sharedMemoInput").value;
+  if(!current){const status=document.getElementById("sharedMemoStatus");status.textContent="削除するメモはありません。";status.classList.remove("error");return;}
+  if(confirm("このメモを削除しますか？"))storeSharedMemo("","メモを削除しました。");
 }
 function openChildHistory(id){
   childHistoryId=id;
@@ -4038,7 +4135,7 @@ if(returnToSharedChooser&&sharedParentMode){
       const latestSession=await remoteClient.auth.getSession();
       if(!latestSession.data.session){
         alert("保護者のログインを確認できませんでした。もう一度ログインしてください。");
-  location.replace("./?v=release-1.1.5");
+  location.replace("./?v=release-1.2.0");
         return;
       }
       const parentRecord={
@@ -4050,7 +4147,7 @@ if(returnToSharedChooser&&sharedParentMode){
       localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
       sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
       alert("この端末を保護者専用に戻しました。");
-      location.replace("parent.html?v=release-1.1.5");
+      location.replace("parent.html?v=release-1.2.0");
     };
   }
   returnToSharedChooser.onclick=async()=>{
@@ -4058,7 +4155,7 @@ if(returnToSharedChooser&&sharedParentMode){
     localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
     sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
     await remoteClient.auth.signOut({scope:"local"});
-    location.replace("./?v=release-1.1.5");
+    location.replace("./?v=release-1.2.0");
   };
   window.addEventListener("pageshow",async event=>{
     if(!event.persisted)return;
@@ -4068,11 +4165,14 @@ if(returnToSharedChooser&&sharedParentMode){
     const grantStillValid=grant&&grant.version===1&&grant.userId===remoteParentDevice.userId&&
       grant.familyId===remoteParentDevice.familyId&&Number.isFinite(grant.startedAt)&&
       grant.startedAt<=Date.now()&&Date.now()-grant.startedAt<2*60*60*1000;
-  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.1.5");
+  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.2.0");
   });
 }
 
 document.getElementById("openSettings").onclick=()=>showView("settingsView");
+document.getElementById("openFamilySettings").onclick=openFamilySettings;
+document.getElementById("backFromFamilySettings").onclick=()=>showView("settingsView");
+document.getElementById("saveFamilyName").onclick=saveFamilyName;
 document.getElementById("openAppSettings").onclick=()=>{renderAppSettings();showView("appSettingsView")};
 document.getElementById("backFromAppSettings").onclick=()=>showView("settingsView");
 document.getElementById("refreshAppData").onclick=refreshFromAppSettings;
@@ -4266,6 +4366,8 @@ document.getElementById("backFromChildHub").onclick=()=>{showView("homeView");re
 document.getElementById("backFromChildHistory").onclick=()=>{showView("homeView");renderHome()};
 document.getElementById("backFromSpecialReward").onclick=()=>{showView("homeView");renderHome()};
 document.getElementById("grantSpecialReward").onclick=grantSpecialReward;
+document.getElementById("saveSharedMemo").onclick=saveSharedMemo;
+document.getElementById("deleteSharedMemo").onclick=deleteSharedMemo;
 document.getElementById("hubEditProfile").onclick=()=>openChildEditor(childHubId);
 document.getElementById("hubEditPayment").onclick=()=>openAllowanceEditor(childHubId,"hub");
 document.getElementById("hubAddJob").onclick=()=>openJobEditor(childHubId,null);

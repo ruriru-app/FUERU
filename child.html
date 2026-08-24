@@ -1727,6 +1727,9 @@ body.ledger-previewing .lp-details10-overlay .lp-detail-meta{
   align-items:center!important;
   justify-content:center!important;
 }
+.shared-memo-card{margin:0 0 12px;padding:15px 16px;border-color:var(--theme-main)}
+.shared-memo-title{margin:0 0 8px;color:var(--theme-deep);font-size:17px;font-weight:800}
+.shared-memo-text{max-height:280px;overflow:auto;margin:0;color:var(--ink);font-size:14px;font-weight:600;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
 
 /* v0.5.16 明細行プレビュー：行内座標と可読性を修正 */
 body.ledger-previewing .lp-row{
@@ -1913,6 +1916,11 @@ body.fueru-child-booting .app{visibility:hidden}
     <span class="monthly-reward-label">今月のお仕事報酬</span>
     <span class="monthly-reward-amount"><span id="monthlyConfirmed">0</span><span class="monthly-reward-chevron">›</span></span>
   </button>
+
+  <section class="card shared-memo-card" id="sharedMemoCard" aria-labelledby="sharedMemoTitle" hidden>
+    <h2 class="shared-memo-title" id="sharedMemoTitle">メモ</h2>
+    <p class="shared-memo-text" id="sharedMemoText"></p>
+  </section>
 
   <section class="card passbook-card" aria-label="FUERU通帳">
     <h2 class="passbook-title">FUERU通帳</h2>
@@ -2428,7 +2436,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-    location.href="./?v=release-1.1.5";
+    location.href="./?v=release-1.2.0";
     });
   }
 }
@@ -2602,7 +2610,7 @@ function mapRemoteChildData(result){
     rewardPayDay:Number(settings.reward_pay_day)||25,payoutMode:settings.payout_mode||"manual",
     closeType:settings.close_type||"monthEnd",closeDay:Number(settings.close_day)||31,
     periodMode:settings.period_mode||"cycle",withdrawalUnit:Number(settings.withdrawal_unit)||100,
-    ledgerMode:settings.ledger_mode||"easy",reports:remoteReports,jobs:remoteJobs,
+    ledgerMode:settings.ledger_mode||"easy",sharedMemo:String(settings.shared_memo||""),reports:remoteReports,jobs:remoteJobs,
     transactions:transactions,withdrawalRequests:withdrawals,cancelledJobDates:cancelled,
     passbookBalance:passbookBalance,ledgerEntries:ledgerEntries,
     spendingItems:catalog.filter(function(item){return item.kind==="expense_item";}),
@@ -3306,6 +3314,11 @@ function renderCalendar(){
 function renderHome(){
   syncRecordsFromShared();
   renderSharedPassbook();
+  var memoChild=sharedChild(loadSharedState());
+  var memo=memoChild&&typeof memoChild.sharedMemo==="string"?memoChild.sharedMemo:"";
+  var memoCard=document.getElementById("sharedMemoCard");
+  document.getElementById("sharedMemoText").textContent=memo;
+  memoCard.hidden=!memo.trim();
   renderCalendar();
   renderMonthlyReward();
   var list=scheduledJobs(selectedDate);
@@ -3503,7 +3516,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-  location.replace("./?v=release-1.1.5");
+  location.replace("./?v=release-1.2.0");
   };
 }
 

@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="fueru-app-icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="fueru-app-icon-180.png">
 <link rel="manifest" href="site.webmanifest">
-<title>FUERU 保護者版 v0.9.32.Step2 Currency Ready</title>
+<title>FUERU｜保護者</title>
 <style>
 :root{
   --fueru-main:#8CCBC2;
@@ -1188,7 +1188,7 @@ button{cursor:pointer}
         <span>この端末の使い方を変更<small>保護者用・子ども用・家族共用を選び直す</small></span><span class="chevron">›</span>
       </button>
       <button class="settings-link" type="button" id="openAppSettings">
-        <span>アプリ全体の設定<small>データの更新・ログイン情報・バージョン</small></span><span class="chevron">›</span>
+        <span>アプリ全体の設定<small>データの更新・ログイン情報・アプリ情報</small></span><span class="chevron">›</span>
       </button>
       <button class="settings-link" type="button" id="returnToSharedChooser" hidden>
         <span>使う人を選び直す<small>家族共用端末の「だれが使いますか？」へ戻る</small></span><span class="chevron">›</span>
@@ -1233,7 +1233,7 @@ button{cursor:pointer}
         <h2 class="app-settings-title">アプリ情報</h2>
         <dl class="app-settings-list">
           <dt>アプリ</dt><dd>FUERU 保護者版</dd>
-          <dt>バージョン</dt><dd>0.9.32</dd>
+          <dt>公開版</dt><dd>1.0.0</dd>
         </dl>
       </section>
     </div>
@@ -1708,7 +1708,7 @@ button{cursor:pointer}
         <span class="money-suffix" data-currency-unit></span>
       </div>
       <label class="field-label" for="specialRewardReason">理由</label>
-      <textarea class="text-input reason-input" id="specialRewardReason" maxlength="200" placeholder="例：テストをよく頑張りました"></textarea>
+      <textarea class="text-input reason-input" id="specialRewardReason" maxlength="200" placeholder="例：発表会をよく頑張りました"></textarea>
       <div class="special-date-wrap">
         <label class="field-label" for="specialRewardDate">送金日</label>
         <input class="text-input date-compact" id="specialRewardDate" type="date">
@@ -2183,28 +2183,6 @@ async function callParentWithdrawal(action,payload={}){
   return result;
 }
 
-const seed={
-  children:[
-    {
-      id:"karen",name:"KAREN",icon:"bird",main:"#8BBFE5",sub:"#EAF5FC",deep:"#376E98",
-      allowance:3000,payType:"day",payDay:25,rewardTiming:"together",closeType:"monthEnd",closeDay:31,periodMode:"cycle",withdrawalUnit:100,
-      confirmed:460,
-      reports:[
-        {id:"r1",date:"2026-07-19",name:"風呂掃除＆お湯張り",frequency:"毎日",reward:10,status:"waiting"},
-        {id:"r2",date:"2026-07-19",name:"洗濯物の片付け",frequency:"毎日",reward:20,status:"waiting"},
-        {id:"r3",date:"2026-07-18",name:"11:00までに公文を完了",frequency:"平日",reward:50,status:"waiting"}
-      ]
-    },
-    {
-      id:"younger",name:"次女",icon:"bird",main:"#B59AD9",sub:"#F1EBF8",deep:"#68508F",
-      allowance:2000,payType:"monthEnd",payDay:31,rewardTiming:"together",closeType:"monthEnd",closeDay:31,periodMode:"cycle",withdrawalUnit:100,
-      confirmed:280,
-      reports:[
-        {id:"r4",date:"2026-07-19",name:"テーブルを拭く",frequency:"毎日",reward:10,status:"waiting"}
-      ]
-    }
-  ]
-};
 let state;
 try{state=await loadRemoteParentState();}
 catch(error){console.error(error);alert("保護者データを読み込めませんでした。FUERUの入口からもう一度お試しください。");location.replace("./");return;}
@@ -4006,7 +3984,7 @@ if(returnToSharedChooser&&sharedParentMode){
       const latestSession=await remoteClient.auth.getSession();
       if(!latestSession.data.session){
         alert("保護者のログインを確認できませんでした。もう一度ログインしてください。");
-        location.replace("./?v=parent-mode-20260821");
+        location.replace("./?v=release-1.0.0");
         return;
       }
       const parentRecord={
@@ -4018,7 +3996,7 @@ if(returnToSharedChooser&&sharedParentMode){
       localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
       sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
       alert("この端末を保護者専用に戻しました。");
-      location.replace("parent.html?v=parent-mode-20260821");
+      location.replace("parent.html?v=release-1.0.0");
     };
   }
   returnToSharedChooser.onclick=async()=>{
@@ -4026,7 +4004,7 @@ if(returnToSharedChooser&&sharedParentMode){
     localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
     sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
     await remoteClient.auth.signOut({scope:"local"});
-    location.replace("./?v=shared-device-20260821");
+    location.replace("./?v=release-1.0.0");
   };
   window.addEventListener("pageshow",async event=>{
     if(!event.persisted)return;
@@ -4036,7 +4014,7 @@ if(returnToSharedChooser&&sharedParentMode){
     const grantStillValid=grant&&grant.version===1&&grant.userId===remoteParentDevice.userId&&
       grant.familyId===remoteParentDevice.familyId&&Number.isFinite(grant.startedAt)&&
       grant.startedAt<=Date.now()&&Date.now()-grant.startedAt<2*60*60*1000;
-    if(!latest.data.session||!grantStillValid)location.replace("./?v=shared-device-20260821");
+    if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.0.0");
   });
 }
 

@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="fueru-app-icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="fueru-app-icon-180.png">
 <link rel="manifest" href="site.webmanifest">
-<title>FUERU Child v0.5.26 Step3 Currency Ready</title>
+<title>FUERU｜子ども</title>
 <style>
 :root{
   --theme-main:#8CCBC2;--theme-main-dark:#4D9E93;--theme-main-deep:#2F746B;--theme-main-light:#EAF7F5;
@@ -2043,11 +2043,11 @@ body.fueru-child-booting .app{visibility:hidden}
   <section class="card profile-panel">
     <div class="profile-preview-wrap">
       <div class="profile-preview" id="profilePreviewIcon"></div>
-      <div class="profile-name-preview" id="profileNamePreview">KAREN</div>
+      <div class="profile-name-preview" id="profileNamePreview">なまえ</div>
     </div>
 
     <label class="field-label" for="profileName">名前（保護者が設定）</label>
-    <input class="profile-input" id="profileName" maxlength="16" value="KAREN" readonly aria-readonly="true">
+    <input class="profile-input" id="profileName" maxlength="16" value="なまえ" readonly aria-readonly="true">
 
     <div class="field-label">アイコン</div>
     <div class="option-grid" id="iconOptions"></div>
@@ -2428,7 +2428,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-      location.href="./";
+      location.href="./?v=release-1.0.0";
     });
   }
 }
@@ -2668,7 +2668,7 @@ async function performChildMutation(action,payload){
 }
 async function initializeRemoteChild(){
   if(!validChildConnection){
-    showChildBootFailure("この端末の子ども接続を確認できませんでした。");
+    showChildBootFailure("この端末には利用できる子ども接続がありません。「端末をつなぎ直す」から、もう一度つないでください。",true);
     return false;
   }
   var unlock=null;var retry=false;
@@ -2690,7 +2690,7 @@ async function initializeRemoteChild(){
         continue;
       }
       if(error&&error.code==="invalid_device"){
-        showChildBootFailure("この端末の接続を確認できませんでした。一時的な場合があるため、接続情報は自動で削除していません。",true);
+        showChildBootFailure("この端末の接続は解除されているか、利用できなくなっています。「端末をつなぎ直す」から、もう一度つないでください。",true);
       }else if(error&&error.code==="temporarily_locked"){
         showChildBootFailure("入力回数が多いため、一時的に確認を停止しています。10分ほど待ってから、もう一度お試しください。");
       }else{
@@ -3122,7 +3122,7 @@ var iconTypes=[
   {id:"flower",label:"花"},
   {id:"moon",label:"月"}
 ];
-var profileDraft={name:"KAREN",icon:"bird",main:"mint",sub:"lavender"};
+var profileDraft={name:"なまえ",icon:"bird",main:"mint",sub:"lavender"};
 function cloneObj(obj){return JSON.parse(JSON.stringify(obj))}
 function hexToRgb(hex){hex=hex.replace("#","");return {r:parseInt(hex.slice(0,2),16),g:parseInt(hex.slice(2,4),16),b:parseInt(hex.slice(4,6),16)}}
 function rgbToHex(rgb){return "#"+[rgb.r,rgb.g,rgb.b].map(function(v){return Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")}).join("").toUpperCase()}
@@ -3503,7 +3503,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-    location.replace("./?v=shared-device-20260821");
+    location.replace("./?v=release-1.0.0");
   };
 }
 

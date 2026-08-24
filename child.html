@@ -1727,9 +1727,13 @@ body.ledger-previewing .lp-details10-overlay .lp-detail-meta{
   align-items:center!important;
   justify-content:center!important;
 }
-.shared-memo-card{margin:0 0 12px;padding:15px 16px;border-color:var(--theme-main)}
-.shared-memo-title{margin:0 0 8px;color:var(--theme-deep);font-size:17px;font-weight:800}
-.shared-memo-text{max-height:280px;overflow:auto;margin:0;color:var(--ink);font-size:14px;font-weight:600;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
+.shared-memo-card{margin:12px 0 0;padding:0;border-color:var(--theme-main);overflow:hidden}
+.shared-memo-card summary{display:flex;min-height:50px;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;color:var(--theme-deep);font-size:16px;font-weight:800;cursor:pointer;list-style:none}
+.shared-memo-card summary::-webkit-details-marker{display:none}
+.shared-memo-arrow{font-size:22px;line-height:1;transition:transform .2s ease}
+.shared-memo-card[open] .shared-memo-arrow{transform:rotate(90deg)}
+.shared-memo-body{padding:0 16px 16px;border-top:1px solid var(--line)}
+.shared-memo-text{max-height:280px;overflow:auto;margin:13px 0 0;color:var(--ink);font-size:14px;font-weight:600;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
 
 /* v0.5.16 明細行プレビュー：行内座標と可読性を修正 */
 body.ledger-previewing .lp-row{
@@ -1917,11 +1921,6 @@ body.fueru-child-booting .app{visibility:hidden}
     <span class="monthly-reward-amount"><span id="monthlyConfirmed">0</span><span class="monthly-reward-chevron">›</span></span>
   </button>
 
-  <section class="card shared-memo-card" id="sharedMemoCard" aria-labelledby="sharedMemoTitle" hidden>
-    <h2 class="shared-memo-title" id="sharedMemoTitle">メモ</h2>
-    <p class="shared-memo-text" id="sharedMemoText"></p>
-  </section>
-
   <section class="card passbook-card" aria-label="FUERU通帳">
     <h2 class="passbook-title">FUERU通帳</h2>
     <div class="passbook-balance-line">
@@ -2015,6 +2014,10 @@ body.fueru-child-booting .app{visibility:hidden}
       <button class="report" type="button" id="reportButton" disabled>報告する</button>
     </div>
   </section>
+  <details class="card shared-memo-card" id="sharedMemoCard" hidden>
+    <summary><span>メモ</span><span class="shared-memo-arrow" aria-hidden="true">›</span></summary>
+    <div class="shared-memo-body"><p class="shared-memo-text" id="sharedMemoText"></p></div>
+  </details>
 </section>
 
 
@@ -2436,7 +2439,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-    location.href="./?v=release-1.2.0";
+    location.href="./?v=release-1.2.1";
     });
   }
 }
@@ -3516,7 +3519,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-  location.replace("./?v=release-1.2.0");
+  location.replace("./?v=release-1.2.1");
   };
 }
 

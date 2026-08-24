@@ -1233,7 +1233,7 @@ button{cursor:pointer}
         <h2 class="app-settings-title">アプリ情報</h2>
         <dl class="app-settings-list">
           <dt>アプリ</dt><dd>FUERU 保護者版</dd>
-            <dt>公開版</dt><dd>1.0.1</dd>
+            <dt>公開版</dt><dd>1.0.2</dd>
         </dl>
       </section>
     </div>
@@ -1361,7 +1361,7 @@ button{cursor:pointer}
     <section class="card ledger-list-tile">
       <div class="ledger-list-accordion" id="spendingAccordion">
         <button class="ledger-list-toggle" type="button" data-ledger-accordion="spendingAccordion">
-          <span><strong>使い道リスト</strong><small>すいすい・かんたんモードは身近な使い道、しっかりモードは費目別の初期リストです。どのモードでも書き換えられます。</small></span>
+          <span><strong>使い道リスト</strong><small>記録方法に合わせた初期リストです。どのモードでも書き換えられます。</small></span>
           <span class="arrow">⌄</span>
         </button>
         <div class="ledger-list-body">
@@ -2253,6 +2253,24 @@ const LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS=[
   {id:"sp_transport",icon:"🚌",name:"電車・バス",category:"交通費"},
   {id:"sp_other",icon:"🧺",name:"その他",category:"その他"}
 ];
+const LEDGER_DEFAULT_SIMPLE_EXPENSE_ITEMS=[
+  {id:"sp_simple_food",icon:"🍙",name:"外食・おかし・飲み物",category:"飲食費"},
+  {id:"sp_simple_play",icon:"🎡",name:"遊び・映画",category:"交際・娯楽費"},
+  {id:"sp_simple_karaoke",icon:"🎡",name:"カラオケ・プリクラ",category:"交際・娯楽費"},
+  {id:"sp_simple_clothes",icon:"👚",name:"洋服、靴",category:"衣服費"},
+  {id:"sp_simple_accessories",icon:"👚",name:"バッグ、アクセサリー",category:"衣服費"},
+  {id:"sp_simple_cosmetics",icon:"💄",name:"コスメ・スキンケア",category:"美容費"},
+  {id:"sp_simple_hair",icon:"💄",name:"美容院",category:"美容費"},
+  {id:"sp_simple_hobby",icon:"🎧",name:"推し活・本・マンガ",category:"趣味費"},
+  {id:"sp_simple_learning",icon:"✏",name:"文房具・参考書",category:"学習費"},
+  {id:"sp_simple_digital",icon:"📱",name:"スマホ関連",category:"通信・デジタル費"},
+  {id:"sp_simple_transport",icon:"🚃",name:"電車・バス・駐輪場",category:"交通費"},
+  {id:"sp_simple_gift",icon:"🎁",name:"プレゼント・贈り物",category:"交際費"},
+  {id:"sp_simple_daily",icon:"🧴",name:"身に回りの品、消耗品",category:"日用品費"},
+  {id:"sp_simple_sports",icon:"🏃",name:"部活・スポーツ用品",category:"部活・スポーツ費"},
+  {id:"sp_simple_health",icon:"🏥",name:"薬・コンタクト",category:"医療・健康費"},
+  {id:"sp_simple_other",icon:"🧺",name:"その他",category:"その他"}
+];
 const LEDGER_DEFAULT_FULL_EXPENSE_ITEMS=[
   {id:"sp_full_food",icon:"🍙",name:"飲食費",category:"飲食費"},
   {id:"sp_full_entertainment",icon:"🎡",name:"交際・娯楽費",category:"交際・娯楽費"},
@@ -2270,7 +2288,9 @@ const LEDGER_DEFAULT_FULL_EXPENSE_ITEMS=[
 ];
 function cloneLedgerExpenseItems(items){return items.map(item=>({...item}))}
 function ledgerDefaultExpenseItems(mode){
-  return mode==="full"?LEDGER_DEFAULT_FULL_EXPENSE_ITEMS:LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS;
+  if(mode==="full")return LEDGER_DEFAULT_FULL_EXPENSE_ITEMS;
+  if(mode==="simple")return LEDGER_DEFAULT_SIMPLE_EXPENSE_ITEMS;
+  return LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS;
 }
 function ledgerCatalogMatchesDefault(items,defaults){
   return Array.isArray(items)&&items.length===defaults.length&&items.every((item,index)=>{
@@ -2280,12 +2300,15 @@ function ledgerCatalogMatchesDefault(items,defaults){
 }
 function ensureLedgerSpendingDefault(child){
   const current=child.spendingItems;
+  const target=ledgerDefaultExpenseItems(child.ledgerMode);
   if(!Array.isArray(current)||!current.length){
-    child.spendingItems=cloneLedgerExpenseItems(ledgerDefaultExpenseItems(child.ledgerMode));
-  }else if(child.ledgerMode==="full"&&ledgerCatalogMatchesDefault(current,LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS)){
-    child.spendingItems=cloneLedgerExpenseItems(LEDGER_DEFAULT_FULL_EXPENSE_ITEMS);
-  }else if(child.ledgerMode!=="full"&&ledgerCatalogMatchesDefault(current,LEDGER_DEFAULT_FULL_EXPENSE_ITEMS)){
-    child.spendingItems=cloneLedgerExpenseItems(LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS);
+    child.spendingItems=cloneLedgerExpenseItems(target);
+  }else if(
+    !ledgerCatalogMatchesDefault(current,target)&&
+    [LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS,LEDGER_DEFAULT_SIMPLE_EXPENSE_ITEMS,LEDGER_DEFAULT_FULL_EXPENSE_ITEMS]
+      .some(defaults=>ledgerCatalogMatchesDefault(current,defaults))
+  ){
+    child.spendingItems=cloneLedgerExpenseItems(target);
   }
 }
 
@@ -3874,7 +3897,7 @@ function removeIncomeReasonItem(itemId){
 
 function populateLedgerCategories(selected){
   const select=document.getElementById("spendingCategoryInput");
-  const categories=[...(ledgerDraft?.ledgerMode==="full"?LEDGER_FULL_CATEGORIES:LEDGER_STANDARD_CATEGORIES)];
+  const categories=[...(ledgerDraft?.ledgerMode==="easy"?LEDGER_STANDARD_CATEGORIES:LEDGER_FULL_CATEGORIES)];
   if(selected&&!categories.includes(selected))categories.push(selected);
   select.innerHTML=categories.map(c=>`<option value="${c}"${c===selected?" selected":""}>${c}</option>`).join("");
 }
@@ -4015,7 +4038,7 @@ if(returnToSharedChooser&&sharedParentMode){
       const latestSession=await remoteClient.auth.getSession();
       if(!latestSession.data.session){
         alert("保護者のログインを確認できませんでした。もう一度ログインしてください。");
-  location.replace("./?v=release-1.0.1");
+  location.replace("./?v=release-1.0.2");
         return;
       }
       const parentRecord={
@@ -4027,7 +4050,7 @@ if(returnToSharedChooser&&sharedParentMode){
       localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
       sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
       alert("この端末を保護者専用に戻しました。");
-      location.replace("parent.html?v=release-1.0.1");
+      location.replace("parent.html?v=release-1.0.2");
     };
   }
   returnToSharedChooser.onclick=async()=>{
@@ -4035,7 +4058,7 @@ if(returnToSharedChooser&&sharedParentMode){
     localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
     sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
     await remoteClient.auth.signOut({scope:"local"});
-    location.replace("./?v=release-1.0.1");
+    location.replace("./?v=release-1.0.2");
   };
   window.addEventListener("pageshow",async event=>{
     if(!event.persisted)return;
@@ -4045,7 +4068,7 @@ if(returnToSharedChooser&&sharedParentMode){
     const grantStillValid=grant&&grant.version===1&&grant.userId===remoteParentDevice.userId&&
       grant.familyId===remoteParentDevice.familyId&&Number.isFinite(grant.startedAt)&&
       grant.startedAt<=Date.now()&&Date.now()-grant.startedAt<2*60*60*1000;
-  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.0.1");
+  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.0.2");
   });
 }
 

@@ -2428,7 +2428,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-    location.href="./?v=release-1.0.1";
+    location.href="./?v=release-1.0.2";
     });
   }
 }
@@ -3503,7 +3503,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-  location.replace("./?v=release-1.0.1");
+  location.replace("./?v=release-1.0.2");
   };
 }
 
@@ -3605,6 +3605,24 @@ var LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS=[
   {id:"transport",icon:"🚌",name:"電車・バス",category:"交通費"},
   {id:"other",icon:"🧺",name:"その他",category:"その他"}
 ];
+var LEDGER_DEFAULT_SIMPLE_EXPENSE_ITEMS=[
+  {id:"simple_food",icon:"🍙",name:"外食・おかし・飲み物",category:"飲食費"},
+  {id:"simple_play",icon:"🎡",name:"遊び・映画",category:"交際・娯楽費"},
+  {id:"simple_karaoke",icon:"🎡",name:"カラオケ・プリクラ",category:"交際・娯楽費"},
+  {id:"simple_clothes",icon:"👚",name:"洋服、靴",category:"衣服費"},
+  {id:"simple_accessories",icon:"👚",name:"バッグ、アクセサリー",category:"衣服費"},
+  {id:"simple_cosmetics",icon:"💄",name:"コスメ・スキンケア",category:"美容費"},
+  {id:"simple_hair",icon:"💄",name:"美容院",category:"美容費"},
+  {id:"simple_hobby",icon:"🎧",name:"推し活・本・マンガ",category:"趣味費"},
+  {id:"simple_learning",icon:"✏",name:"文房具・参考書",category:"学習費"},
+  {id:"simple_digital",icon:"📱",name:"スマホ関連",category:"通信・デジタル費"},
+  {id:"simple_transport",icon:"🚃",name:"電車・バス・駐輪場",category:"交通費"},
+  {id:"simple_gift",icon:"🎁",name:"プレゼント・贈り物",category:"交際費"},
+  {id:"simple_daily",icon:"🧴",name:"身に回りの品、消耗品",category:"日用品費"},
+  {id:"simple_sports",icon:"🏃",name:"部活・スポーツ用品",category:"部活・スポーツ費"},
+  {id:"simple_health",icon:"🏥",name:"薬・コンタクト",category:"医療・健康費"},
+  {id:"simple_other",icon:"🧺",name:"その他",category:"その他"}
+];
 var LEDGER_DEFAULT_FULL_EXPENSE_ITEMS=[
   {id:"full_food",icon:"🍙",name:"飲食費",category:"飲食費"},
   {id:"full_entertainment",icon:"🎡",name:"交際・娯楽費",category:"交際・娯楽費"},
@@ -3676,7 +3694,10 @@ function ledgerExpenseItemsForChild(data,child){
         .map(function(x,n){return normalizeLedgerListItem(x,n,"使い道");});
     }
   }
-  return (ledgerModeForChild(child)==="full"?LEDGER_DEFAULT_FULL_EXPENSE_ITEMS:LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS).slice();
+  var mode=ledgerModeForChild(child);
+  if(mode==="full")return LEDGER_DEFAULT_FULL_EXPENSE_ITEMS.slice();
+  if(mode==="simple")return LEDGER_DEFAULT_SIMPLE_EXPENSE_ITEMS.slice();
+  return LEDGER_DEFAULT_STANDARD_EXPENSE_ITEMS.slice();
 }
 function ensureLedgerEntries(child){
   if(!Array.isArray(child.ledgerEntries))child.ledgerEntries=[];

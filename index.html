@@ -637,7 +637,7 @@
           <button id="showDeviceSettingsButton" type="button">確認</button>
         </div>
         <div id="familyList" class="family-list"></div>
-          <a class="button primary" href="parent.html?v=release-1.1.2">保護者画面を開く</a>
+          <a class="button primary" href="parent.html?v=release-1.1.3">保護者画面を開く</a>
         <p id="homeMessage" class="message hidden" role="status" aria-live="polite"></p>
 
         <section class="child-setup" aria-labelledby="childSetupTitle">
@@ -706,7 +706,7 @@
         <p id="childReadyName" class="ready-name"></p>
         <p id="childReadyUnlock" class="muted compact"></p>
         <p class="message">この端末専用の安全な接続情報を保存しました。家族コードやPINそのものを、データを見るための鍵には使用しません。</p>
-          <a class="button primary" href="child.html?v=release-1.1.2">子ども画面を開く</a>
+          <a class="button primary" href="child.html?v=release-1.1.3">子ども画面を開く</a>
         <p class="device-coming">子ども画面は、接続した本人のデータだけを読み込みます。報告・出金・おこづかい帳の記録は家庭のデータへ保存されます。</p>
       </section>
 
@@ -859,9 +859,9 @@
       function cancelDeviceModeChange() {
         const mode = storedDeviceMode();
         finishDeviceModeChange();
-      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.2');
-      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.2');
-      else window.location.replace('./?v=release-1.1.2');
+      if (mode === 'parent') window.location.replace('parent.html?v=release-1.1.3');
+      else if (mode === 'child') window.location.replace('child.html?v=release-1.1.3');
+      else window.location.replace('./?v=release-1.1.3');
       }
 
       function setMessage(id, text, isError = false) {
@@ -901,9 +901,9 @@
           .normalize('NFKC')
           .replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, '')
           .trim();
-        const marker = 'FUERU-AUTH-V1:';
-        const markerAt = text.indexOf(marker);
-        const token = (markerAt >= 0 ? text.slice(markerAt + marker.length) : text)
+        const marker = /FUERU-AUTH-V1:/i;
+        const markerMatch = marker.exec(text);
+        const token = (markerMatch ? text.slice(markerMatch.index + markerMatch[0].length) : text)
           .replace(/^["']+|["']+$/g, '');
         return /^[A-Za-z0-9_-]{20,500}$/.test(token) ? token : '';
       }
@@ -1767,7 +1767,7 @@
                   familyId: sharedDevice.familyId,
                   startedAt: Date.now()
                 }));
-    window.location.replace('parent.html?v=release-1.1.2');
+    window.location.replace('parent.html?v=release-1.1.3');
                 return;
               }
 
@@ -2109,7 +2109,7 @@
           await establishSharedChildSession(device, profile, secret);
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();
-      window.location.href = 'child.html?v=release-1.1.2';
+      window.location.href = 'child.html?v=release-1.1.3';
         } catch (error) {
           byId('sharedUnlockPin').value = '';
           resetSharedUnlockPattern();

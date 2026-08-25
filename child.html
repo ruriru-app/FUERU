@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="FUERU">
-<link rel="icon" type="image/svg+xml" href="fueru-app-icon.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="fueru-app-icon-180.png">
+<link rel="icon" type="image/svg+xml" href="fueru-app-icon-v2.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="fueru-app-icon-v2-180.png">
 <link rel="manifest" href="site.webmanifest">
 <title>FUERU｜子ども</title>
 <style>
@@ -2439,7 +2439,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-    location.href="./?v=release-1.2.2";
+    location.href="./?v=release-1.2.3";
     });
   }
 }
@@ -3519,7 +3519,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-  location.replace("./?v=release-1.2.2");
+  location.replace("./?v=release-1.2.3");
   };
 }
 

@@ -1266,7 +1266,7 @@ button{cursor:pointer}
         <h2 class="app-settings-title">アプリ情報</h2>
         <dl class="app-settings-list">
           <dt>アプリ</dt><dd>FUERU 保護者版</dd>
-            <dt>公開版</dt><dd>1.2.3</dd>
+            <dt>公開版</dt><dd>1.2.4</dd>
         </dl>
       </section>
     </div>
@@ -1971,7 +1971,7 @@ async function loadRemoteParentState(){
     const appearance=safeRemoteChildAppearance(child.icon,child.theme_main,child.theme_sub,child.theme_deep);
     const allowanceTransactions=transactions.filter(item=>item.type==="allowance"&&item.sourceType==="allowance_due");
     const lastAllowancePayoutDate=allowanceTransactions.map(item=>item.date||"").sort().pop()||"";
-    return {id:child.id,name:child.display_name,icon:appearance.icon,main:appearance.main,sub:appearance.sub,deep:appearance.deep,
+    return {id:child.id,name:child.display_name,createdAt:child.created_at||"",icon:appearance.icon,main:appearance.main,sub:appearance.sub,deep:appearance.deep,
       allowance:Number(settings.allowance)||0,payType:settings.pay_type||"day",payDay:Number(settings.pay_day)||25,
       rewardTiming:settings.reward_timing||"immediate",rewardPaySchedule:settings.reward_pay_schedule||"allowance",rewardPayDay:Number(settings.reward_pay_day)||25,
       closeType:settings.close_type||"monthEnd",closeDay:Number(settings.close_day)||31,periodMode:settings.period_mode||"cycle",payoutMode:settings.payout_mode||"manual",
@@ -2850,9 +2850,18 @@ function allowanceDueDateForMonth(child,year,month){
   const max=new Date(year,month+1,0).getDate();
   return new Date(year,month,Math.min(Number(child.payDay||1),max));
 }
+function childRegistrationDate(child){
+  const parsed=new Date(child.createdAt||"");
+  if(Number.isNaN(parsed.getTime()))return null;
+  return new Date(parsed.getFullYear(),parsed.getMonth(),parsed.getDate());
+}
 function currentOrNextAllowanceDue(child,baseDate=new Date()){
   const today=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate());
   let due=allowanceDueDateForMonth(child,today.getFullYear(),today.getMonth());
+  const registered=childRegistrationDate(child);
+  if(registered&&due<registered){
+    due=allowanceDueDateForMonth(child,today.getFullYear(),today.getMonth()+1);
+  }
   if(due<today&&child.lastAllowancePayoutDate===localISO(due)){
     due=allowanceDueDateForMonth(child,today.getFullYear(),today.getMonth()+1);
   }
@@ -2893,7 +2902,7 @@ function payoutStatus(child,baseDate=new Date()){
   const due=currentOrNextAllowanceDue(child,baseDate);
   const dueISO=localISO(due);
   const todayISO=localISO(baseDate);
-  const allowanceDue=dueISO<=todayISO&&child.lastAllowancePayoutDate!==dueISO;
+  const allowanceDue=Number(child.allowance||0)>0&&dueISO<=todayISO&&child.lastAllowancePayoutDate!==dueISO;
   const dueRewards=(child.pendingRewards||[]).filter(x=>(x.dueDate||todayISO)<=todayISO);
   const rewardsDue=dueRewards.length>0;
   const rewardDate=rewardsDue?dueRewards.map(x=>x.dueDate||todayISO).sort().pop():todayISO;
@@ -4135,7 +4144,7 @@ if(returnToSharedChooser&&sharedParentMode){
       const latestSession=await remoteClient.auth.getSession();
       if(!latestSession.data.session){
         alert("保護者のログインを確認できませんでした。もう一度ログインしてください。");
-  location.replace("./?v=release-1.2.3");
+  location.replace("./?v=release-1.2.4");
         return;
       }
       const parentRecord={
@@ -4147,7 +4156,7 @@ if(returnToSharedChooser&&sharedParentMode){
       localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
       sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
       alert("この端末を保護者専用に戻しました。");
-      location.replace("parent.html?v=release-1.2.3");
+      location.replace("parent.html?v=release-1.2.4");
     };
   }
   returnToSharedChooser.onclick=async()=>{
@@ -4155,7 +4164,7 @@ if(returnToSharedChooser&&sharedParentMode){
     localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
     sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
     await remoteClient.auth.signOut({scope:"local"});
-    location.replace("./?v=release-1.2.3");
+    location.replace("./?v=release-1.2.4");
   };
   window.addEventListener("pageshow",async event=>{
     if(!event.persisted)return;
@@ -4165,7 +4174,7 @@ if(returnToSharedChooser&&sharedParentMode){
     const grantStillValid=grant&&grant.version===1&&grant.userId===remoteParentDevice.userId&&
       grant.familyId===remoteParentDevice.familyId&&Number.isFinite(grant.startedAt)&&
       grant.startedAt<=Date.now()&&Date.now()-grant.startedAt<2*60*60*1000;
-  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.2.3");
+  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.2.4");
   });
 }
 

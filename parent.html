@@ -1267,7 +1267,7 @@ button{cursor:pointer}
         <h2 class="app-settings-title">アプリ情報</h2>
         <dl class="app-settings-list">
           <dt>アプリ</dt><dd>FUERU 保護者版</dd>
-            <dt>公開版</dt><dd>1.2.6</dd>
+            <dt>公開版</dt><dd>1.2.7</dd>
         </dl>
       </section>
     </div>
@@ -2882,9 +2882,10 @@ function nextPaymentPlan(child,baseDate=new Date()){
   const allowanceDueISO=localISO(allowanceDue);
   const pending=(child.pendingRewards||[]).filter(item=>item.status==="pending"&&item.dueDate);
   const rewardDueISO=pending.map(item=>item.dueDate).sort()[0]||"";
-  const dueISO=rewardDueISO&&rewardDueISO<allowanceDueISO?rewardDueISO:allowanceDueISO;
+  const hasAllowance=Number(child.allowance||0)>0;
+  const dueISO=rewardDueISO&&(!hasAllowance||rewardDueISO<allowanceDueISO)?rewardDueISO:allowanceDueISO;
   const reward=pending.filter(item=>item.dueDate===dueISO).reduce((sum,item)=>sum+Number(item.amount||0),0);
-  const allowance=dueISO===allowanceDueISO?Number(child.allowance||0):0;
+  const allowance=hasAllowance&&dueISO===allowanceDueISO?Number(child.allowance||0):0;
   const due=new Date(dueISO+"T00:00:00");
   return {due,dueISO,label:(due.getMonth()+1)+"/"+due.getDate(),allowance,reward};
 }
@@ -4179,7 +4180,7 @@ if(returnToSharedChooser&&sharedParentMode){
       const latestSession=await remoteClient.auth.getSession();
       if(!latestSession.data.session){
         alert("保護者のログインを確認できませんでした。もう一度ログインしてください。");
-  location.replace("./?v=release-1.2.6");
+  location.replace("./?v=release-1.2.7");
         return;
       }
       const parentRecord={
@@ -4191,7 +4192,7 @@ if(returnToSharedChooser&&sharedParentMode){
       localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
       sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
       alert("この端末を保護者専用に戻しました。");
-      location.replace("parent.html?v=release-1.2.6");
+      location.replace("parent.html?v=release-1.2.7");
     };
   }
   returnToSharedChooser.onclick=async()=>{
@@ -4199,7 +4200,7 @@ if(returnToSharedChooser&&sharedParentMode){
     localStorage.removeItem(SHARED_PARENT_PENDING_KEY);
     sessionStorage.removeItem(SHARED_PARENT_SESSION_KEY);
     await remoteClient.auth.signOut({scope:"local"});
-    location.replace("./?v=release-1.2.6");
+    location.replace("./?v=release-1.2.7");
   };
   window.addEventListener("pageshow",async event=>{
     if(!event.persisted)return;
@@ -4209,7 +4210,7 @@ if(returnToSharedChooser&&sharedParentMode){
     const grantStillValid=grant&&grant.version===1&&grant.userId===remoteParentDevice.userId&&
       grant.familyId===remoteParentDevice.familyId&&Number.isFinite(grant.startedAt)&&
       grant.startedAt<=Date.now()&&Date.now()-grant.startedAt<2*60*60*1000;
-  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.2.6");
+  if(!latest.data.session||!grantStillValid)location.replace("./?v=release-1.2.7");
   });
 }
 

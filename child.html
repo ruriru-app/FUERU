@@ -658,6 +658,13 @@ button{-webkit-tap-highlight-color:transparent}
 .transaction-line.message-only .transaction-line-title{
   color:var(--muted);
 }
+.transaction-job-dates{
+  margin:1px 0 0 11px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:600;
+  line-height:1.45;
+}
 .passbook-empty{
   padding:34px 18px;
   text-align:center;
@@ -2439,7 +2446,7 @@ function showChildBootFailure(message,allowReconnect){
     document.getElementById("fueruReconnectDevice").addEventListener("click",function(){
       if(sharedDeviceMode)sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
       else localStorage.removeItem(DEVICE_STORAGE_KEY);
-    location.href="./?v=release-1.2.4";
+    location.href="./?v=release-1.2.5";
     });
   }
 }
@@ -2927,12 +2934,39 @@ function childDisplayPeriod(child,offset){
 }
 function displayTransactionItems(tx){
   if(Array.isArray(tx.items)&&tx.items.length){
+    if(tx.type==="job"){
+      var grouped=[];
+      tx.items.forEach(function(item){
+        var name=item.name||"お仕事";
+        var unitAmount=Number(item.amount)||0;
+        var key=name+"\u0000"+unitAmount;
+        var group=grouped.find(function(entry){return entry.key===key;});
+        if(!group){
+          group={key:key,name:name,unitAmount:unitAmount,count:0,amount:0,workDates:[],jobSummary:true};
+          grouped.push(group);
+        }
+        group.count++;
+        group.amount+=unitAmount;
+        if(item.workDate)group.workDates.push(String(item.workDate));
+      });
+      return grouped;
+    }
     return tx.items.map(function(item){
-      return {name:item.name||"明細",amount:Number(item.amount)||0};
+      return {name:item.name||"明細",amount:Number(item.amount)||0,workDate:item.workDate||""};
     });
   }
   var label=tx.reason||transactionTypeLabel(tx);
   return [{name:label,amount:Number(tx.amount)||0}];
+}
+function compactWorkDates(dates){
+  var month="";
+  return Array.from(new Set((dates||[]).filter(Boolean))).sort().map(function(value){
+    var d=parseDate(value);
+    var current=String(d.getMonth()+1);
+    var label=current===month?String(d.getDate()):current+"/"+d.getDate();
+    month=current;
+    return label;
+  }).join(", ");
 }
 function renderSharedPassbook(){
   var data=loadSharedState(),child=sharedChild(data);if(!child)return;
@@ -3041,6 +3075,22 @@ function renderSharedPassbook(){
       items.forEach(function(item,index){
         if(singleDuplicate)return;
         var line=document.createElement("div");
+        if(item.jobSummary){
+          line.className="transaction-line job-summary";
+          var jobTitle=document.createElement("div");
+          jobTitle.className="transaction-line-title";
+          jobTitle.textContent="・"+item.name+" "+moneyFormat.format(item.unitAmount)+"×"+item.count+"回　"+moneyFormat.format(item.amount);
+          line.appendChild(jobTitle);
+          var dateText=compactWorkDates(item.workDates);
+          if(dateText){
+            var dates=document.createElement("div");
+            dates.className="transaction-job-dates";
+            dates.textContent="（"+dateText+"）";
+            line.appendChild(dates);
+          }
+          lines.appendChild(line);
+          return;
+        }
         var showAmount=!special && (items.length>1 || list.length>1 || tx.type==="payout");
         line.className="transaction-line"+(showAmount?"":" message-only");
 
@@ -3519,7 +3569,7 @@ if(returnToSharedChooser&&sharedDeviceMode){
   returnToSharedChooser.hidden=false;
   returnToSharedChooser.onclick=function(){
     sessionStorage.removeItem(SHARED_CHILD_SESSION_KEY);
-  location.replace("./?v=release-1.2.4");
+  location.replace("./?v=release-1.2.5");
   };
 }
 
